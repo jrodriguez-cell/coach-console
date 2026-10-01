@@ -13,6 +13,7 @@ import { holdSeconds } from "@/lib/training";
 import { DAY_NAMES, formatDate } from "@/lib/dates";
 import { describePrediction } from "@/lib/energy";
 import type { ExportInput } from "./xlsx";
+import { EFFORT_NOTE, type ClientWeek } from "@/lib/client-week";
 
 // Standard PDF fonts use WinAnsi; map characters outside it.
 export function pdfText(s: string): string {
@@ -248,4 +249,54 @@ export function ProgressReport({ r }: { r: ProgressReportInput }) {
 
 export async function renderProgressPdf(r: ProgressReportInput): Promise<Buffer> {
   return renderToBuffer(<ProgressReport r={r} />);
+}
+
+// ---------------------------------------------------------------------------
+// Client week sheet (client-facing: no calorie or energy numbers)
+// ---------------------------------------------------------------------------
+
+export function ClientWeekDocument({ w }: { w: ClientWeek }) {
+  return (
+    <Document title={`${w.clientName} week ${w.week}`} author="Coach Console">
+      <Page size="LETTER" style={s.page}>
+        <View style={s.header} fixed>
+          <Text>{pdfText(`${w.clientName} — Week ${w.week} of ${w.totalWeeks}`)}</Text>
+          {w.draft && <Text style={{ color: "#dc2626", fontFamily: "Helvetica-Bold" }}>DRAFT</Text>}
+        </View>
+        {w.draft && <Text style={s.watermark} fixed>DRAFT</Text>}
+        <View style={s.footer} fixed>
+          <Text>Stop any exercise that causes sharp pain and tell your coach.</Text>
+          <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
+        </View>
+        <T style={s.h1}>{`Your workouts: week ${w.week}`}</T>
+        <T style={s.muted}>{`${w.range} · ${w.phase}${w.deload ? " · Deload week: lighter on purpose, fewer sets, stop well short of failure" : ""}`}</T>
+        {w.days.map((d) => {
+          const rest = !d.strength && !d.cardio && !d.mobility && d.other.length === 0;
+          return (
+            <View key={d.date} wrap={false} style={{ marginTop: 8 }}>
+              <T style={s.h3}>{`${d.label}${rest ? " — Rest day" : ""}`}</T>
+              {d.other.map((o, i) => <T key={i} style={s.muted}>{`• ${o}`}</T>)}
+              {d.strength && (
+                <View style={{ marginTop: 2 }}>
+                  <T style={{ fontFamily: "Helvetica-Bold" }}>{`${d.strength.name} (~${d.strength.minutes} min + 5-10 min warm-up)`}</T>
+                  <Table
+                    cols={["Exercise", "Sets × reps", "Rest", "Effort", "Done"]}
+                    widths={[52, 16, 10, 12, 10]}
+                    rows={d.strength.exercises.map((e) => [`${e.name}${e.tip ? `\nTip: ${e.tip}` : ""}${e.easier ? `\nEasier option: ${e.easier}` : ""}`, e.dose, e.rest, e.effort, "[  ]"])}
+                  />
+                </View>
+              )}
+              {d.cardio && <T>{`Cardio: ${d.cardio}`}</T>}
+              {d.mobility && <T>{`${d.mobility.text}: ${d.mobility.moves.join(", ")}`}</T>}
+            </View>
+          );
+        })}
+        <T style={s.disclaimer}>{EFFORT_NOTE}</T>
+      </Page>
+    </Document>
+  );
+}
+
+export async function renderClientWeekPdf(w: ClientWeek): Promise<Buffer> {
+  return renderToBuffer(<ClientWeekDocument w={w} />);
 }

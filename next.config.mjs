@@ -6,6 +6,7 @@ const nextConfig = {
     // that file tracing can't follow, so ship them explicitly with the PDF routes.
     outputFileTracingIncludes: {
       "/api/plans/[planId]/export/pdf": ["./node_modules/pdfkit/js/standard-fonts/**"],
+      "/api/plans/[planId]/export/week": ["./node_modules/pdfkit/js/standard-fonts/**"],
       "/api/clients/[id]/progress-report": ["./node_modules/pdfkit/js/standard-fonts/**"],
     },
   },

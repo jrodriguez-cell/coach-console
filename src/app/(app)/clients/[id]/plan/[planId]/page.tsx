@@ -15,13 +15,15 @@ import { GOAL_TEMPLATES } from "@/config/goal-templates";
 import { PHASES } from "@/config/training-variables";
 import { METS, NEAT_FACTORS } from "@/config/energy";
 import { goalLabel, PATTERN_LABEL } from "@/lib/labels";
-import { DAY_NAMES, formatDate } from "@/lib/dates";
+import { DAY_NAMES, formatDate, todayIn } from "@/lib/dates";
 import { describePrediction } from "@/lib/energy";
 import { holdSeconds, isUsable } from "@/lib/training";
 import { candidateFilter } from "@/lib/generator";
 import { IntakeAnswersSchema } from "@/lib/intake";
 import { planCalendar } from "@/lib/calendar";
 import type { PlanRow } from "@/lib/data/types";
+import { currentPlanWeek } from "@/lib/client-week";
+import { ShareWeek } from "@/components/share-week";
 
 export const dynamic = "force-dynamic";
 
@@ -81,7 +83,7 @@ export default async function PlanPage({ params, searchParams }: { params: { id:
       </div>
 
       {tab === "overview" && <Overview plan={plan} editable={editable} clientId={client.id} purpose={client.purpose_text} intakeGoal={intake?.answers.primary_goal} />}
-      {tab === "training" && <Training plan={plan} editable={editable} week={Number(searchParams.week ?? 1)} base={base} candidates={await swapCandidates(db, plan, intake?.answers)} />}
+      {tab === "training" && <Training plan={plan} editable={editable} week={Number(searchParams.week) || currentPlanWeek(plan.parameters, todayIn())} fileBase={client.name.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "")} base={base} candidates={await swapCandidates(db, plan, intake?.answers)} />}
       {tab === "nutrition" && <Nutrition plan={plan} editable={editable} disclaimer={settings.disclaimer} hasGoalWeight={Boolean(intake?.answers.goal_weight_lb)} />}
       {tab === "calendar" && <Calendar plan={plan} />}
       {tab === "checkpoints" && <Checkpoints plan={plan} clientId={client.id} />}
@@ -162,7 +164,7 @@ function Overview({ plan, editable, clientId, purpose, intakeGoal }: { plan: Pla
   );
 }
 
-function Training({ plan, editable, week, base, candidates }: { plan: PlanRow; editable: boolean; week: number; base: string; candidates: Record<string, { id: string; name: string }[]> }) {
+function Training({ plan, editable, week, base, candidates, fileBase }: { plan: PlanRow; editable: boolean; week: number; base: string; candidates: Record<string, { id: string; name: string }[]>; fileBase: string }) {
   const t = plan.training;
   if (!t) return <Banner tone="red" title="Training not generated">{plan.nutrition?.training_blocked_reason ?? "Refer out before generating training."}</Banner>;
   const wk = t.weeks[Math.min(Math.max(week, 1), t.weeks.length) - 1];
@@ -176,6 +178,10 @@ function Training({ plan, editable, week, base, candidates }: { plan: PlanRow; e
           </Link>
         ))}
       </div>
+      <Card title={`Send week ${wk.week} to the client`}>
+        <p className="muted mb-2">Day-by-day workouts with sets, reps, rest and effort, plus cardio and mobility. Leaves out calories, energy numbers and your notes.{plan.status !== "approved" ? " Marked DRAFT until the plan is approved." : ""}</p>
+        <ShareWeek planId={plan.id} week={wk.week} fileBase={fileBase} />
+      </Card>
       <p className="text-sm">
         <b>Week {wk.week}</b> · {PHASES[wk.phase].label}{wk.deload ? " · DELOAD (≈40% fewer sets, stop at RPE 5–6)" : ""}{wk.retest ? " · retest at the last session" : ""} · {t.split_label}, lifting on {t.lifting_days.map((d) => DAY_NAMES[d]).join(", ")}
       </p>
