@@ -21,6 +21,9 @@ describe("client week sheet", () => {
     expect(text).toContain("Week 2 of");
     expect(text).not.toMatch(/kcal|calorie|TDEE|checkpoint/i);
     expect(text).not.toContain("DRAFT");
+    // one fill-in line per prescribed set
+    const sets = liftDays.flatMap((d) => d.strength!.exercises).reduce((a, e) => a + e.sets, 0);
+    expect(text.match(/Set \d+: ___ lb × ___/g)).toHaveLength(sets);
   });
 
   it("clamps the week and marks drafts", async () => {

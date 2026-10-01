@@ -13,6 +13,10 @@ import type { PlanParameters, TrainingPlan } from "./plan-types";
 
 export interface ClientWeekExercise {
   name: string;
+  sets: number;
+  /** per-set target, e.g. "8–12 reps" or "30–45 s" */
+  target: string;
+  unit: "reps" | "seconds";
   /** e.g. "3 × 8–12" or "2 × 30–45 s" */
   dose: string;
   rest: string;
@@ -71,6 +75,9 @@ export function clientWeek(
       const reps = sl.unit === "seconds" ? `${range(...holdSeconds(rx))} s` : range(rx.reps_min, rx.reps_max);
       exercises.push({
         name: sl.exercise.name,
+        sets: rx.sets,
+        target: sl.unit === "seconds" ? reps : `${reps} reps`,
+        unit: sl.unit,
         dose: `${rx.sets} × ${reps}`,
         rest: `${rx.rest_sec}s`,
         effort: `${range(rx.rpe_min, rx.rpe_max)}/10`,
@@ -105,29 +112,43 @@ export function clientWeek(
 
 export const EFFORT_NOTE = "Effort is out of 10: 10 = couldn't do one more rep. 7–8 means about 2–3 reps left in the tank.";
 
-/** Plain text for pasting into a text message or email. */
+/** Most sets any exercise in the week asks for (sizes the log table). */
+export function maxSets(w: ClientWeek): number {
+  return Math.max(1, ...w.days.flatMap((d) => d.strength?.exercises.map((e) => e.sets) ?? []));
+}
+
+
+const RULE = "━━━━━━━━━━━━━━━━━━";
+
+/**
+ * Plain text for pasting into a text message or email. Messaging apps use
+ * proportional fonts, so instead of a table each set gets a fill-in line the
+ * client can complete and send back.
+ */
 export function clientWeekText(w: ClientWeek): string {
   const L: string[] = [];
-  L.push(`${w.clientName} — Week ${w.week} of ${w.totalWeeks} (${w.range})${w.draft ? " — DRAFT" : ""}`);
+  L.push(`🏋️ ${w.clientName}: Week ${w.week} of ${w.totalWeeks}${w.draft ? " (DRAFT)" : ""}`);
+  L.push(`${w.range} · ${w.phase}`);
   if (w.deload) L.push("Deload week: lighter on purpose. Fewer sets, stop well short of failure.");
+  L.push("Fill in the blanks as you go and send this back to me.");
   for (const d of w.days) {
-    const any = d.strength || d.cardio || d.mobility || d.other.length;
-    L.push("");
-    L.push(`${d.label.toUpperCase()}${any ? "" : " — Rest day"}`);
-    for (const o of d.other) L.push(`• ${o}`);
+    const parts = [d.strength?.name, d.cardio && "Cardio", d.mobility && "Mobility"].filter(Boolean);
+    L.push("", RULE, `${d.label.toUpperCase()} · ${parts.length ? parts.join(" + ") : "Rest day"}`, RULE);
+    for (const o of d.other) L.push(`📌 ${o}`);
     if (d.strength) {
-      L.push(`${d.strength.name} (~${d.strength.minutes} min + 5–10 min warm-up)`);
+      L.push(`Warm up 5–10 min, then (~${d.strength.minutes} min):`);
       d.strength.exercises.forEach((e, i) => {
-        L.push(`${i + 1}. ${e.name} — ${e.dose}, rest ${e.rest}, effort ${e.effort}`);
+        L.push("");
+        L.push(`${i + 1}) ${e.name}`);
+        L.push(`   Target: ${e.sets} × ${e.target} · rest ${e.rest} · effort ${e.effort}`);
         if (e.tip) L.push(`   Tip: ${e.tip}`);
         if (e.easier) L.push(`   Easier option: ${e.easier}`);
+        for (let n = 1; n <= e.sets; n++) L.push(`   Set ${n}: ___ lb × ___ ${e.unit === "seconds" ? "sec" : "reps"}`);
       });
     }
-    if (d.cardio) L.push(`Cardio: ${d.cardio}`);
-    if (d.mobility) L.push(`${d.mobility.text}: ${d.mobility.moves.join(", ")}`);
+    if (d.cardio) L.push("", `Cardio: ${d.cardio}`, "   Done? ___  Minutes: ___");
+    if (d.mobility) L.push("", `${d.mobility.text}: ${d.mobility.moves.join(", ")}`, "   Done? ___");
   }
-  L.push("");
-  L.push(EFFORT_NOTE);
-  L.push("Stop any exercise that causes sharp pain and let me know.");
+  L.push("", RULE, EFFORT_NOTE, "For bodyweight moves, write BW for the weight.", "Stop any exercise that causes sharp pain and let me know.");
   return L.join("\n");
 }

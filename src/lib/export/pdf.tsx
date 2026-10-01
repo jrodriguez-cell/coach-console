@@ -13,7 +13,7 @@ import { holdSeconds } from "@/lib/training";
 import { DAY_NAMES, formatDate } from "@/lib/dates";
 import { describePrediction } from "@/lib/energy";
 import type { ExportInput } from "./xlsx";
-import { EFFORT_NOTE, type ClientWeek } from "@/lib/client-week";
+import { EFFORT_NOTE, maxSets, type ClientWeek, type ClientWeekExercise } from "@/lib/client-week";
 
 // Standard PDF fonts use WinAnsi; map characters outside it.
 export function pdfText(s: string): string {
@@ -255,7 +255,62 @@ export async function renderProgressPdf(r: ProgressReportInput): Promise<Buffer>
 // Client week sheet (client-facing: no calorie or energy numbers)
 // ---------------------------------------------------------------------------
 
+const g = StyleSheet.create({
+  cell: { borderRightWidth: 0.75, borderBottomWidth: 0.75, borderColor: "#94a3b8", padding: 3, justifyContent: "center" },
+  head: { backgroundColor: "#e2e8f0", fontFamily: "Helvetica-Bold", fontSize: 8 },
+  dayBar: { flexDirection: "row", justifyContent: "space-between", backgroundColor: "#0f172a", color: "#ffffff", paddingVertical: 3, paddingHorizontal: 5, fontFamily: "Helvetica-Bold", fontSize: 10 },
+  line: { flexDirection: "row", alignItems: "center", marginTop: 3 },
+  box: { width: 9, height: 9, borderWidth: 0.75, borderColor: "#475569", marginRight: 4 },
+});
+
+/** Log table: one row per exercise, one blank weight × reps cell per set. */
+function SetLog({ exercises, sets }: { exercises: ClientWeekExercise[]; sets: number }) {
+  const exW = 30;
+  const tgtW = 22;
+  const setW = (100 - exW - tgtW) / sets;
+  return (
+    <View style={{ borderLeftWidth: 0.75, borderTopWidth: 0.75, borderColor: "#94a3b8", marginTop: 3 }}>
+      <View style={{ flexDirection: "row" }} wrap={false}>
+        <Text style={[g.cell, g.head, { width: `${exW}%` }]}>Exercise</Text>
+        <Text style={[g.cell, g.head, { width: `${tgtW}%` }]}>Target</Text>
+        {Array.from({ length: sets }, (_, i) => (
+          <View key={i} style={[g.cell, g.head, { width: `${setW}%`, alignItems: "center" }]}>
+            <Text>{`Set ${i + 1}`}</Text>
+            <Text style={{ fontFamily: "Helvetica", fontSize: 6.5, color: "#475569" }}>lb × reps</Text>
+          </View>
+        ))}
+      </View>
+      {exercises.map((e, k) => (
+        <View key={k} style={{ flexDirection: "row", minHeight: 30 }} wrap={false}>
+          <View style={[g.cell, { width: `${exW}%` }]}>
+            <Text style={{ fontFamily: "Helvetica-Bold" }}>{pdfText(`${k + 1}. ${e.name}`)}</Text>
+            {e.easier && <Text style={{ fontSize: 7, color: "#475569" }}>{pdfText(`Easier: ${e.easier}`)}</Text>}
+            {e.tip && <Text style={{ fontSize: 7, color: "#475569" }}>{pdfText(`Tip: ${e.tip}`)}</Text>}
+          </View>
+          <View style={[g.cell, { width: `${tgtW}%` }]}>
+            <Text>{pdfText(`${e.sets} × ${e.target}`)}</Text>
+            <Text style={{ fontSize: 7, color: "#475569" }}>{pdfText(`Rest ${e.rest} · Effort ${e.effort}`)}</Text>
+          </View>
+          {Array.from({ length: sets }, (_, i) => (
+            <View key={i} style={[g.cell, { width: `${setW}%`, alignItems: "center" }, i >= e.sets ? { backgroundColor: "#e2e8f0" } : {}]}>
+              {i < e.sets ? <Text style={{ fontSize: 9, color: "#94a3b8" }}>{e.unit === "seconds" ? "    ×    s" : "    ×    "}</Text> : null}
+            </View>
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const Check = ({ label }: { label: string }) => (
+  <View style={g.line} wrap={false}>
+    <View style={g.box} />
+    <Text>{pdfText(label)}</Text>
+  </View>
+);
+
 export function ClientWeekDocument({ w }: { w: ClientWeek }) {
+  const sets = maxSets(w);
   return (
     <Document title={`${w.clientName} week ${w.week}`} author="Coach Console">
       <Page size="LETTER" style={s.page}>
@@ -270,24 +325,24 @@ export function ClientWeekDocument({ w }: { w: ClientWeek }) {
         </View>
         <T style={s.h1}>{`Your workouts: week ${w.week}`}</T>
         <T style={s.muted}>{`${w.range} · ${w.phase}${w.deload ? " · Deload week: lighter on purpose, fewer sets, stop well short of failure" : ""}`}</T>
+        <T style={[s.muted, { marginTop: 2 }] as never}>Write the weight and reps for every set (BW for bodyweight). Bring this back or send a photo.</T>
         {w.days.map((d) => {
-          const rest = !d.strength && !d.cardio && !d.mobility && d.other.length === 0;
+          const parts = [d.strength?.name, d.cardio && "Cardio", d.mobility && "Mobility"].filter(Boolean) as string[];
           return (
-            <View key={d.date} wrap={false} style={{ marginTop: 8 }}>
-              <T style={s.h3}>{`${d.label}${rest ? " — Rest day" : ""}`}</T>
-              {d.other.map((o, i) => <T key={i} style={s.muted}>{`• ${o}`}</T>)}
+            <View key={d.date} style={{ marginTop: 9 }} wrap={false}>
+              <View style={g.dayBar}>
+                <Text>{pdfText(d.label)}</Text>
+                <Text>{pdfText(parts.length ? parts.join(" + ") : "Rest day")}</Text>
+              </View>
+              {d.other.map((o, i) => <T key={i} style={[s.muted, { marginTop: 2 }] as never}>{`• ${o}`}</T>)}
               {d.strength && (
-                <View style={{ marginTop: 2 }}>
-                  <T style={{ fontFamily: "Helvetica-Bold" }}>{`${d.strength.name} (~${d.strength.minutes} min + 5-10 min warm-up)`}</T>
-                  <Table
-                    cols={["Exercise", "Sets × reps", "Rest", "Effort", "Done"]}
-                    widths={[52, 16, 10, 12, 10]}
-                    rows={d.strength.exercises.map((e) => [`${e.name}${e.tip ? `\nTip: ${e.tip}` : ""}${e.easier ? `\nEasier option: ${e.easier}` : ""}`, e.dose, e.rest, e.effort, "[  ]"])}
-                  />
-                </View>
+                <>
+                  <T style={{ marginTop: 3 }}>{`Warm up 5-10 min, then about ${d.strength.minutes} min of work.`}</T>
+                  <SetLog exercises={d.strength.exercises} sets={sets} />
+                </>
               )}
-              {d.cardio && <T>{`Cardio: ${d.cardio}`}</T>}
-              {d.mobility && <T>{`${d.mobility.text}: ${d.mobility.moves.join(", ")}`}</T>}
+              {d.cardio && <Check label={`Cardio: ${d.cardio}      Minutes done: ______`} />}
+              {d.mobility && <Check label={`${d.mobility.text}: ${d.mobility.moves.join(", ")}`} />}
             </View>
           );
         })}

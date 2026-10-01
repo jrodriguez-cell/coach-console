@@ -179,7 +179,7 @@ function Training({ plan, editable, week, base, candidates, fileBase }: { plan: 
         ))}
       </div>
       <Card title={`Send week ${wk.week} to the client`}>
-        <p className="muted mb-2">Day-by-day workouts with sets, reps, rest and effort, plus cardio and mobility. Leaves out calories, energy numbers and your notes.{plan.status !== "approved" ? " Marked DRAFT until the plan is approved." : ""}</p>
+        <p className="muted mb-2">Day-by-day workouts with a set-by-set log (weight × reps) for the client to fill in, plus cardio and mobility. PDF to print or mark up, Excel to type into, text to paste into a message. Leaves out calories, energy numbers and your notes.{plan.status !== "approved" ? " Marked DRAFT until the plan is approved." : ""}</p>
         <ShareWeek planId={plan.id} week={wk.week} fileBase={fileBase} />
       </Card>
       <p className="text-sm">
