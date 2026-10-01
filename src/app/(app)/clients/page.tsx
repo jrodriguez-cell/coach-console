@@ -27,16 +27,16 @@ export default async function ClientsPage({ searchParams }: { searchParams: { st
         <h1>Clients</h1>
         <Link href="/clients/new" className="btn btn-primary">New client</Link>
       </div>
-      <div className="flex gap-2 text-sm">
+      <div className="no-scrollbar -mx-3 flex gap-2 overflow-x-auto px-3 text-sm capitalize sm:mx-0 sm:flex-wrap sm:px-0">
         {["all", "prospect", "active", "paused", "completed"].map((s) => (
-          <Link key={s} href={`/clients?status=${s}`} className={`btn btn-sm ${filter === s ? "btn-primary" : ""}`}>{s}</Link>
+          <Link key={s} href={`/clients?status=${s}`} className={`btn btn-sm shrink-0 ${filter === s ? "btn-primary" : ""}`}>{s}</Link>
         ))}
       </div>
       <Card>
         {rows.length === 0 ? (
           <Empty>No clients yet.</Empty>
         ) : (
-          <table className="table">
+          <div className="table-wrap"><table className="table">
             <thead>
               <tr><th>Name</th><th>Status</th><th>Goal</th><th>Week</th><th>Next key date</th><th>Flags</th></tr>
             </thead>
@@ -69,7 +69,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: { st
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         )}
       </Card>
     </div>

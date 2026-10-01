@@ -35,17 +35,17 @@ export default async function FoodLibrary() {
       <p className="muted">Values per 100 g. Example days are built only from these foods and checked against every tolerance band.</p>
       <Card title="Add food">{row()}</Card>
       <Card>
-        <table className="table text-xs">
+        <div className="table-wrap"><table className="table text-xs">
           <thead><tr><th>Food</th><th>Category</th><th>kcal</th><th>P</th><th>C</th><th>F</th><th>Household</th><th>Allergens</th><th></th></tr></thead>
           <tbody>
             {all.map((f) => (
               <tr key={f.id}>
                 <td>{f.name}</td><td>{f.category}</td><td>{f.per_100g_cal}</td><td>{f.per_100g_protein}</td><td>{f.per_100g_carb}</td><td>{f.per_100g_fat}</td><td>{f.household_portion_text}</td><td>{f.allergens.join(", ") || "—"}</td>
-                <td className="whitespace-nowrap"><details><summary className="cursor-pointer text-blue-700">Edit</summary>{row(f)}<form action={deleteFoodAction.bind(null, f.id)}><button className="btn btn-sm mt-1">Delete</button></form></details></td>
+                <td className="whitespace-nowrap"><details><summary className="cursor-pointer text-blue-400">Edit</summary>{row(f)}<form action={deleteFoodAction.bind(null, f.id)}><button className="btn btn-sm mt-1">Delete</button></form></details></td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </Card>
     </div>
   );

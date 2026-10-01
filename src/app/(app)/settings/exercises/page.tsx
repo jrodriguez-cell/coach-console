@@ -35,17 +35,17 @@ export default async function ExerciseLibrary({ searchParams }: { searchParams: 
       <form className="flex gap-2"><input className="input max-w-xs" name="q" defaultValue={searchParams.q} placeholder="Search" /><button className="btn">Search</button></form>
       <Card title="Add exercise">{row()}</Card>
       <Card>
-        <table className="table text-xs">
+        <div className="table-wrap"><table className="table text-xs">
           <thead><tr><th>Exercise</th><th>Pattern</th><th>Equipment</th><th>Contraindications</th><th>Regression → progression</th><th></th></tr></thead>
           <tbody>
             {list.map((e) => (
               <tr key={e.id}>
                 <td>{e.name}{e.is_compound ? " ·C" : ""}</td><td>{PATTERN_LABEL[e.pattern] ?? e.pattern}</td><td>{e.equipment.join(", ")}</td><td>{e.contraindications.join(", ") || "—"}</td><td>{name(e.regression_id)} → {name(e.progression_id)}</td>
-                <td><details><summary className="cursor-pointer text-blue-700">Edit</summary>{row(e)}</details></td>
+                <td><details><summary className="cursor-pointer text-blue-400">Edit</summary>{row(e)}</details></td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </Card>
     </div>
   );

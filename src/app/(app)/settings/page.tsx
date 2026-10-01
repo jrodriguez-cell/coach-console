@@ -32,7 +32,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: { d
     <div className="space-y-4">
       <h1>Settings</h1>
       {searchParams.deleted && <Banner tone="green" title="Client data deleted." />}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Link className="btn" href="/settings/metrics">Tracked metrics</Link>
         <Link className="btn" href="/settings/exercises">Exercise library</Link>
         <Link className="btn" href="/settings/foods">Food library</Link>
@@ -53,7 +53,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: { d
           </div>
         </Card>
         <Card title="Guardrail defaults (ISSA CPT textbook)">
-          <p className="mb-2 text-xs text-slate-500">Hard floors cannot be lowered below 1,200 kcal/day or 15% fat.</p>
+          <p className="mb-2 text-xs text-slate-400">Hard floors cannot be lowered below 1,200 kcal/day or 15% fat.</p>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {Object.entries(s.guardrail_limits).map(([k, v]) => <Field key={k} label={k}><input className="input" type="number" step="any" name={`g_${k}`} defaultValue={v} /></Field>)}
           </div>
@@ -64,7 +64,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: { d
           </div>
         </Card>
         <Card title="Energy-model uncertainty (fraction of TDEE)">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {Object.entries(s.uncertainty).map(([k, v]) => <Field key={k} label={k}><input className="input" type="number" step="0.01" name={`u_${k}`} defaultValue={v} /></Field>)}
           </div>
         </Card>

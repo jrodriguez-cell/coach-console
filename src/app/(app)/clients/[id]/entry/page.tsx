@@ -35,7 +35,7 @@ export default async function EntryGridPage({ params, searchParams }: { params: 
         <Link href={`/clients/${client.id}`} className="text-sm">← {client.name}</Link>
         <h1>Data entry — {client.name}</h1>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Link className={`btn btn-sm ${mode === "weekly" ? "btn-primary" : ""}`} href={`?mode=weekly`}>Weekly metrics</Link>
         <Link className={`btn btn-sm ${mode === "daily" ? "btn-primary" : ""}`} href={`?mode=daily`}>Daily metrics</Link>
         <Link className="btn btn-sm" href={`?mode=${mode}&n=${n * 2}`}>Show more rows</Link>

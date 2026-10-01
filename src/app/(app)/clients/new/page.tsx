@@ -9,8 +9,8 @@ export default function NewClientPage() {
     <div className="max-w-2xl space-y-4">
       <h1>New client</h1>
       <Card>
-        <form action={createClientAction} className="grid grid-cols-2 gap-3">
-          <Field label="Name" className="col-span-2"><input className="input" name="name" required /></Field>
+        <form action={createClientAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="Name" className="sm:col-span-2"><input className="input" name="name" required /></Field>
           <Field label="Email"><input className="input" name="email" type="email" /></Field>
           <Field label="Phone"><input className="input" name="phone" /></Field>
           <Field label="Goal category">
@@ -24,9 +24,9 @@ export default function NewClientPage() {
               <option value="active">Active</option>
             </select>
           </Field>
-          <Field label="Purpose (in the client's words)" className="col-span-2"><textarea className="input" name="purpose_text" rows={2} /></Field>
+          <Field label="Purpose (in the client's words)" className="sm:col-span-2"><textarea className="input" name="purpose_text" rows={2} /></Field>
           <Field label="Planned start date"><input className="input" name="start_date" type="date" /></Field>
-          <div className="col-span-2"><SubmitButton className="btn-primary">Create and start intake</SubmitButton></div>
+          <div className="sm:col-span-2"><SubmitButton className="btn-primary">Create and start intake</SubmitButton></div>
         </form>
       </Card>
     </div>

@@ -57,7 +57,7 @@ export default async function ClientPage({ params }: { params: { id: string } })
             <p>{REFER_OUT_FLAGS[f].hint} Advice about this is never auto-generated.</p>
             {intake?.refer_out_flags.notes && <p className="mt-1">Screening notes: {intake.refer_out_flags.notes}</p>}
             {handled.map((h) => <p key={h.id} className="mt-1">✔ {formatDate(h.handled_at.slice(0, 10))}: {h.handled_note}</p>)}
-            <form action={recordReferralAction.bind(null, client.id)} className="mt-2 flex gap-2">
+            <form action={recordReferralAction.bind(null, client.id)} className="mt-2 flex flex-col gap-2 sm:flex-row">
               <input type="hidden" name="flag" value={f} />
               <input className="input" name="handled_note" placeholder='How it was handled, e.g. "referred to RD", "physician clearance received"' required />
               <SubmitButton className="btn-sm">Record</SubmitButton>
@@ -123,9 +123,9 @@ export default async function ClientPage({ params }: { params: { id: string } })
                     {e && <><br />Expected change: {describePrediction(e)}</>}
                   </p>
                 ) : (
-                  <p className="text-red-700">{plan.nutrition?.blocked_reason ?? "Nutrition not generated."}</p>
+                  <p className="text-red-400">{plan.nutrition?.blocked_reason ?? "Nutrition not generated."}</p>
                 )}
-                {plan.training ? <p>{plan.training.split_label}, {plan.training.lifting_days.length} days/week · cardio {plan.training.cardio.removed ? "removed" : `${plan.training.cardio.weeks[0]?.sessions}×${plan.training.cardio.weeks[0]?.minutes} min`}</p> : <p className="text-red-700">{plan.nutrition?.training_blocked_reason ?? "Training not generated."}</p>}
+                {plan.training ? <p>{plan.training.split_label}, {plan.training.lifting_days.length} days/week · cardio {plan.training.cardio.removed ? "removed" : `${plan.training.cardio.weeks[0]?.sessions}×${plan.training.cardio.weeks[0]?.minutes} min`}</p> : <p className="text-red-400">{plan.nutrition?.training_blocked_reason ?? "Training not generated."}</p>}
               </div>
             ) : (
               <Empty>No plan yet.</Empty>
@@ -137,7 +137,7 @@ export default async function ClientPage({ params }: { params: { id: string } })
               </details>
             )}
             {b.plans.length > 1 && (
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="mt-2 text-xs text-slate-400">
                 Versions: {b.plans.map((p) => <Link key={p.id} href={`/clients/${client.id}/plan/${p.id}`} className="mr-2">v{p.version} ({p.status})</Link>)}
               </p>
             )}
@@ -156,7 +156,7 @@ export default async function ClientPage({ params }: { params: { id: string } })
             {b.checkpoints.length === 0 ? (
               <Empty>Checkpoints are created when a plan is approved.</Empty>
             ) : (
-              <table className="table">
+              <div className="table-wrap"><table className="table">
                 <thead><tr><th>Date</th><th>Week</th><th>Kind</th><th>Status</th><th></th></tr></thead>
                 <tbody>
                   {b.checkpoints.map((c) => (
@@ -169,7 +169,7 @@ export default async function ClientPage({ params }: { params: { id: string } })
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             )}
             {b.calibrations.length > 0 && (
               <div className="mt-3">
@@ -191,14 +191,14 @@ export default async function ClientPage({ params }: { params: { id: string } })
 
           <Card title="Guardrail override history">
             {b.overrides.length === 0 ? <Empty>No overrides.</Empty> : (
-              <table className="table">
+              <div className="table-wrap"><table className="table">
                 <thead><tr><th>Date</th><th>Plan</th><th>Rule</th><th>Value</th><th>Reason</th></tr></thead>
                 <tbody>
                   {b.overrides.map((o) => (
                     <tr key={o.id}><td>{formatDate(o.created_at.slice(0, 10))}</td><td>v{o.plan_version}</td><td>{o.rule_key}</td><td>{o.override_value ?? "—"}</td><td>{o.reason}</td></tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             )}
           </Card>
         </div>

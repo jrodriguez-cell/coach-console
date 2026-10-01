@@ -27,7 +27,7 @@ export default async function WeeklyRoundPage() {
       <h1>Weekly round · week of {formatDate(weekStart)}</h1>
       <Card>
         {clients.length === 0 ? <Empty>No active clients.</Empty> : (
-          <table className="table">
+          <div className="table-wrap"><table className="table">
             <thead><tr><th>Client</th><th>Missing this week</th><th>Workouts logged</th><th>Reviewed</th><th></th></tr></thead>
             <tbody>
               {clients.map((c) => {
@@ -48,7 +48,7 @@ export default async function WeeklyRoundPage() {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         )}
       </Card>
       <p className="muted">Required weekly inputs are set in Settings → Metrics (starter set: weigh-in, adherence %, energy, sleep).</p>

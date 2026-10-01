@@ -91,7 +91,7 @@ export function EntryGrid({ clientId, rows, columns, initial }: { clientId: stri
                     <td key={col.key} className="p-0.5">
                       <input
                         ref={(el) => { refs.current[key] = el; }}
-                        className={clsx("input min-w-[5rem] py-1", dirty && "bg-yellow-50", err && "border-red-500", warn && "border-amber-500")}
+                        className={clsx("input min-w-[5rem] py-1", dirty && "bg-yellow-950/40", err && "border-red-600", warn && "border-amber-600")}
                         value={values[key] ?? ""}
                         title={err ?? warn ?? ""}
                         onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
@@ -106,19 +106,19 @@ export function EntryGrid({ clientId, rows, columns, initial }: { clientId: stri
           </tbody>
         </table>
       </div>
-      {state.error && <p className="text-sm text-red-700">{state.error}</p>}
-      {state.cellErrors && <ul className="text-xs text-red-700">{Object.entries(state.cellErrors).map(([key, m]) => <li key={key}>{key.replace("|", " on ")}: {m}</li>)}</ul>}
+      {state.error && <p className="text-sm text-red-400">{state.error}</p>}
+      {state.cellErrors && <ul className="text-xs text-red-400">{Object.entries(state.cellErrors).map(([key, m]) => <li key={key}>{key.replace("|", " on ")}: {m}</li>)}</ul>}
       {state.needsConfirm && state.warnings && (
-        <div className="rounded border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900">
+        <div className="rounded border border-amber-800 bg-amber-950/40 p-2 text-sm text-amber-200">
           <ul className="list-disc pl-4">{Object.entries(state.warnings).map(([key, m]) => <li key={key}>{key.replace("|", " on ")}: {m}</li>)}</ul>
           <button type="button" className="btn btn-sm mt-2" disabled={pending} onClick={() => save(true)}>Confirm and save</button>
         </div>
       )}
-      {state.saved != null && !state.needsConfirm && !state.error && <p className="text-sm text-green-700">Saved {state.saved} value{state.saved === 1 ? "" : "s"}.</p>}
+      {state.saved != null && !state.needsConfirm && !state.error && <p className="text-sm text-green-400">Saved {state.saved} value{state.saved === 1 ? "" : "s"}.</p>}
       <button type="button" className="btn btn-primary" disabled={pending || changed.length === 0} onClick={() => save(false)}>
         {pending ? "Saving…" : `Save ${changed.length} change${changed.length === 1 ? "" : "s"}`}
       </button>
-      <p className="text-xs text-slate-500">Tip: copy a block from a spreadsheet and paste into the first cell. Blank cells are ignored (existing values are never cleared).</p>
+      <p className="text-xs text-slate-400">Tip: copy a block from a spreadsheet and paste into the first cell. Blank cells are ignored (existing values are never cleared).</p>
     </div>
   );
 }

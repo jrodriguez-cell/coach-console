@@ -30,7 +30,7 @@ export default async function TodayPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-baseline justify-between">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
         <h1>Today · {formatDate(today)}</h1>
         <span className="muted">{tasks.length} open</span>
       </div>

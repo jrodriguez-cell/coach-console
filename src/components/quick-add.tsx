@@ -39,7 +39,7 @@ export function MeasurementsForm({ clientId }: { clientId: string }) {
   return (
     <ConfirmableForm action={quickMeasurementsAction.bind(null, clientId)} submitLabel="Save measurements" className="space-y-2">
       <input className="input" type="date" name="date" defaultValue={today()} />
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {MEASUREMENT_SITES.map((s) => <input key={s} className="input" type="number" step="0.1" name={s} placeholder={`${s} (in)`} />)}
       </div>
     </ConfirmableForm>

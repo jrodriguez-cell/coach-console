@@ -5,7 +5,7 @@ export function Card({ title, actions, children, className }: { title?: ReactNod
   return (
     <section className={clsx("card", className)}>
       {(title || actions) && (
-        <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           {title ? <h2>{title}</h2> : <span />}
           {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
         </div>
@@ -17,12 +17,12 @@ export function Card({ title, actions, children, className }: { title?: ReactNod
 
 export type Tone = "gray" | "green" | "yellow" | "red" | "blue" | "purple";
 const TONES: Record<Tone, string> = {
-  gray: "bg-slate-100 text-slate-700 border-slate-200",
-  green: "bg-green-50 text-green-800 border-green-200",
-  yellow: "bg-amber-50 text-amber-800 border-amber-200",
-  red: "bg-red-50 text-red-800 border-red-200",
-  blue: "bg-blue-50 text-blue-800 border-blue-200",
-  purple: "bg-purple-50 text-purple-800 border-purple-200",
+  gray: "bg-slate-800 text-slate-300 border-slate-800",
+  green: "bg-green-950/40 text-green-300 border-green-900",
+  yellow: "bg-amber-950/40 text-amber-300 border-amber-900",
+  red: "bg-red-950/40 text-red-300 border-red-900",
+  blue: "bg-blue-950/40 text-blue-300 border-blue-900",
+  purple: "bg-purple-950/40 text-purple-300 border-purple-900",
 };
 
 export function Badge({ tone = "gray", children, title }: { tone?: Tone; children: ReactNode; title?: string }) {
@@ -47,17 +47,17 @@ export function Field({ label, hint, children, className }: { label: ReactNode; 
     <label className={clsx("block", className)}>
       <span className="label">{label}</span>
       {children}
-      {hint && <span className="mt-1 block text-xs text-slate-500">{hint}</span>}
+      {hint && <span className="mt-1 block text-xs text-slate-400">{hint}</span>}
     </label>
   );
 }
 
 export function Stat({ label, value, sub }: { label: ReactNode; value: ReactNode; sub?: ReactNode }) {
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-3">
-      <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-1 text-lg font-semibold">{value}</div>
-      {sub && <div className="text-xs text-slate-500">{sub}</div>}
+    <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3">
+      <div className="text-xs uppercase tracking-wide text-slate-400">{label}</div>
+      <div className="mt-1 text-lg font-semibold text-slate-50">{value}</div>
+      {sub && <div className="text-xs text-slate-400">{sub}</div>}
     </div>
   );
 }

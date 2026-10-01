@@ -41,7 +41,7 @@ export default async function MetricsSettings() {
       <h1>Tracked metrics</h1>
       <p className="muted">Core metrics feed calculations; they can be made optional or hidden but not deleted. Custom metrics get their own chart automatically. Retiring hides a metric from forms but keeps its history. Every change is logged.</p>
       <Card title="Metrics and usage (last 28 days)">
-        <table className="table">
+        <div className="table-wrap"><table className="table">
           <thead><tr><th></th><th>Metric</th><th>Frequency</th><th>Filled in</th><th>Used by</th><th>Last entry</th><th>Settings</th></tr></thead>
           <tbody>
             {defs.map((m) => {
@@ -55,14 +55,14 @@ export default async function MetricsSettings() {
                     <form action={moveMetricAction.bind(null, m.id, "up")} className="inline"><button className="btn btn-sm">↑</button></form>
                     <form action={moveMetricAction.bind(null, m.id, "down")} className="inline"><button className="btn btn-sm">↓</button></form>
                   </td>
-                  <td>{m.label} {m.is_core ? <Badge tone="blue">core</Badge> : <Badge>custom</Badge>} {!m.active && <Badge tone="gray">{m.retired_at ? "retired" : "hidden"}</Badge>}<div className="text-xs text-slate-500">{m.key} · {m.type}{m.unit ? ` · ${m.unit}` : ""}</div></td>
+                  <td>{m.label} {m.is_core ? <Badge tone="blue">core</Badge> : <Badge>custom</Badge>} {!m.active && <Badge tone="gray">{m.retired_at ? "retired" : "hidden"}</Badge>}<div className="text-xs text-slate-400">{m.key} · {m.type}{m.unit ? ` · ${m.unit}` : ""}</div></td>
                   <td>{m.frequency}</td>
                   <td>{fill != null ? `${n} entries (${fill}% of expected)` : `${n} entries`}</td>
                   <td className="text-xs">{[m.show_in_charts && "chart", (u.rule || m.used_by_task_rule) && `task rule${u.rule ? `: ${u.rule}` : ""}`, u.calibration && "calibration"].filter(Boolean).join(" · ") || "—"}</td>
                   <td>{formatDate(lastUsed(m.id))}</td>
                   <td>
                     <details>
-                      <summary className="cursor-pointer text-xs text-blue-700">Edit</summary>
+                      <summary className="cursor-pointer text-xs text-blue-400">Edit</summary>
                       <form action={updateMetricAction.bind(null, m.id)} className="mt-1 space-y-1 text-xs">
                         <input className="input" name="label" defaultValue={m.label} />
                         <input className="input" name="unit" defaultValue={m.unit ?? ""} placeholder="unit" />
@@ -83,7 +83,7 @@ export default async function MetricsSettings() {
               );
             })}
           </tbody>
-        </table>
+        </table></div>
       </Card>
       <Card title="Add a custom metric">
         <form action={createMetricAction} className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -91,7 +91,7 @@ export default async function MetricsSettings() {
           <Field label="Type"><select className="input" name="type">{["number", "scale_1_10", "boolean", "time", "text"].map((t) => <option key={t}>{t}</option>)}</select></Field>
           <Field label="Unit"><input className="input" name="unit" /></Field>
           <Field label="Frequency"><select className="input" name="frequency" defaultValue="weekly">{["daily", "weekly", "checkpoint", "ad_hoc"].map((t) => <option key={t}>{t}</option>)}</select></Field>
-          <div className="col-span-full flex flex-wrap gap-3 text-sm">{GOAL_CATEGORIES.map((g) => <label key={g}><input type="checkbox" name="applies_to" value={g} /> {goalLabel(g)}</label>)}<span className="text-xs text-slate-500">(none checked = all goals)</span></div>
+          <div className="col-span-full flex flex-wrap gap-3 text-sm">{GOAL_CATEGORIES.map((g) => <label key={g}><input type="checkbox" name="applies_to" value={g} /> {goalLabel(g)}</label>)}<span className="text-xs text-slate-400">(none checked = all goals)</span></div>
           <label className="text-sm"><input type="checkbox" name="required" /> Required in the weekly round</label>
           <label className="text-sm"><input type="checkbox" name="show_in_charts" defaultChecked /> Show in charts</label>
           <div><SubmitButton className="btn-primary btn-sm">Add metric</SubmitButton></div>

@@ -18,7 +18,7 @@ export default function LoginPage() {
           <span className="label">Password</span>
           <input className="input" name="password" type="password" autoComplete="current-password" required />
         </label>
-        {state.error && <p className="text-sm text-red-700">{state.error}</p>}
+        {state.error && <p className="text-sm text-red-400">{state.error}</p>}
         <SubmitButton className="btn-primary w-full justify-center" pendingText="Signing in…">
           Sign in
         </SubmitButton>

@@ -46,7 +46,7 @@ export function SessionForm({ clientId, planId, sessions, library }: { clientId:
         <label><span className="label">Duration (min)</span><input className="input" type="number" name="duration_min" /></label>
         <label><span className="label">Avg RPE</span><input className="input" type="number" step="0.5" name="avg_rpe" /></label>
       </div>
-      <table className="table">
+      <div className="table-wrap"><table className="table">
         <thead><tr><th>Exercise</th><th>Set</th><th>Weight (lb)</th><th>Reps</th><th>RPE</th><th>Test</th><th></th></tr></thead>
         <tbody>
           {sets.map((s, i) => (
@@ -66,13 +66,13 @@ export function SessionForm({ clientId, planId, sessions, library }: { clientId:
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
       <button type="button" className="btn btn-sm" onClick={() => setSets((x) => [...x, { exercise_id: "", set_number: 1, weight_lb: null, reps: null, rpe: null, is_test: false }])}>Add exercise</button>
       <label className="block"><span className="label">Notes</span><textarea className="input" name="notes" rows={2} /></label>
-      {state.error && <p className="text-sm text-red-700">{state.error}</p>}
-      {state.saved != null && !state.error && <p className="text-sm text-green-700">Session saved.</p>}
+      {state.error && <p className="text-sm text-red-400">{state.error}</p>}
+      {state.saved != null && !state.error && <p className="text-sm text-green-400">Session saved.</p>}
       <button className="btn btn-primary" disabled={pending}>{pending ? "Saving…" : "Save session"}</button>
-      <p className="text-xs text-slate-500">Only sets with weight or reps are saved. Mark a set as a test on retest days; tests anchor baseline vs. latest strength.</p>
+      <p className="text-xs text-slate-400">Only sets with weight or reps are saved. Mark a set as a test on retest days; tests anchor baseline vs. latest strength.</p>
     </form>
   );
 }

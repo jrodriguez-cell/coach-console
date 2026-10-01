@@ -24,14 +24,14 @@ export function ConfirmableForm({ action, children, submitLabel, className }: { 
       className={className}
     >
       {children}
-      {state.error && <p className="text-sm text-red-700">{state.error}</p>}
+      {state.error && <p className="text-sm text-red-400">{state.error}</p>}
       {state.cellErrors && (
-        <ul className="text-sm text-red-700">
+        <ul className="text-sm text-red-400">
           {Object.entries(state.cellErrors).map(([k, v]) => <li key={k}>{v}</li>)}
         </ul>
       )}
       {state.needsConfirm && state.warnings && (
-        <div className="rounded border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900">
+        <div className="rounded border border-amber-800 bg-amber-950/40 p-2 text-sm text-amber-200">
           <ul className="list-disc pl-4">
             {Object.entries(state.warnings).map(([k, v]) => <li key={k}>{v}</li>)}
           </ul>
@@ -51,7 +51,7 @@ export function ConfirmableForm({ action, children, submitLabel, className }: { 
           </button>
         </div>
       )}
-      {state.saved != null && !state.error && !state.needsConfirm && <p className="text-sm text-green-700">Saved.</p>}
+      {state.saved != null && !state.error && !state.needsConfirm && <p className="text-sm text-green-400">Saved.</p>}
       <SubmitButton className="btn-primary btn-sm">{submitLabel}</SubmitButton>
     </form>
   );

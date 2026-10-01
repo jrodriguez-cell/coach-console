@@ -50,7 +50,7 @@ export default async function ProgressOverview({ searchParams }: { searchParams:
       </div>
       <Card>
         {rows.length === 0 ? <Empty>No active clients match.</Empty> : (
-          <table className="table">
+          <div className="table-wrap"><table className="table">
             <thead>
               <tr>
                 <th><Link href={link({ sort: "name" })}>Client</Link></th>
@@ -68,8 +68,8 @@ export default async function ProgressOverview({ searchParams }: { searchParams:
                 <tr key={c.id}>
                   <td><Link href={`/clients/${c.id}/progress`}>{c.name}</Link></td>
                   <td>{s.meta ? `${s.week} of ${s.meta.weeks}` : "—"}</td>
-                  <td><Badge tone={TONE[status]}>{WEIGHT_STATUS_LABEL[status]}</Badge>{s.weight?.deviation != null && <span className="ml-1 text-xs text-slate-500">{fmt.signed(s.weight.deviation)} lb</span>}</td>
-                  <td>{s.adherence14 != null ? <span className={s.adherence14 < settings.task_thresholds.adherenceLowPct ? "font-semibold text-red-700" : ""}>{fmt.pct(s.adherence14)}</span> : "—"}</td>
+                  <td><Badge tone={TONE[status]}>{WEIGHT_STATUS_LABEL[status]}</Badge>{s.weight?.deviation != null && <span className="ml-1 text-xs text-slate-400">{fmt.signed(s.weight.deviation)} lb</span>}</td>
+                  <td>{s.adherence14 != null ? <span className={s.adherence14 < settings.task_thresholds.adherenceLowPct ? "font-semibold text-red-400" : ""}>{fmt.pct(s.adherence14)}</span> : "—"}</td>
                   <td>{s.lastWeighIn ? formatDate(s.lastWeighIn) : "—"}</td>
                   <td>{s.lastCheckin ? formatDate(s.lastCheckin) : "—"}</td>
                   <td>{s.strengthFlag ? <Badge tone="red">below {settings.task_thresholds.strengthRetentionPct}%</Badge> : s.lifts.length ? "ok" : "—"}</td>
@@ -77,7 +77,7 @@ export default async function ProgressOverview({ searchParams }: { searchParams:
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </Card>
     </div>
