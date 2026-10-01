@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { generatePlan, libraryDefaultSelector } from "./generator";
-import { clientWeek, clientWeekText, currentPlanWeek } from "./client-week";
+import { boldText, clientWeek, clientWeekText, currentPlanWeek } from "./client-week";
 import { EX_LIB, FOOD_LIB, WL_INTAKE } from "@/test/fixtures";
 
 async function plan() {
@@ -18,19 +18,20 @@ describe("client week sheet", () => {
     expect(liftDays).toHaveLength(t.lifting_days.length);
     for (const d of liftDays) expect(d.strength!.exercises.length).toBeGreaterThan(0);
     const text = clientWeekText(w);
-    expect(text).toContain("Week 2 of");
+    expect(text).toContain(boldText("Week 2 of"));
     expect(text).not.toMatch(/kcal|calorie|TDEE|checkpoint/i);
     expect(text).not.toContain("DRAFT");
-    // one fill-in line per prescribed set
-    const sets = liftDays.flatMap((d) => d.strength!.exercises).reduce((a, e) => a + e.sets, 0);
-    expect(text.match(/Set \d+: ___ lb × ___/g)).toHaveLength(sets);
+    // one numbered line per exercise, no emoji or fill-in blanks
+    const exCount = liftDays.flatMap((d) => d.strength!.exercises).length;
+    expect(text.match(/^\d+\. /gm)).toHaveLength(exCount);
+    expect(text).not.toMatch(/___|\p{Extended_Pictographic}/u);
   });
 
   it("clamps the week and marks drafts", async () => {
     const p = await plan();
     const w = clientWeek({ clientName: "Sam", draft: true, parameters: p.parameters, training: p.training! }, 99);
     expect(w.week).toBe(p.training!.weeks.length);
-    expect(clientWeekText(w)).toContain("DRAFT");
+    expect(clientWeekText(w)).toContain(boldText("DRAFT"));
   });
 
   it("current plan week follows today's date", () => {

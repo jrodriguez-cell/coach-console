@@ -118,37 +118,45 @@ export function maxSets(w: ClientWeek): number {
 }
 
 
-const RULE = "━━━━━━━━━━━━━━━━━━";
-
 /**
- * Plain text for pasting into a text message or email. Messaging apps use
- * proportional fonts, so instead of a table each set gets a fill-in line the
- * client can complete and send back.
+ * Bold for plain-text messages. SMS/iMessage have no formatting, so headings
+ * use Unicode sans-serif bold letters, which render bold in every messaging app.
  */
+export function boldText(str: string): string {
+  return Array.from(str)
+    .map((ch) => {
+      const c = ch.codePointAt(0)!;
+      if (c >= 65 && c <= 90) return String.fromCodePoint(0x1d5d4 + c - 65);
+      if (c >= 97 && c <= 122) return String.fromCodePoint(0x1d5ee + c - 97);
+      if (c >= 48 && c <= 57) return String.fromCodePoint(0x1d7ec + c - 48);
+      return ch;
+    })
+    .join("");
+}
+
+const restText = (r: string) => {
+  const sec = parseInt(r, 10);
+  return sec >= 60 && sec % 60 === 0 ? `${sec / 60} min` : `${sec}s`;
+};
+
+/** Short plain text for a text message: bold headings, one block per day. */
 export function clientWeekText(w: ClientWeek): string {
   const L: string[] = [];
-  L.push(`🏋️ ${w.clientName}: Week ${w.week} of ${w.totalWeeks}${w.draft ? " (DRAFT)" : ""}`);
-  L.push(`${w.range} · ${w.phase}`);
-  if (w.deload) L.push("Deload week: lighter on purpose. Fewer sets, stop well short of failure.");
-  L.push("Fill in the blanks as you go and send this back to me.");
+  L.push(boldText(`Week ${w.week} of ${w.totalWeeks}${w.draft ? " (DRAFT)" : ""}`));
+  L.push(`${w.range} · ${w.phase}${w.deload ? " · deload (lighter week)" : ""}`);
   for (const d of w.days) {
     const parts = [d.strength?.name, d.cardio && "Cardio", d.mobility && "Mobility"].filter(Boolean);
-    L.push("", RULE, `${d.label.toUpperCase()} · ${parts.length ? parts.join(" + ") : "Rest day"}`, RULE);
-    for (const o of d.other) L.push(`📌 ${o}`);
+    L.push("", boldText(`${d.label} · ${parts.length ? parts.join(" + ") : "Rest"}`));
+    if (d.other.some((o) => o.startsWith("Weigh-in"))) L.push("Weigh-in this morning");
     if (d.strength) {
-      L.push(`Warm up 5–10 min, then (~${d.strength.minutes} min):`);
+      L.push("Warm up 5–10 min");
       d.strength.exercises.forEach((e, i) => {
-        L.push("");
-        L.push(`${i + 1}) ${e.name}`);
-        L.push(`   Target: ${e.sets} × ${e.target} · rest ${e.rest} · effort ${e.effort}`);
-        if (e.tip) L.push(`   Tip: ${e.tip}`);
-        if (e.easier) L.push(`   Easier option: ${e.easier}`);
-        for (let n = 1; n <= e.sets; n++) L.push(`   Set ${n}: ___ lb × ___ ${e.unit === "seconds" ? "sec" : "reps"}`);
+        L.push(`${i + 1}. ${e.name}`, `    ${e.sets} × ${e.target} · rest ${restText(e.rest)} · effort ${e.effort}`);
       });
     }
-    if (d.cardio) L.push("", `Cardio: ${d.cardio}`, "   Done? ___  Minutes: ___");
-    if (d.mobility) L.push("", `${d.mobility.text}: ${d.mobility.moves.join(", ")}`, "   Done? ___");
+    if (d.cardio) L.push(`Cardio: ${d.cardio}`);
+    if (d.mobility) L.push(`${d.mobility.text.replace("Mobility / recovery ·", "Mobility")}: ${d.mobility.moves.join(", ")}`);
   }
-  L.push("", RULE, EFFORT_NOTE, "For bodyweight moves, write BW for the weight.", "Stop any exercise that causes sharp pain and let me know.");
+  L.push("", "Effort is out of 10 (10 = no reps left). Stop if anything causes sharp pain.");
   return L.join("\n");
 }
