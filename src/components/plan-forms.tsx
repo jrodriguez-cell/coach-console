@@ -1,0 +1,72 @@
+"use client";
+import { useFormState } from "react-dom";
+import { approvePlanAction, editPlanAction, saveOverrideAction, type ActionState } from "@/app/actions/plans";
+import { SubmitButton } from "./submit-button";
+
+function Result({ state }: { state: ActionState }) {
+  return (
+    <>
+      {state.error && (
+        <div className="mt-2 rounded border border-red-200 bg-red-50 p-2 text-sm text-red-800">
+          {state.error}
+          {state.details && <ul className="mt-1 list-disc pl-4">{state.details.map((d, i) => <li key={i}>{d}</li>)}</ul>}
+        </div>
+      )}
+      {state.ok && state.changes && (
+        <div className="mt-2 rounded border border-blue-200 bg-blue-50 p-2 text-sm text-blue-900">
+          {state.changes.length === 0 ? (
+            "Saved. Energy model and targets recomputed — no key numbers changed."
+          ) : (
+            <>
+              <div className="font-medium">Saved. Energy model and targets recomputed:</div>
+              <table className="mt-1 text-xs">
+                <tbody>
+                  {state.changes.map((c) => (
+                    <tr key={c.label}><td className="pr-3">{c.label}</td><td className="pr-2">{c.before}</td><td className="pr-2">→</td><td className="font-semibold">{c.after}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+/** Any plan edit: hidden `op` plus fields; shows what changed after recompute. */
+export function PlanEditForm({ planId, op, children, submitLabel = "Save", className }: { planId: string; op: string; children: React.ReactNode; submitLabel?: string; className?: string }) {
+  const [state, action] = useFormState<ActionState, FormData>(editPlanAction.bind(null, planId), { error: null });
+  return (
+    <form action={action} className={className}>
+      <input type="hidden" name="op" value={op} />
+      {children}
+      <SubmitButton className="btn-sm btn-primary" pendingText="Recomputing…">{submitLabel}</SubmitButton>
+      <Result state={state} />
+    </form>
+  );
+}
+
+export function OverrideForm({ planId, ruleKey }: { planId: string; ruleKey: string }) {
+  const [state, action] = useFormState<ActionState, FormData>(saveOverrideAction.bind(null, planId), { error: null });
+  if (state.ok) return <span className="text-xs text-green-700">Override recorded.</span>;
+  return (
+    <form action={action} className="mt-1 flex gap-2">
+      <input type="hidden" name="rule_key" value={ruleKey} />
+      <input className="input text-xs" name="reason" placeholder="Override reason (required)" required />
+      <SubmitButton className="btn-sm">Record override</SubmitButton>
+      {state.error && <span className="text-xs text-red-700">{state.error}</span>}
+    </form>
+  );
+}
+
+export function ApproveForm({ planId }: { planId: string }) {
+  const [state, action] = useFormState<ActionState, FormData>((prev) => approvePlanAction(planId, prev), { error: null });
+  return (
+    <form action={action}>
+      <SubmitButton className="btn-primary" pendingText="Checking…" confirm="Approve this plan? There is no sending to clients in v1 — exports are for you to share manually.">Approve</SubmitButton>
+      {state.ok && <span className="ml-2 text-sm text-green-700">Approved.</span>}
+      <Result state={state} />
+    </form>
+  );
+}
