@@ -43,7 +43,7 @@ GAP_TESTS = [
 ]
 
 FONT_NOTES = {
-    "syncopate": ("Recommended",
+    "syncopate": ("Round 1 recommendation",
                   "The widest and blockiest of the four. Even stroke, true geometric O, no quirks. "
                   "It still reads at 120px and has the quiet, high-end feel. The bold weight keeps the "
                   "monogram solid at 32px."),
@@ -51,7 +51,7 @@ FONT_NOTES = {
                 "Very neutral and engineered, with slightly narrower letters, so the mark is more compact. "
                 "The variable family (width and weight) is useful for supporting type. Slightly less "
                 "distinctive than Syncopate."),
-    "michroma": ("Elegant but light",
+    "michroma": ("Chosen (round 2)",
                  "The most refined look, but the hairline-ish stroke fades at small sizes and in the monogram "
                  "at 32px and 16px. It would need a heavier cut, which doesn't exist."),
     "unbounded": ("Not recommended",
@@ -211,8 +211,8 @@ def type_section(heading_num="03"):
     cards = []
     for k, name, wob, bow, tight, p120, h120, mono, m32, m16 in font_cards:
         tag, note = FONT_NOTES[k]
-        pick = " pick" if k == BASE_FONT else ""
-        tagcls = "tag" if k in ("syncopate", "archivo") else "tag mute"
+        pick = " pick" if k == "michroma" else ""
+        tagcls = "tag" if k in ("michroma",) else "tag mute"
         cards.append(f"""
 <div class="card{pick}">
   <h3>{name}<span class="{tagcls}">{tag}</span></h3>
@@ -314,6 +314,6 @@ are shown in brackets.</p>
 <footer>Round 1. SVG sources are in <code>brand/exploration/</code>. Everything is outlined paths, with no font dependency.
 Rebuild with <code>python3 brand/_src/build_round1.py</code>.</footer>
 """
-with open(os.path.join(ROOT, "preview.html"), "w") as fh:
-    fh.write(page("MTTM Brand Preview", preview_body))
+with open(os.path.join(EXP, "round-1.html"), "w") as fh:
+    fh.write(page("MTTM Round 1", preview_body.replace('src="exploration/', 'src="')))
 print("ok")

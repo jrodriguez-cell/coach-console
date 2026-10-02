@@ -114,11 +114,14 @@ def bbox_of(font: Font, glyphs, size=100.0):
     return x0, y0, x1, y1
 
 
-def svg_doc(paths: str, bbox, pad, fg, bg, title, pad_y=None, extra="", post="") -> str:
+def svg_doc(paths: str, bbox, pad, fg, bg, title, pad_y=None, extra="", post="", boost=0.0) -> str:
+    """boost: extra stroke (cap-height units) for a heavier small-size cut."""
     x0, y0, x1, y1 = bbox
     py = pad if pad_y is None else pad_y
     vx, vy = x0 - pad, y0 - py
     vw, vh = (x1 - x0) + 2 * pad, (y1 - y0) + 2 * py
+    stroke = (f' stroke="{fg}" stroke-width="{fmt(boost)}" stroke-linejoin="miter" stroke-miterlimit="4"'
+              if boost else "")
     bg_rect = (
         f'<rect x="{fmt(vx)}" y="{fmt(vy)}" width="{fmt(vw)}" height="{fmt(vh)}" fill="{bg}"/>'
         if bg
@@ -128,7 +131,7 @@ def svg_doc(paths: str, bbox, pad, fg, bg, title, pad_y=None, extra="", post="")
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{fmt(vx)} {fmt(vy)} {fmt(vw)} {fmt(vh)}" '
         f'role="img" aria-label="{title}">'
         f"<title>{title}</title>{bg_rect}{extra}"
-        f'<path fill="{fg}" d="{paths}"/>{post}</svg>'
+        f'<path fill="{fg}"{stroke} d="{paths}"/>{post}</svg>'
     )
 
 
