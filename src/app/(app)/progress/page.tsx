@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/data/settings";
 import { loadProgressData, summarize } from "@/lib/data/progress-data";
@@ -42,15 +43,15 @@ export default async function ProgressOverview({ searchParams }: { searchParams:
   const link = (p: Record<string, string>) => `/progress?${new URLSearchParams({ sort, filter, ...p })}`;
   return (
     <div className="space-y-4">
-      <h1>Progress overview</h1>
-      <div className="flex flex-wrap gap-2 text-sm">
+      <PageHeader title="Progress" display meta="Active clients against their plan." />
+      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 text-sm sm:mx-0 sm:flex-wrap sm:px-0">
         {["all", "behind", "slightly_behind", "on_track", "ahead", "no_data", "flagged"].map((f) => (
-          <Link key={f} href={link({ filter: f })} className={`btn btn-sm ${filter === f ? "btn-primary" : ""}`}>{f.replace("_", " ")}</Link>
+          <Link key={f} href={link({ filter: f })} className={`btn btn-sm shrink-0 ${filter === f ? "btn-primary" : ""}`}>{f.replace("_", " ")}</Link>
         ))}
       </div>
       <Card>
         {rows.length === 0 ? <Empty>No active clients match.</Empty> : (
-          <div className="table-wrap"><table className="table">
+          <div className="table-wrap"><table className="table table-stack">
             <thead>
               <tr>
                 <th><Link href={link({ sort: "name" })}>Client</Link></th>
@@ -66,14 +67,14 @@ export default async function ProgressOverview({ searchParams }: { searchParams:
             <tbody>
               {rows.map(({ c, s, flags, status }) => (
                 <tr key={c.id}>
-                  <td><Link href={`/clients/${c.id}/progress`}>{c.name}</Link></td>
-                  <td>{s.meta ? `${s.week} of ${s.meta.weeks}` : "—"}</td>
-                  <td><Badge tone={TONE[status]}>{WEIGHT_STATUS_LABEL[status]}</Badge>{s.weight?.deviation != null && <span className="ml-1 text-xs text-stone">{fmt.signed(s.weight.deviation)} lb</span>}</td>
-                  <td>{s.adherence14 != null ? <span className={s.adherence14 < settings.task_thresholds.adherenceLowPct ? "font-semibold text-alert" : ""}>{fmt.pct(s.adherence14)}</span> : "—"}</td>
-                  <td>{s.lastWeighIn ? formatDate(s.lastWeighIn) : "—"}</td>
-                  <td>{s.lastCheckin ? formatDate(s.lastCheckin) : "—"}</td>
-                  <td>{s.strengthFlag ? <Badge tone="red">below {settings.task_thresholds.strengthRetentionPct}%</Badge> : s.lifts.length ? "ok" : "—"}</td>
-                  <td className="space-x-1">{flags.map((f) => <Badge key={f} tone="red">{f}</Badge>)}</td>
+                  <td data-primary><Link href={`/clients/${c.id}/progress`}>{c.name}</Link></td>
+                  <td data-label="Week">{s.meta ? `${s.week} of ${s.meta.weeks}` : "—"}</td>
+                  <td data-label="Weight vs plan"><Badge tone={TONE[status]}>{WEIGHT_STATUS_LABEL[status]}</Badge>{s.weight?.deviation != null && <span className="ml-1 text-xs text-stone">{fmt.signed(s.weight.deviation)} lb</span>}</td>
+                  <td data-label="Adherence (14 d)">{s.adherence14 != null ? <span className={s.adherence14 < settings.task_thresholds.adherenceLowPct ? "font-semibold text-alert" : ""}>{fmt.pct(s.adherence14)}</span> : "—"}</td>
+                  <td data-label="Last weigh-in">{s.lastWeighIn ? formatDate(s.lastWeighIn) : "—"}</td>
+                  <td data-label="Last check-in">{s.lastCheckin ? formatDate(s.lastCheckin) : "—"}</td>
+                  <td data-label="Strength">{s.strengthFlag ? <Badge tone="red">below {settings.task_thresholds.strengthRetentionPct}%</Badge> : s.lifts.length ? "ok" : "—"}</td>
+                  <td data-label="Flags" className="space-x-1">{flags.map((f) => <Badge key={f} tone="red">{f}</Badge>)}</td>
                 </tr>
               ))}
             </tbody>

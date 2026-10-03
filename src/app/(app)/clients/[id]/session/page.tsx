@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { currentPlan, getClient } from "@/lib/data/clients";
@@ -24,10 +25,7 @@ export default async function SessionPage({ params }: { params: { id: string } }
   }));
   return (
     <div className="space-y-4">
-      <div>
-        <Link href={`/clients/${client.id}`} className="text-sm">← {client.name}</Link>
-        <h1>Log session — {client.name}</h1>
-      </div>
+      <PageHeader back={{ href: `/clients/${client.id}`, label: client.name }} eyebrow="Log session" title={client.name} />
       <Card><SessionForm clientId={client.id} planId={plan?.id ?? null} sessions={sessions} library={lib.map((e) => ({ id: e.id, name: e.name }))} /></Card>
     </div>
   );

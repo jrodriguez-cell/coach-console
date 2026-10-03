@@ -60,12 +60,12 @@ export function ShareWeek({ planId, week, fileBase }: { planId: string; week: nu
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="actions">
       {canShare && <button type="button" className="btn btn-primary" onClick={share} disabled={!ready || ready.week !== week}>{ready && ready.week === week ? `Share week ${week}…` : "Preparing…"}</button>}
-      <a className={canShare ? "btn" : "btn btn-primary"} href={url("pdf")}>Download week {week} PDF</a>
-      <a className="btn" href={url("xlsx")}>Fillable Excel</a>
-      <button type="button" className="btn" onClick={copy} disabled={busy}>Copy as text</button>
-      {msg && <span className="text-xs text-stone">{msg}</span>}
+      <a className={canShare ? "btn" : "btn btn-primary"} href={url("pdf")}>Week {week} PDF</a>
+      <a className="btn" href={url("xlsx")}>Excel</a>
+      <button type="button" className="btn" onClick={copy} disabled={busy}>Copy text</button>
+      {msg && <span className="col-span-2 text-xs text-stone">{msg}</span>}
     </div>
   );
 }

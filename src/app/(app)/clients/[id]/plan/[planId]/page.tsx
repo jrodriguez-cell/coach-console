@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import { notFound } from "next/navigation";
 import clsx from "clsx";
 import { createClient } from "@/lib/supabase/server";
@@ -41,23 +42,23 @@ export default async function PlanPage({ params, searchParams }: { params: { id:
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <Link href={`/clients/${client.id}`} className="text-sm">← {client.name}</Link>
-          <h1 className="flex items-center gap-2">
-            Plan v{plan.version} <Badge tone={plan.status === "approved" ? "green" : plan.status === "draft" ? "yellow" : "gray"}>{plan.status === "draft" ? "DRAFT" : plan.status}</Badge>
-          </h1>
-          <p className="muted">{goalLabel(plan.goal_category)} · generated {formatDate(plan.generated_at.slice(0, 10))}{plan.approved_at ? ` · approved ${formatDate(plan.approved_at.slice(0, 10))}` : ""} · {plan.training?.selection_source === "llm" ? "exercise picks drafted by Claude from the library" : "library-default exercise picks"}</p>
-        </div>
-        <div className="flex flex-wrap items-start gap-2">
-          <a className="btn" href={`/api/plans/${plan.id}/export/xlsx`}>Export Excel</a>
-          <a className="btn" href={`/api/plans/${plan.id}/export/pdf`}>Export PDF</a>
-          {plan.status !== "draft" && (
-            <form action={revisePlanAction.bind(null, plan.id)}><SubmitButton>Create revision</SubmitButton></form>
-          )}
-          {editable && <ApproveForm planId={plan.id} />}
-        </div>
-      </div>
+      <PageHeader
+        back={{ href: `/clients/${client.id}`, label: client.name }}
+        eyebrow="Plan"
+        title={`Version ${plan.version}`}
+        badge={<Badge tone={plan.status === "approved" ? "green" : plan.status === "draft" ? "yellow" : "gray"}>{plan.status === "draft" ? "Draft" : plan.status}</Badge>}
+        meta={<>{goalLabel(plan.goal_category)} · generated {formatDate(plan.generated_at.slice(0, 10))}{plan.approved_at ? ` · approved ${formatDate(plan.approved_at.slice(0, 10))}` : ""} · {plan.training?.selection_source === "llm" ? "exercise picks drafted by Claude from the library" : "library-default exercise picks"}</>}
+        actions={
+          <>
+            <a className="btn" href={`/api/plans/${plan.id}/export/xlsx`}>Plan Excel</a>
+            <a className="btn" href={`/api/plans/${plan.id}/export/pdf`}>Plan PDF</a>
+            {plan.status !== "draft" && (
+              <form action={revisePlanAction.bind(null, plan.id)}><SubmitButton className="w-full sm:w-auto">Create revision</SubmitButton></form>
+            )}
+            {editable && <ApproveForm planId={plan.id} />}
+          </>
+        }
+      />
 
       {plan.status === "draft" && (
         <Banner tone={issues.length ? "yellow" : "green"} title={issues.length ? "DRAFT — not approved. Before you can approve:" : "DRAFT — ready to approve."}>
@@ -107,12 +108,13 @@ function GuardrailPanel({ plan, overrides, editable }: { plan: PlanRow; override
   const notOk = flags.filter((f) => f.status !== "ok");
   return (
     <Card title="Guardrails" actions={<span className="text-xs text-stone">{flags.length - notOk.length} ok · {notOk.filter((f) => f.status === "warn").length} warn · {notOk.filter((f) => f.status === "blocked").length} blocked</span>}>
-      <ul className="space-y-2 text-sm">
+      <ul className="space-y-3 text-sm">
         {notOk.map((f) => {
           const ov = overrides.filter((o) => o.rule_key === f.rule_key);
           return (
-            <li key={f.rule_key}>
-              <Badge tone={statusTone(f.status)}>{f.status.toUpperCase()}</Badge> <b>{f.label}</b>{f.value ? ` (${f.value})` : ""} — {f.message}
+            <li key={f.rule_key} className="space-y-1.5 border-b border-bone/10 pb-3 last:border-0 last:pb-0">
+              <div className="flex flex-wrap items-center gap-2"><Badge tone={statusTone(f.status)}>{f.status}</Badge><span className="font-semibold">{f.label}</span>{f.value ? <span className="text-stone">{f.value}</span> : null}</div>
+              <p className="text-stone">{f.message}</p>
               {f.status === "warn" && (ov.length ? <div className="text-xs text-ok">Override: {ov.map((o) => o.reason).join("; ")}</div> : editable && <OverrideForm planId={plan.id} ruleKey={f.rule_key} />)}
               {f.status === "blocked" && <div className="text-xs text-alert">Cannot be overridden. Change the plan inputs.</div>}
             </li>
@@ -121,8 +123,8 @@ function GuardrailPanel({ plan, overrides, editable }: { plan: PlanRow; override
       </ul>
       <details className="mt-2 text-sm">
         <summary className="cursor-pointer text-stone">Show passing checks</summary>
-        <ul className="mt-1 space-y-1">
-          {flags.filter((f) => f.status === "ok").map((f) => <li key={f.rule_key}><Badge tone="green">OK</Badge> {f.label}{f.value ? ` (${f.value})` : ""} — {f.message}</li>)}
+        <ul className="mt-2 space-y-1.5">
+          {flags.filter((f) => f.status === "ok").map((f) => <li key={f.rule_key} className="flex flex-wrap items-baseline gap-x-2"><span className="font-semibold">{f.label}</span>{f.value ? <span className="text-stone">{f.value}</span> : null}</li>)}
         </ul>
       </details>
     </Card>
@@ -134,7 +136,7 @@ function Overview({ plan, editable, clientId, purpose, intakeGoal }: { plan: Pla
   const tpl = GOAL_TEMPLATES[plan.goal_category];
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <Card title={`${tpl.label}: programming guidelines`}>
+      <Card title="Programming guidelines">
         {(purpose || intakeGoal) && <p className="mb-2 text-sm">Purpose: {purpose || intakeGoal}</p>}
         <ol className="list-decimal space-y-1 pl-5 text-sm">{tpl.guidelines.map((g) => <li key={g}>{g}</li>)}</ol>
         <p className="mt-2 text-sm">Cardio: {tpl.cardio.intensity}; {tpl.cardio.freqMin}–{tpl.cardio.freqMax} sessions/week, {tpl.cardio.minMin}–{tpl.cardio.minMax} min{tpl.cardio.weeklyTargetMin ? `, building to ${tpl.cardio.weeklyTargetMin}+ min/week` : ""}.</p>
@@ -171,14 +173,14 @@ function Training({ plan, editable, week, base, candidates, fileBase }: { plan: 
   const cw = t.cardio.weeks[wk.week - 1];
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-1 text-sm">
+      <nav aria-label="Plan week" className="no-scrollbar -mx-4 flex gap-1 overflow-x-auto px-4 text-sm sm:mx-0 sm:flex-wrap sm:px-0">
         {t.weeks.map((w) => (
-          <Link key={w.week} href={`${base}?tab=training&week=${w.week}`} className={clsx("btn btn-sm", w.week === wk.week && "btn-primary")}>
+          <Link key={w.week} href={`${base}?tab=training&week=${w.week}`} aria-current={w.week === wk.week ? "page" : undefined} className={clsx("btn btn-sm shrink-0", w.week === wk.week && "btn-primary")}>
             W{w.week}{w.deload ? " ·D" : ""}
           </Link>
         ))}
-      </div>
-      <Card title={`Send week ${wk.week} to the client`}>
+      </nav>
+      <Card title={`Send week ${wk.week}`}>
         <p className="muted mb-2">Day-by-day workouts with a set-by-set log (weight × reps) for the client to fill in, plus cardio and mobility. PDF to print or mark up, Excel to type into, text to paste into a message. Leaves out calories, energy numbers and your notes.{plan.status !== "approved" ? " Marked DRAFT until the plan is approved." : ""}</p>
         <ShareWeek planId={plan.id} week={wk.week} fileBase={fileBase} />
       </Card>
@@ -188,7 +190,7 @@ function Training({ plan, editable, week, base, candidates, fileBase }: { plan: 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {t.sessions.map((s) => (
           <Card key={s.key} title={`${s.name}`} actions={<span className="text-xs text-stone">≈{wk.session_minutes[s.key]} min of work + warm-up</span>}>
-            <div className="table-wrap"><table className="table">
+            <div className="table-wrap"><table className="table table-stack">
               <thead><tr><th>Exercise</th><th>Sets × reps</th><th>Rest</th><th>RPE</th></tr></thead>
               <tbody>
                 {s.slots.map((sl) => {
@@ -196,7 +198,7 @@ function Training({ plan, editable, week, base, candidates, fileBase }: { plan: 
                   const reps = rx ? (sl.unit === "seconds" ? `${holdSeconds(rx)[0]}–${holdSeconds(rx)[1]} s` : `${rx.reps_min}–${rx.reps_max}`) : "";
                   return (
                     <tr key={sl.id} className={clsx(!rx && "opacity-50")}>
-                      <td>
+                      <td data-primary>
                         <div className="font-medium">{sl.exercise.name} <span className="text-xs font-normal text-stone">{PATTERN_LABEL[sl.pattern]} · {sl.role}</span></div>
                         {sl.regression && <div className="text-xs text-stone">↓ Regression: {sl.regression.name}</div>}
                         {sl.progression && <div className="text-xs text-stone">↑ Progression: {sl.progression.name}</div>}
@@ -235,9 +237,9 @@ function Training({ plan, editable, week, base, candidates, fileBase }: { plan: 
                           </details>
                         )}
                       </td>
-                      <td>{rx ? `${rx.sets} × ${reps}` : "—"}</td>
-                      <td>{rx ? `${rx.rest_sec}s` : "—"}</td>
-                      <td>{rx ? `${rx.rpe_min}–${rx.rpe_max}` : "—"}</td>
+                      <td data-label="Sets × reps">{rx ? `${rx.sets} × ${reps}` : "—"}</td>
+                      <td data-label="Rest">{rx ? `${rx.rest_sec}s` : "—"}</td>
+                      <td data-label="RPE">{rx ? `${rx.rpe_min}–${rx.rpe_max}` : "—"}</td>
                     </tr>
                   );
                 })}
@@ -338,7 +340,8 @@ function Nutrition({ plan, editable, disclaimer, hasGoalWeight }: { plan: PlanRo
           <p className="mt-1 text-xs text-stone">Uses 3,500 kcal per lb as a planning approximation only; ±{(e.uncertainty_pct * 100).toFixed(0)}% TDEE uncertainty ({e.uncertainty_pct <= 0.05 ? "calibrated" : e.mode}). Recalibrated from real weigh-ins at checkpoints. Post-exercise afterburn is ignored (conservative).</p>
         </Card>
       </div>
-      <Card title="Example days — examples, swap freely">
+      <Card title="Example days">
+            <p className="muted mb-3">Examples only. Swap foods freely.</p>
         {n.example_days.length === 0 ? <Empty>No example days fit inside every band with the allowed foods.</Empty> : (
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             {n.example_days.map((d) => (
@@ -403,7 +406,26 @@ function Calendar({ plan }: { plan: PlanRow }) {
   const cal = planCalendar(plan.parameters, plan.training);
   return (
     <Card title="Calendar">
-      <div className="overflow-x-auto">
+      {/* Phones: one block per week, listing only days with something on. */}
+      <ol className="space-y-5 sm:hidden">
+        {cal.map((w) => (
+          <li key={w.week} className={clsx("border-t border-bone/15 pt-3", w.deload && "border-bone/40")}>
+            <div className="mb-2 flex items-baseline justify-between gap-3">
+              <h3 className="text-[11px]">Week {w.week}</h3>
+              <span className="text-xs text-stone">{w.phase ? PHASES[w.phase as keyof typeof PHASES].label : ""}{w.deload ? " · deload" : ""}</span>
+            </div>
+            <ul className="space-y-2 text-sm">
+              {w.days.filter((d) => d.items.length).map((d) => (
+                <li key={d.date} className="grid grid-cols-[5.5rem_1fr] gap-2">
+                  <span className="text-stone">{DAY_NAMES[d.weekday]} {formatDate(d.date).replace(/, \d{4}$/, "")}</span>
+                  <span>{d.items.join(" · ")}</span>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ol>
+      <div className="hidden overflow-x-auto sm:block">
         <table className="table text-xs">
           <thead><tr><th>Week</th>{cal[0]?.days.map((d) => <th key={d.date}>{DAY_NAMES[d.weekday]}</th>)}</tr></thead>
           <tbody>

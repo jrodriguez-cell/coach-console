@@ -83,14 +83,15 @@ export function IntakeForm({ clientId, prev, parq, refer }: { clientId: string; 
         <div>
           <span className="label">Current exercise (baseline, per week)</span>
           <p className="mb-2 text-xs text-stone">Needed for measured-mode TDEE so the program isn&apos;t double-counted.</p>
+          <div className="mb-1 grid grid-cols-3 gap-2 text-xs text-stone" aria-hidden><span>Activity</span><span>Sessions / week</span><span>Minutes each</span></div>
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="mb-1 grid grid-cols-3 gap-2">
-              <select className="input" name={`cx_type_${i}`} defaultValue={cx[i]?.type ?? ""}>
+            <div key={i} className="mb-2 grid grid-cols-3 gap-2">
+              <select className="input" name={`cx_type_${i}`} aria-label={`Activity ${i + 1}`} defaultValue={cx[i]?.type ?? ""}>
                 <option value="">—</option>
                 {["strength", "walking", "jogging", "running", "cycling", "mobility", "yoga", "sport"].map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
-              <input className="input" type="number" name={`cx_sessions_${i}`} placeholder="sessions/week" defaultValue={cx[i]?.sessions_per_week} />
-              <input className="input" type="number" name={`cx_minutes_${i}`} placeholder="minutes each" defaultValue={cx[i]?.minutes} />
+              <input className="input" type="number" inputMode="numeric" name={`cx_sessions_${i}`} aria-label={`Activity ${i + 1} sessions per week`} defaultValue={cx[i]?.sessions_per_week} />
+              <input className="input" type="number" inputMode="numeric" name={`cx_minutes_${i}`} aria-label={`Activity ${i + 1} minutes each`} defaultValue={cx[i]?.minutes} />
             </div>
           ))}
           <label className="mt-1 flex items-center gap-2 text-sm"><input type="checkbox" name="current_exercise_confirmed" defaultChecked={a.current_exercise_confirmed && cx.length === 0} /> Client currently does no structured exercise</label>

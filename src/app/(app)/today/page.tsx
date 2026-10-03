@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/data/settings";
 import { runTaskEngine } from "@/lib/data/task-runner";
@@ -30,25 +31,22 @@ export default async function TodayPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-        <h1>Today · {formatDate(today)}</h1>
-        <span className="muted">{tasks.length} open</span>
-      </div>
+      <PageHeader eyebrow="Today" title={formatDate(today)} meta={`${tasks.length} open ${tasks.length === 1 ? "task" : "tasks"}`} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           {order.length === 0 && <Card><Empty>Nothing needs your attention right now.</Empty></Card>}
           {order.map((k) => (
-            <Card key={k} title={k === "_general" ? "General" : <Link href={`/clients/${k}`}>{names[k] ?? "Client"}</Link>}>
-              <TaskList tasks={groups.get(k)!} showClient={k !== "_general"} clientNames={{}} />
+            <Card key={k} title={k === "_general" ? "General" : <Link className="title-sm" href={`/clients/${k}`}>{names[k] ?? "Client"}</Link>}>
+              <TaskList tasks={groups.get(k)!} showClient={false} />
             </Card>
           ))}
         </div>
         <div className="space-y-4">
           <Card title="Next 7 days">
             {keyDates.length === 0 ? <Empty>No key dates.</Empty> : (
-              <ul className="space-y-1 text-sm">
+              <ul className="space-y-2 text-sm">
                 {keyDates.map((k, i) => (
-                  <li key={i}><b>{DAY_NAMES[dayOfWeek(k.date)]} {formatDate(k.date)}</b> · <Link href={`/clients/${k.client_id}`}>{k.client_name}</Link> — {k.label}</li>
+                  <li key={i} className="border-b border-bone/10 pb-2 last:border-0"><div className="label mb-1">{DAY_NAMES[dayOfWeek(k.date)]} {formatDate(k.date).replace(/, \d{4}$/, "")}</div><Link href={`/clients/${k.client_id}`}>{k.client_name}</Link> · {k.label}</li>
                 ))}
               </ul>
             )}
@@ -61,7 +59,7 @@ export default async function TodayPage() {
                 {(allClients ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
               <input className="input" type="date" name="due_date" defaultValue={today} />
-              <SubmitButton className="btn-sm btn-primary">Add task</SubmitButton>
+              <SubmitButton className="btn-primary w-full sm:w-auto">Add task</SubmitButton>
             </form>
           </Card>
         </div>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getClient } from "@/lib/data/clients";
@@ -20,10 +21,7 @@ export default async function CalibratePage({ params, searchParams }: { params: 
   const pv = await calibrationPreview(db, client.id, searchParams.checkpoint ?? null, settings, todayIn(), null);
   return (
     <div className="max-w-4xl space-y-4">
-      <div>
-        <Link href={`/clients/${client.id}`} className="text-sm">← {client.name}</Link>
-        <h1>Calibration{pv?.checkpoint ? ` — week ${pv.checkpoint.week} checkpoint` : " (on demand)"}</h1>
-      </div>
+      <PageHeader back={{ href: `/clients/${client.id}`, label: client.name }} eyebrow="Calibration" title={pv?.checkpoint ? `Week ${pv.checkpoint.week} checkpoint` : "On-demand check"} />
       {!pv ? (
         <Banner tone="yellow" title="Needs an approved plan with nutrition targets." />
       ) : (

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { Badge, Card, Empty } from "@/components/ui";
 import { goalLabel, STATUS_TONE } from "@/lib/labels";
@@ -23,11 +24,11 @@ export default async function ClientsPage({ searchParams }: { searchParams: { st
   const rows = ((clients ?? []) as ClientRow[]).filter((c) => filter === "all" || c.status === filter);
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1>Clients</h1>
-        <Link href="/clients/new" className="btn btn-primary">New client</Link>
+      <div className="flex items-end justify-between gap-3">
+        <PageHeader title="Clients" display />
+        <Link href="/clients/new" className="btn btn-primary shrink-0">New client</Link>
       </div>
-      <div className="no-scrollbar -mx-3 flex gap-2 overflow-x-auto px-3 text-sm capitalize sm:mx-0 sm:flex-wrap sm:px-0">
+      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 text-sm sm:mx-0 sm:flex-wrap sm:px-0">
         {["all", "prospect", "active", "paused", "completed"].map((s) => (
           <Link key={s} href={`/clients?status=${s}`} className={`btn btn-sm shrink-0 ${filter === s ? "btn-primary" : ""}`}>{s}</Link>
         ))}
@@ -36,7 +37,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: { st
         {rows.length === 0 ? (
           <Empty>No clients yet.</Empty>
         ) : (
-          <div className="table-wrap"><table className="table">
+          <div className="table-wrap"><table className="table table-stack">
             <thead>
               <tr><th>Name</th><th>Status</th><th>Goal</th><th>Week</th><th>Next key date</th><th>Flags</th></tr>
             </thead>
@@ -53,12 +54,12 @@ export default async function ClientsPage({ searchParams }: { searchParams: { st
                 const week = plan?.status === "approved" ? Math.floor(daysBetween(plan.parameters.start_date, today) / 7) + 1 : null;
                 return (
                   <tr key={c.id}>
-                    <td><Link href={`/clients/${c.id}`}>{c.name}</Link></td>
-                    <td><Badge tone={STATUS_TONE[c.status]}>{c.status}</Badge></td>
-                    <td>{goalLabel(c.goal_category)}</td>
-                    <td>{plan ? (plan.status === "approved" ? (week! < 1 ? `starts ${formatDate(plan.parameters.start_date)}` : `Week ${Math.min(week!, plan.parameters.weeks)} of ${plan.parameters.weeks}`) : <Badge>draft</Badge>) : "—"}</td>
-                    <td>{next ? `${formatDate(next.due_date)} · ${next.kind === "review" ? `week ${next.week} checkpoint` : next.kind}` : "—"}</td>
-                    <td className="space-x-1">
+                    <td data-primary><Link href={`/clients/${c.id}`}>{c.name}</Link></td>
+                    <td data-label="Status"><Badge tone={STATUS_TONE[c.status]}>{c.status}</Badge></td>
+                    <td data-label="Goal">{goalLabel(c.goal_category)}</td>
+                    <td data-label="Week">{plan ? (plan.status === "approved" ? (week! < 1 ? `starts ${formatDate(plan.parameters.start_date)}` : `Week ${Math.min(week!, plan.parameters.weeks)} of ${plan.parameters.weeks}`) : <Badge>draft</Badge>) : "—"}</td>
+                    <td data-label="Next">{next ? `${formatDate(next.due_date)} · ${next.kind === "review" ? `week ${next.week} checkpoint` : next.kind}` : "—"}</td>
+                    <td data-label="Flags" className="space-x-1">
                       {intake?.parq_flagged && <Badge tone={clr?.status === "received" || clr?.status === "not_required" ? "gray" : "red"}>PAR-Q{clr?.status === "pending" ? ": clearance pending" : ""}</Badge>}
                       {flags.map((f) => (
                         <Badge key={f} tone={[...blocked.nutrition, ...blocked.training].includes(f) ? "red" : "yellow"} title={REFER_OUT_FLAGS[f].hint}>Refer out: {REFER_OUT_FLAGS[f].label}</Badge>

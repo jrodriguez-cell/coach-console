@@ -51,7 +51,7 @@ export function OverrideForm({ planId, ruleKey }: { planId: string; ruleKey: str
   const [state, action] = useFormState<ActionState, FormData>(saveOverrideAction.bind(null, planId), { error: null });
   if (state.ok) return <span className="text-xs text-ok">Override recorded.</span>;
   return (
-    <form action={action} className="mt-1 flex gap-2">
+    <form action={action} className="mt-1 flex flex-col gap-2 sm:flex-row">
       <input type="hidden" name="rule_key" value={ruleKey} />
       <input className="input text-xs" name="reason" placeholder="Override reason (required)" required />
       <SubmitButton className="btn-sm">Record override</SubmitButton>

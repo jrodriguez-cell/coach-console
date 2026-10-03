@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getClientBundle } from "@/lib/data/clients";
 import { Badge, Banner, Card, Empty, Field, fmt } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
+import { PageHeader } from "@/components/page-header";
 import { GenerateForm } from "@/components/generate-form";
 import { CheckinForm, MeasurementsForm, TestResultForm, WeighInForm } from "@/components/quick-add";
 import { TaskList } from "@/components/task-list";
@@ -31,21 +32,27 @@ export default async function ClientPage({ params }: { params: { id: string } })
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <Link href="/clients" className="text-sm">← Clients</Link>
-          <h1 className="flex items-center gap-2">{client.name} <Badge tone={STATUS_TONE[client.status]}>{client.status}</Badge></h1>
-          <p className="muted">{goalLabel(client.goal_category)}{client.email ? ` · ${client.email}` : ""}{client.phone ? ` · ${client.phone}` : ""}{client.start_date ? ` · start ${formatDate(client.start_date)}` : ""}</p>
-          {client.purpose_text && <p className="text-sm">“{client.purpose_text}”</p>}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link className="btn" href={`/clients/${client.id}/intake`}>{intake ? "Update intake" : "Start intake"}</Link>
-          <Link className="btn" href={`/clients/${client.id}/progress`}>Progress</Link>
-          <Link className="btn" href={`/clients/${client.id}/entry`}>Data entry grid</Link>
-          <Link className="btn" href={`/clients/${client.id}/session`}>Log session</Link>
-          <Link className="btn" href={`/clients/${client.id}/calibrate`}>Calibrate now</Link>
-        </div>
-      </div>
+      <PageHeader
+        back={{ href: "/clients", label: "Clients" }}
+        eyebrow={goalLabel(client.goal_category)}
+        title={client.name}
+        badge={<Badge tone={STATUS_TONE[client.status]}>{client.status}</Badge>}
+        meta={
+          <>
+            {[client.email, client.phone, client.start_date ? `Starts ${formatDate(client.start_date)}` : null].filter(Boolean).join(" · ")}
+            {client.purpose_text && <p className="mt-1 text-bone">“{client.purpose_text}”</p>}
+          </>
+        }
+        actions={
+          <>
+            <Link className="btn" href={`/clients/${client.id}/intake`}>{intake ? "Intake" : "Start intake"}</Link>
+            <Link className="btn" href={`/clients/${client.id}/progress`}>Progress</Link>
+            <Link className="btn" href={`/clients/${client.id}/entry`}>Enter data</Link>
+            <Link className="btn" href={`/clients/${client.id}/session`}>Log sets</Link>
+            <Link className="btn" href={`/clients/${client.id}/calibrate`}>Calibrate</Link>
+          </>
+        }
+      />
 
       {/* Refer-out banners */}
       {flags.map((f) => {
@@ -144,27 +151,38 @@ export default async function ClientPage({ params }: { params: { id: string } })
           </Card>
 
           <Card title="Quick add">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div><h3 className="mb-1 text-sm font-semibold">Weigh-in</h3><WeighInForm clientId={client.id} /></div>
-              <div><h3 className="mb-1 text-sm font-semibold">Test result</h3><TestResultForm clientId={client.id} benchmarks={benchmarks ?? []} /></div>
-              <div><h3 className="mb-1 text-sm font-semibold">Check-in</h3><CheckinForm clientId={client.id} /></div>
-              <div><h3 className="mb-1 text-sm font-semibold">Measurements</h3><MeasurementsForm clientId={client.id} /><p className="mt-2 text-sm"><Link href={`/clients/${client.id}/session`}>Log a session with sets →</Link></p></div>
+            <div className="divide-y divide-bone/15 border-y border-bone/15">
+              {[
+                { key: "weigh", title: "Weigh-in", open: true, body: <WeighInForm clientId={client.id} /> },
+                { key: "check", title: "Check-in", open: false, body: <CheckinForm clientId={client.id} /> },
+                { key: "test", title: "Test result", open: false, body: <TestResultForm clientId={client.id} benchmarks={benchmarks ?? []} /> },
+                { key: "meas", title: "Measurements", open: false, body: <MeasurementsForm clientId={client.id} /> },
+              ].map((q) => (
+                <details key={q.key} open={q.open} className="group">
+                  <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
+                    <h3 className="text-[10px]">{q.title}</h3>
+                    <span aria-hidden className="text-stone transition-transform group-open:rotate-45">+</span>
+                  </summary>
+                  <div className="pb-4">{q.body}</div>
+                </details>
+              ))}
             </div>
+            <p className="mt-3 text-sm"><Link href={`/clients/${client.id}/session`}>Log a session with sets →</Link></p>
           </Card>
 
           <Card title="Checkpoint timeline">
             {b.checkpoints.length === 0 ? (
               <Empty>Checkpoints are created when a plan is approved.</Empty>
             ) : (
-              <div className="table-wrap"><table className="table">
+              <div className="table-wrap"><table className="table table-stack">
                 <thead><tr><th>Date</th><th>Week</th><th>Kind</th><th>Status</th><th></th></tr></thead>
                 <tbody>
                   {b.checkpoints.map((c) => (
                     <tr key={c.id}>
-                      <td>{formatDate(c.due_date)}</td>
-                      <td>{c.week}</td>
-                      <td>{c.kind === "review" ? "Calibration / review" : c.kind}</td>
-                      <td>{c.completed_at ? <Badge tone="green">done{c.result && "decision" in c.result ? `: ${String(c.result.decision).replace("_", " ")}` : ""}</Badge> : c.due_date < today ? <Badge tone="red">due</Badge> : <Badge>upcoming</Badge>}</td>
+                      <td data-primary>{formatDate(c.due_date)}</td>
+                      <td data-label="Week">{c.week}</td>
+                      <td data-label="Kind">{c.kind === "review" ? "Calibration / review" : c.kind}</td>
+                      <td data-label="Status">{c.completed_at ? <Badge tone="green">done{c.result && "decision" in c.result ? `: ${String(c.result.decision).replace("_", " ")}` : ""}</Badge> : c.due_date < today ? <Badge tone="red">due</Badge> : <Badge>upcoming</Badge>}</td>
                       <td>{c.kind === "review" && !c.completed_at && <Link className="btn btn-sm" href={`/clients/${client.id}/calibrate?checkpoint=${c.id}`}>Run calibration</Link>}</td>
                     </tr>
                   ))}
@@ -191,11 +209,11 @@ export default async function ClientPage({ params }: { params: { id: string } })
 
           <Card title="Guardrail override history">
             {b.overrides.length === 0 ? <Empty>No overrides.</Empty> : (
-              <div className="table-wrap"><table className="table">
+              <div className="table-wrap"><table className="table table-stack">
                 <thead><tr><th>Date</th><th>Plan</th><th>Rule</th><th>Value</th><th>Reason</th></tr></thead>
                 <tbody>
                   {b.overrides.map((o) => (
-                    <tr key={o.id}><td>{formatDate(o.created_at.slice(0, 10))}</td><td>v{o.plan_version}</td><td>{o.rule_key}</td><td>{o.override_value ?? "—"}</td><td>{o.reason}</td></tr>
+                    <tr key={o.id}><td data-primary>{formatDate(o.created_at.slice(0, 10))}</td><td data-label="Plan">v{o.plan_version}</td><td data-label="Rule">{o.rule_key}</td><td data-label="Value">{o.override_value ?? "—"}</td><td data-label="Reason" data-block>{o.reason}</td></tr>
                   ))}
                 </tbody>
               </table></div>

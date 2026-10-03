@@ -70,18 +70,18 @@ export function EntryGrid({ clientId, rows, columns, initial }: { clientId: stri
 
   return (
     <div className="space-y-2">
-      <div className="overflow-x-auto">
+      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
         <table className="table">
           <thead>
             <tr>
-              <th>Date</th>
+              <th className="sticky left-0 z-10 bg-ink">Date</th>
               {columns.map((c) => <th key={c.key}>{c.label}{c.unit ? ` (${c.unit})` : ""}</th>)}
             </tr>
           </thead>
           <tbody>
             {rows.map((row, r) => (
               <tr key={row.date}>
-                <td className="whitespace-nowrap text-xs">{row.label}</td>
+                <td className="sticky left-0 z-10 whitespace-nowrap bg-ink pr-3 align-middle text-sm">{row.label}</td>
                 {columns.map((col, c) => {
                   const key = k(r, c);
                   const err = state.cellErrors?.[key];
@@ -91,7 +91,8 @@ export function EntryGrid({ clientId, rows, columns, initial }: { clientId: stri
                     <td key={col.key} className="p-0.5">
                       <input
                         ref={(el) => { refs.current[key] = el; }}
-                        className={clsx("input min-w-[5rem] py-1", dirty && "bg-bone/10", err && "border-bone", warn && "border-stone")}
+                        inputMode={col.type === "text" || col.type === "time" ? "text" : col.type === "boolean" ? "numeric" : "decimal"}
+                        className={clsx("input min-w-[5.5rem] py-1.5", dirty && "bg-bone/10", err && "border-bone", warn && "border-stone")}
                         value={values[key] ?? ""}
                         title={err ?? warn ?? ""}
                         onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}

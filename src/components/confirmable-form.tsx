@@ -52,7 +52,7 @@ export function ConfirmableForm({ action, children, submitLabel, className }: { 
         </div>
       )}
       {state.saved != null && !state.error && !state.needsConfirm && <p className="text-sm text-ok">Saved.</p>}
-      <SubmitButton className="btn-primary btn-sm">{submitLabel}</SubmitButton>
+      <SubmitButton className="btn-primary w-full sm:w-auto">{submitLabel}</SubmitButton>
     </form>
   );
 }

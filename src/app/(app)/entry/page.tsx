@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/data/settings";
 import { loadMetricDefs, loadProgressData } from "@/lib/data/progress-data";
@@ -24,10 +25,10 @@ export default async function WeeklyRoundPage() {
 
   return (
     <div className="space-y-4">
-      <h1>Weekly round · week of {formatDate(weekStart)}</h1>
+      <PageHeader eyebrow="Weekly round" title={`Week of ${formatDate(weekStart)}`} />
       <Card>
         {clients.length === 0 ? <Empty>No active clients.</Empty> : (
-          <div className="table-wrap"><table className="table">
+          <div className="table-wrap"><table className="table table-stack">
             <thead><tr><th>Client</th><th>Missing this week</th><th>Workouts logged</th><th>Reviewed</th><th></th></tr></thead>
             <tbody>
               {clients.map((c) => {
@@ -39,11 +40,11 @@ export default async function WeeklyRoundPage() {
                 const reviewed = (reviews ?? []).some((r) => r.client_id === c.id);
                 return (
                   <tr key={c.id}>
-                    <td><Link href={`/clients/${c.id}`}>{c.name}</Link></td>
-                    <td>{missing.length === 0 ? <Badge tone="green">complete</Badge> : missing.map((m) => <Badge key={m.id} tone="yellow">{m.label}</Badge>)}</td>
-                    <td>{sessions} / {scheduled}</td>
-                    <td>{reviewed ? <Badge tone="green">reviewed</Badge> : <form action={markReviewedAction.bind(null, c.id, weekStart)}><button className="btn btn-sm">Mark reviewed</button></form>}</td>
-                    <td><Link className="btn btn-sm" href={`/clients/${c.id}/entry`}>Open grid</Link></td>
+                    <td data-primary><Link href={`/clients/${c.id}`}>{c.name}</Link></td>
+                    <td data-label="Missing">{missing.length === 0 ? <Badge tone="green">complete</Badge> : missing.map((m) => <Badge key={m.id} tone="yellow">{m.label}</Badge>)}</td>
+                    <td data-label="Workouts">{sessions} / {scheduled}</td>
+                    <td data-label="Reviewed">{reviewed ? <Badge tone="green">reviewed</Badge> : <form action={markReviewedAction.bind(null, c.id, weekStart)}><button className="btn btn-sm">Mark reviewed</button></form>}</td>
+                    <td><Link className="btn btn-sm w-full sm:w-auto" href={`/clients/${c.id}/entry`}>Enter data</Link></td>
                   </tr>
                 );
               })}

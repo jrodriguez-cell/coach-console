@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/page-header";
 import { createClientAction } from "@/app/actions/clients";
 import { Card, Field } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
@@ -7,7 +8,7 @@ import { goalLabel } from "@/lib/labels";
 export default function NewClientPage() {
   return (
     <div className="max-w-2xl space-y-4">
-      <h1>New client</h1>
+      <PageHeader back={{ href: "/clients", label: "Clients" }} title="New client" display />
       <Card>
         <form action={createClientAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Name" className="sm:col-span-2"><input className="input" name="name" required /></Field>

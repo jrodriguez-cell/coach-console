@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getClient } from "@/lib/data/clients";
@@ -40,17 +41,18 @@ export default async function ClientProgressPage({ params }: { params: { id: str
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <Link href={`/clients/${client.id}`} className="text-sm">← {client.name}</Link>
-          <h1>Progress — {client.name}</h1>
-          <p className="muted">{s.meta ? `Week ${s.week} of ${s.meta.weeks}` : "No approved plan yet"} · all expenditure and predicted-change figures are estimates</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link className="btn" href={`/clients/${client.id}/entry`}>Enter data</Link>
-          <a className="btn" href={`/api/clients/${client.id}/progress-report`}>Progress report PDF</a>
-        </div>
-      </div>
+      <PageHeader
+        back={{ href: `/clients/${client.id}`, label: client.name }}
+        eyebrow="Progress"
+        title={s.meta ? `Week ${s.week} of ${s.meta.weeks}` : "No approved plan yet"}
+        meta="Expenditure and predicted-change figures are estimates."
+        actions={
+          <>
+            <Link className="btn" href={`/clients/${client.id}/entry`}>Enter data</Link>
+            <a className="btn" href={`/api/clients/${client.id}/progress-report`}>Report PDF</a>
+          </>
+        }
+      />
 
       {/* 1. Weight */}
       <Card title="Weight" actions={w && <Badge tone={STATUS_TONE[w.status]}>{WEIGHT_STATUS_LABEL[w.status]}</Badge>}>
@@ -83,13 +85,13 @@ export default async function ClientProgressPage({ params }: { params: { id: str
         {/* 2. Measurements */}
         <Card title="Measurements (in)">
           {d.measurements.length === 0 ? <Empty>No measurements yet.</Empty> : (
-            <div className="table-wrap"><table className="table">
+            <div className="table-wrap"><table className="table table-stack">
               <thead><tr><th>Site</th><th>Baseline</th><th>Latest</th><th>Change</th></tr></thead>
               <tbody>
                 {MEASUREMENT_SITES.map((site) => {
                   const pts = bySite(site);
                   if (!pts.length) return null;
-                  return <tr key={site}><td className="capitalize">{site}</td><td>{pts[0].value} <span className="text-xs text-stone">{formatDate(pts[0].date)}</span></td><td>{pts.at(-1)!.value} <span className="text-xs text-stone">{formatDate(pts.at(-1)!.date)}</span></td><td>{fmt.signed(pts.at(-1)!.value - pts[0].value)}</td></tr>;
+                  return <tr key={site}><td data-primary className="capitalize">{site}</td><td data-label="Baseline">{pts[0].value} <span className="text-xs text-stone">{formatDate(pts[0].date)}</span></td><td data-label="Latest">{pts.at(-1)!.value} <span className="text-xs text-stone">{formatDate(pts.at(-1)!.date)}</span></td><td data-label="Change">{fmt.signed(pts.at(-1)!.value - pts[0].value)}</td></tr>;
                 })}
               </tbody>
             </table></div>
@@ -100,9 +102,10 @@ export default async function ClientProgressPage({ params }: { params: { id: str
       </div>
 
       {/* 3. Strength */}
-      <Card title="Strength (estimated 5RM, Epley)">
+      <Card title="Strength">
+          <p className="muted mb-3">Estimated 5RM (Epley).</p>
         {s.lifts.length === 0 ? <Empty>Log sessions with sets to track lifts.</Empty> : (
-          <div className="table-wrap"><table className="table">
+          <div className="table-wrap"><table className="table table-stack">
             <thead><tr><th>Lift</th><th>Baseline 5RM</th><th>Latest 5RM</th><th>% of baseline</th><th>PRs</th><th>Next session</th></tr></thead>
             <tbody>
               {s.lifts.map((l) => {
@@ -112,12 +115,12 @@ export default async function ClientProgressPage({ params }: { params: { id: str
                 const ready = top ? progressionReadiness(lastSets, top) : null;
                 return (
                   <tr key={l.exercise_id}>
-                    <td>{l.exercise_name}</td>
-                    <td>{fmt.n(l.baseline5rm)} lb</td>
-                    <td>{fmt.n(l.latest5rm)} lb</td>
-                    <td>{l.flagLow ? <Badge tone="red">{fmt.pct(l.pctOfBaseline)} — below {settings.task_thresholds.strengthRetentionPct}%</Badge> : fmt.pct(l.pctOfBaseline)}</td>
-                    <td>{l.prs.length ? l.prs.map((p) => formatDate(p.date)).join(", ") : "—"}</td>
-                    <td>{ready === "add_weight" ? <Badge tone="green">Add weight</Badge> : ready === "rpe_not_logged" ? <span className="text-xs">hit top reps; log RPE to confirm</span> : ready === "not_yet" ? "Same weight" : "—"}</td>
+                    <td data-primary>{l.exercise_name}</td>
+                    <td data-label="Baseline 5RM">{fmt.n(l.baseline5rm)} lb</td>
+                    <td data-label="Latest 5RM">{fmt.n(l.latest5rm)} lb</td>
+                    <td data-label="Of baseline">{l.flagLow ? <Badge tone="red">{fmt.pct(l.pctOfBaseline)} — below {settings.task_thresholds.strengthRetentionPct}%</Badge> : fmt.pct(l.pctOfBaseline)}</td>
+                    <td data-label="PRs">{l.prs.length ? l.prs.map((p) => formatDate(p.date)).join(", ") : "—"}</td>
+                    <td data-label="Next session">{ready === "add_weight" ? <Badge tone="green">Add weight</Badge> : ready === "rpe_not_logged" ? <span className="text-xs">hit top reps; log RPE to confirm</span> : ready === "not_yet" ? "Same weight" : "—"}</td>
                   </tr>
                 );
               })}
@@ -130,24 +133,24 @@ export default async function ClientProgressPage({ params }: { params: { id: str
       {/* 4. Benchmarks */}
       <Card title="Benchmarks and goals">
         {s.benchmarks.length === 0 ? <Empty>No benchmarks yet.</Empty> : (
-          <div className="table-wrap"><table className="table">
+          <div className="table-wrap"><table className="table table-stack">
             <thead><tr><th>Benchmark</th><th>Baseline</th><th>Target</th><th>Target date</th><th>Current</th><th>% of the way</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {s.benchmarks.map((b) => (
                 <tr key={b.id}>
-                  <td>{b.name} <span className="text-xs text-stone">{b.unit} · {b.direction === "higher_better" ? "higher is better" : "lower is better"}</span></td>
+                  <td data-primary>{b.name} <span className="text-xs text-stone">{b.unit} · {b.direction === "higher_better" ? "higher is better" : "lower is better"}</span></td>
                   <td colSpan={3}>
-                    <form action={updateBenchmarkAction.bind(null, client.id, b.id)} className="flex gap-1">
-                      <input className="input w-20" type="number" step="any" name="baseline" defaultValue={b.baseline ?? ""} />
-                      <input className="input w-20" type="number" step="any" name="target" defaultValue={b.target ?? ""} />
-                      <input className="input w-36" type="date" name="target_date" defaultValue={b.target_date ?? ""} />
-                      <button className="btn btn-sm">Save</button>
+                    <form action={updateBenchmarkAction.bind(null, client.id, b.id)} className="grid w-full grid-cols-2 items-end gap-2 sm:flex sm:gap-1">
+                      <label><span className="label sm:sr-only">Baseline</span><input className="input sm:w-20" type="number" inputMode="decimal" step="any" name="baseline" defaultValue={b.baseline ?? ""} /></label>
+                      <label><span className="label sm:sr-only">Target</span><input className="input sm:w-20" type="number" inputMode="decimal" step="any" name="target" defaultValue={b.target ?? ""} /></label>
+                      <label className="col-span-2"><span className="label sm:sr-only">Target date</span><input className="input sm:w-36" type="date" name="target_date" defaultValue={b.target_date ?? ""} /></label>
+                      <button className="btn btn-sm col-span-2">Save</button>
                     </form>
                   </td>
-                  <td>{fmt.n(b.current, 1)}</td>
-                  <td>{b.pct != null ? `${Math.round(b.pct)}%${b.expectedPct != null ? ` (expected ${Math.round(b.expectedPct)}%)` : ""}` : "—"}</td>
-                  <td><Badge tone={BM_TONE[b.status]}>{b.status.replace("_", " ")}</Badge></td>
-                  <td><form action={deleteBenchmarkAction.bind(null, client.id, b.id)}><button className="btn btn-sm">Remove</button></form></td>
+                  <td data-label="Current">{fmt.n(b.current, 1)}</td>
+                  <td data-label="Progress">{b.pct != null ? `${Math.round(b.pct)}%${b.expectedPct != null ? ` (expected ${Math.round(b.expectedPct)}%)` : ""}` : "—"}</td>
+                  <td data-label="Status"><Badge tone={BM_TONE[b.status]}>{b.status.replace("_", " ")}</Badge></td>
+                  <td><form action={deleteBenchmarkAction.bind(null, client.id, b.id)}><button className="btn btn-sm w-full sm:w-auto">Remove</button></form></td>
                 </tr>
               ))}
             </tbody>
@@ -171,16 +174,17 @@ export default async function ClientProgressPage({ params }: { params: { id: str
 
       {/* 6. Volume and log */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card title="Weekly training volume (lb × reps)"><BarSeries points={volumeRows(d)} unit="lb·reps" /></Card>
+        <Card title="Training volume">
+          <p className="muted mb-3">Weekly total, lb × reps.</p><BarSeries points={volumeRows(d)} unit="lb·reps" /></Card>
         <Card title="Training log">
           {d.sessions.length === 0 ? <Empty>No sessions logged.</Empty> : (
-            <div className="table-wrap"><table className="table text-xs">
+            <div className="table-wrap"><table className="table table-stack text-xs">
               <thead><tr><th>Date</th><th>Session</th><th>Status</th><th>Sets</th></tr></thead>
               <tbody>
                 {[...d.sessions].reverse().slice(0, 15).map((ss) => (
                   <tr key={ss.id}>
-                    <td>{formatDate(ss.date)}</td><td>{ss.planned_session_key ?? "—"}</td><td>{ss.status}</td>
-                    <td>{d.sets.filter((x) => x.session_id === ss.id).map((x) => `${x.exercise_name} ${x.weight_lb ?? "bw"}×${x.reps ?? "?"}${x.rpe ? `@${x.rpe}` : ""}${x.is_test ? " (test)" : ""}`).join("; ") || "—"}</td>
+                    <td data-primary>{formatDate(ss.date)}</td><td data-label="Session">{ss.planned_session_key ?? "—"}</td><td data-label="Status">{ss.status}</td>
+                    <td data-label="Sets" data-block>{d.sets.filter((x) => x.session_id === ss.id).map((x) => `${x.exercise_name} ${x.weight_lb ?? "bw"}×${x.reps ?? "?"}${x.rpe ? `@${x.rpe}` : ""}${x.is_test ? " (test)" : ""}`).join("; ") || "—"}</td>
                   </tr>
                 ))}
               </tbody>

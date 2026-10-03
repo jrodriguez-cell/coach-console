@@ -10,22 +10,24 @@ export function TaskList({ tasks, showClient = true, clientNames }: { tasks: Tas
   return (
     <ul className="divide-y divide-bone/15">
       {tasks.map((t) => (
-        <li key={t.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
-          <span className="min-w-0 flex-1">
-            {t.title}
-            <span className="ml-2 text-xs text-stone">
-              {t.status === "snoozed" ? `snoozed until ${formatDate(t.snoozed_until)}` : t.due_date < today ? <Badge tone="red">overdue · {formatDate(t.due_date)}</Badge> : formatDate(t.due_date)}
-              {showClient && t.client_id && clientNames?.[t.client_id] ? ` · ${clientNames[t.client_id]}` : ""}
-            </span>
-          </span>
-          <form action={completeTaskAction.bind(null, t.id, t.client_id)}><button className="btn btn-sm">Done</button></form>
-          <form action={snoozeTaskAction.bind(null, t.id, t.client_id)} className="flex gap-1">
-            <select name="days" className="input w-auto py-0.5 text-xs" defaultValue="1">
-              <option value="1">1 day</option><option value="3">3 days</option><option value="7">1 week</option>
-            </select>
-            <button className="btn btn-sm">Snooze</button>
-          </form>
-          {showClient && t.client_id && <Link className="btn btn-sm" href={`/clients/${t.client_id}`}>Open client</Link>}
+        <li key={t.id} className="space-y-2.5 py-3">
+          <div className="min-w-0 space-y-1.5">
+            <p className="text-[15px] leading-snug">{t.title}</p>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-stone">
+              {t.status === "snoozed" ? <span>Snoozed until {formatDate(t.snoozed_until)}</span> : t.due_date < today ? <Badge tone="red">Overdue · {formatDate(t.due_date).replace(/, \d{4}$/, "")}</Badge> : <span>Due {formatDate(t.due_date)}</span>}
+              {showClient && t.client_id && clientNames?.[t.client_id] ? <span>{clientNames[t.client_id]}</span> : null}
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <form action={completeTaskAction.bind(null, t.id, t.client_id)}><button className="btn btn-sm">Done</button></form>
+            <form action={snoozeTaskAction.bind(null, t.id, t.client_id)} className="flex items-center gap-1">
+              <select name="days" aria-label="Snooze for" className="input w-auto min-h-[34px] py-1 text-sm" defaultValue="1">
+                <option value="1">1 day</option><option value="3">3 days</option><option value="7">1 week</option>
+              </select>
+              <button className="btn btn-sm">Snooze</button>
+            </form>
+            {showClient && t.client_id && <Link className="btn btn-sm" href={`/clients/${t.client_id}`}>Open</Link>}
+          </div>
         </li>
       ))}
     </ul>

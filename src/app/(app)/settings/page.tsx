@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/data/settings";
 import { Banner, Card, Field } from "@/components/ui";
@@ -24,24 +25,31 @@ const LABELS: Record<string, string> = {
   dailyDigest: "Send a daily digest email (weekly digest always on)",
 };
 
+/** "carbPctMinWeightLoss" → "Carb % min weight loss" */
+const humanize = (k: string) => {
+  const w = k.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/_/g, " ").replace(/\bPct\b/gi, "%").toLowerCase();
+  return w.charAt(0).toUpperCase() + w.slice(1);
+};
+
 export default async function SettingsPage({ searchParams }: { searchParams: { deleted?: string } }) {
   const db = createClient();
   const s = await getSettings(db);
   const { data: clients } = await db.from("clients").select("id, name").order("name");
   return (
     <div className="space-y-4">
-      <h1>Settings</h1>
+      <PageHeader title="Settings" display />
       {searchParams.deleted && <Banner tone="green" title="Client data deleted." />}
-      <div className="flex flex-wrap gap-2">
-        <Link className="btn" href="/settings/metrics">Tracked metrics</Link>
-        <Link className="btn" href="/settings/exercises">Exercise library</Link>
-        <Link className="btn" href="/settings/foods">Food library</Link>
+      <div className="actions">
+        <Link className="btn" href="/settings/metrics">Metrics</Link>
+        <Link className="btn" href="/settings/exercises">Exercises</Link>
+        <Link className="btn" href="/settings/foods">Foods</Link>
       </div>
       <form action={saveSettingsAction} className="space-y-4">
-        <Card title="Nutrition disclaimer (printed on every nutrition page and export)">
+        <Card title="Nutrition disclaimer">
+          <p className="muted mb-2">Printed on every nutrition page and export.</p>
           <textarea className="input" name="disclaimer" rows={4} defaultValue={s.disclaimer} />
         </Card>
-        <Card title="Outreach and task thresholds">
+        <Card title="Task thresholds">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             {Object.entries(s.task_thresholds).map(([k, v]) =>
               typeof v === "boolean" ? (
@@ -52,26 +60,28 @@ export default async function SettingsPage({ searchParams }: { searchParams: { d
             )}
           </div>
         </Card>
-        <Card title="Guardrail defaults (ISSA CPT textbook)">
-          <p className="mb-2 text-xs text-stone">Hard floors cannot be lowered below 1,200 kcal/day or 15% fat.</p>
+        <Card title="Guardrails">
+          <p className="muted mb-3">ISSA CPT textbook defaults. Hard floors cannot be lowered below 1,200 kcal/day or 15% fat.</p>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {Object.entries(s.guardrail_limits).map(([k, v]) => <Field key={k} label={k}><input className="input" type="number" step="any" name={`g_${k}`} defaultValue={v} /></Field>)}
+            {Object.entries(s.guardrail_limits).map(([k, v]) => <Field key={k} label={humanize(k)}><input className="input" type="number" step="any" name={`g_${k}`} defaultValue={v} /></Field>)}
           </div>
         </Card>
-        <Card title="Default calorie balance by goal (kcal/day; positive = deficit, negative = surplus)">
+        <Card title="Calorie balance by goal">
+          <p className="muted mb-3">kcal/day. Positive is a deficit, negative a surplus.</p>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {GOAL_CATEGORIES.map((g) => <Field key={g} label={goalLabel(g)}><input className="input" type="number" name={`d_${g}`} defaultValue={s.default_deficits[g]} /></Field>)}
           </div>
         </Card>
-        <Card title="Energy-model uncertainty (fraction of TDEE)">
+        <Card title="Energy-model uncertainty">
+          <p className="muted mb-3">Fraction of TDEE.</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {Object.entries(s.uncertainty).map(([k, v]) => <Field key={k} label={k}><input className="input" type="number" step="0.01" name={`u_${k}`} defaultValue={v} /></Field>)}
+            {Object.entries(s.uncertainty).map(([k, v]) => <Field key={k} label={humanize(k)}><input className="input" type="number" step="0.01" name={`u_${k}`} defaultValue={v} /></Field>)}
           </div>
         </Card>
-        <SubmitButton className="btn-primary">Save settings</SubmitButton>
+        <SubmitButton className="btn-primary w-full sm:w-auto">Save settings</SubmitButton>
       </form>
 
-      <Card title="Client data: export or delete">
+      <Card title="Client data">
         <p className="mb-2 text-sm">Export downloads everything stored for one client as JSON. Deleting removes the client and all linked records permanently.</p>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-1 text-sm">
@@ -80,7 +90,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: { d
           <form action={deleteClientAction} className="space-y-2">
             <select className="input" name="client_id" required>{(clients ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
             <input className="input" name="confirm_name" placeholder="Type the client's full name to confirm" required />
-            <SubmitButton className="btn-danger" confirm="Permanently delete this client's data?">Delete client data</SubmitButton>
+            <SubmitButton className="btn-danger w-full sm:w-auto" confirm="Permanently delete this client's data?">Delete client data</SubmitButton>
           </form>
         </div>
       </Card>

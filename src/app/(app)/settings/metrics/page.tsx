@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { loadMetricDefs } from "@/lib/data/progress-data";
 import { Badge, Card, Field } from "@/components/ui";
@@ -38,10 +39,10 @@ export default async function MetricsSettings() {
   return (
     <div className="space-y-4">
       <Link href="/settings" className="text-sm">← Settings</Link>
-      <h1>Tracked metrics</h1>
+      <PageHeader back={{ href: "/settings", label: "Settings" }} title="Tracked metrics" display />
       <p className="muted">Core metrics feed calculations; they can be made optional or hidden but not deleted. Custom metrics get their own chart automatically. Retiring hides a metric from forms but keeps its history. Every change is logged.</p>
-      <Card title="Metrics and usage (last 28 days)">
-        <div className="table-wrap"><table className="table">
+      <Card title="Metrics and usage">
+        <div className="table-wrap"><table className="table table-stack">
           <thead><tr><th></th><th>Metric</th><th>Frequency</th><th>Filled in</th><th>Used by</th><th>Last entry</th><th>Settings</th></tr></thead>
           <tbody>
             {defs.map((m) => {
@@ -55,11 +56,11 @@ export default async function MetricsSettings() {
                     <form action={moveMetricAction.bind(null, m.id, "up")} className="inline"><button className="btn btn-sm">↑</button></form>
                     <form action={moveMetricAction.bind(null, m.id, "down")} className="inline"><button className="btn btn-sm">↓</button></form>
                   </td>
-                  <td>{m.label} {m.is_core ? <Badge tone="blue">core</Badge> : <Badge>custom</Badge>} {!m.active && <Badge tone="gray">{m.retired_at ? "retired" : "hidden"}</Badge>}<div className="text-xs text-stone">{m.key} · {m.type}{m.unit ? ` · ${m.unit}` : ""}</div></td>
-                  <td>{m.frequency}</td>
-                  <td>{fill != null ? `${n} entries (${fill}% of expected)` : `${n} entries`}</td>
-                  <td className="text-xs">{[m.show_in_charts && "chart", (u.rule || m.used_by_task_rule) && `task rule${u.rule ? `: ${u.rule}` : ""}`, u.calibration && "calibration"].filter(Boolean).join(" · ") || "—"}</td>
-                  <td>{formatDate(lastUsed(m.id))}</td>
+                  <td data-primary>{m.label} {m.is_core ? <Badge tone="blue">core</Badge> : <Badge>custom</Badge>} {!m.active && <Badge tone="gray">{m.retired_at ? "retired" : "hidden"}</Badge>}<div className="text-xs text-stone">{m.key} · {m.type}{m.unit ? ` · ${m.unit}` : ""}</div></td>
+                  <td data-label="Frequency">{m.frequency}</td>
+                  <td data-label="Filled in">{fill != null ? `${n} entries (${fill}% of expected)` : `${n} entries`}</td>
+                  <td data-label="Used by" data-block className="text-xs">{[m.show_in_charts && "chart", (u.rule || m.used_by_task_rule) && `task rule${u.rule ? `: ${u.rule}` : ""}`, u.calibration && "calibration"].filter(Boolean).join(" · ") || "—"}</td>
+                  <td data-label="Last entry">{formatDate(lastUsed(m.id))}</td>
                   <td>
                     <details>
                       <summary className="cursor-pointer text-xs text-bone">Edit</summary>
