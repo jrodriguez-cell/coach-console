@@ -3,6 +3,7 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import clsx from "clsx";
 import { saveEntriesAction } from "@/app/actions/entries";
 import type { EntryState } from "@/lib/data/entries";
+import { useToastOn } from "./toaster";
 
 export interface GridColumn {
   key: string;
@@ -20,6 +21,7 @@ export interface GridColumn {
 export function EntryGrid({ clientId, rows, columns, initial }: { clientId: string; rows: { date: string; label: string }[]; columns: GridColumn[]; initial: Record<string, string> }) {
   const [values, setValues] = useState<Record<string, string>>(initial);
   const [state, setState] = useState<EntryState>({ error: null });
+  useToastOn(state.saved != null && !state.needsConfirm && !state.error, `Saved ${state.saved ?? 0} value${state.saved === 1 ? "" : "s"}`, state);
   const [pending, start] = useTransition();
   const refs = useRef<Record<string, HTMLInputElement | null>>({});
   const k = (r: number, c: number) => `${columns[c].key}|${rows[r].date}`;

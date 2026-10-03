@@ -20,6 +20,12 @@ describe("task engine", () => {
     const mon = generateTasks(snap(), "2026-09-28", 13);
     expect(mon.create.find((t) => t.rule_key === "weigh_in_overdue")?.due_date).toBe("2026-09-28");
   });
+  it("send this week's plan: one task per plan week, due when the week starts", () => {
+    const t = generateTasks(snap(), "2026-09-30", 9).create.find((x) => x.rule_key === "send_week");
+    expect(t?.due_date).toBe("2026-09-28"); // week 4 starts Monday Sep 28
+    expect(t?.title).toBe("Send week 4 plan to Alex");
+    expect(keys(generateTasks(snap({ plan: { ...snap().plan!, status: "draft" } }), "2026-09-30", 9))).not.toContain("send_week");
+  });
   it("logged weigh-in resolves the weigh-in tasks", () => {
     const r = generateTasks(snap({ weighIns: [START, "2026-09-27"] }), "2026-09-28", 13);
     expect(keys(r)).not.toContain("weigh_in_due");

@@ -3,6 +3,7 @@ import { useRef, useTransition } from "react";
 import { useFormState } from "react-dom";
 import type { EntryState } from "@/lib/data/entries";
 import { SubmitButton } from "./submit-button";
+import { useToastOn } from "./toaster";
 
 type Action = (prev: EntryState, form: FormData) => Promise<EntryState>;
 
@@ -13,6 +14,7 @@ type Action = (prev: EntryState, form: FormData) => Promise<EntryState>;
  */
 export function ConfirmableForm({ action, children, submitLabel, className }: { action: Action; children: React.ReactNode; submitLabel: string; className?: string }) {
   const [state, dispatch] = useFormState(action, { error: null });
+  useToastOn(state.saved != null && !state.error && !state.needsConfirm, "Saved", state);
   const last = useRef<FormData | null>(null);
   const [pending, start] = useTransition();
   return (

@@ -10,6 +10,9 @@ import { GUARDRAIL_DEFAULTS, type GuardrailLimits } from "@/config/guardrails";
 import { GOAL_TEMPLATES, type GoalCategory } from "@/config/goal-templates";
 import { kcalFromMacros, pctOfCalories } from "./nutrition";
 
+/** Half a percentage point: the rounding of a whole-number percentage. */
+const PCT_DISPLAY_TOLERANCE = 0.5;
+
 export type GuardrailStatus = "ok" | "warn" | "blocked";
 
 export interface GuardrailResult {
@@ -111,7 +114,9 @@ export function evaluateGuardrails(input: GuardrailInput): GuardrailResult[] {
   // --- Carbohydrate ---------------------------------------------------------
   const cPct = pctOfCalories(input.carbG, 4, cal);
   const cMin = input.goal === "weight_loss" ? L.carbPctMinWeightLoss : L.carbPctMin;
-  const okC = cPct >= cMin && cPct <= L.carbPctMax;
+  // Percentages are shown rounded to whole numbers; judge at the same
+  // precision so a value displayed as "45%" never fails a 45% minimum.
+  const okC = cPct >= cMin - PCT_DISPLAY_TOLERANCE && cPct <= L.carbPctMax + PCT_DISPLAY_TOLERANCE;
   add({ rule_key: "carb_pct", label: "Carbohydrate % of calories", status: okC ? "ok" : "warn", value: `${fmt(cPct)}%`, message: okC ? `Within ${cMin}–${L.carbPctMax}% of calories${input.goal === "weight_loss" ? " (25–40% acceptable for weight loss)" : ""}.` : `Carbohydrate is ${fmt(cPct)}% of calories, outside ${cMin}–${L.carbPctMax}%.` });
 
   // --- Fat ------------------------------------------------------------------

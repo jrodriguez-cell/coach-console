@@ -117,3 +117,17 @@ describe("macro reconciliation for generated targets", () => {
     }
   });
 });
+
+describe("carb % at the display boundary (JR, muscle gain)", () => {
+  const base: GuardrailInput = { ...CMR, goal: "muscle_gain", targetKcal: 2631, tdee: 2431, proteinG: 197, fatG: 73, predictedLbPerWeek: 0.4, predictedLow: -0.2, predictedHigh: 1.0, energyMode: "measured", measuredBaselineKcal: 186 } as GuardrailInput;
+  it("44.9% shows as 45% and is not flagged against a 45% minimum", () => {
+    const r = byKey(evaluateGuardrails({ ...base, carbG: 295 }), "carb_pct");
+    expect(r?.value).toBe("45%");
+    expect(r?.status).toBe("ok");
+  });
+  it("a genuinely low value (44%) is still flagged", () => {
+    const r = byKey(evaluateGuardrails({ ...base, carbG: 289 }), "carb_pct");
+    expect(r?.value).toBe("44%");
+    expect(r?.status).toBe("warn");
+  });
+});

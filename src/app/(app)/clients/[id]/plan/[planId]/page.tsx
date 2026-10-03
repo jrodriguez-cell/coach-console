@@ -7,7 +7,7 @@ import { getClient, getPlan, latestIntake, planOverrides } from "@/lib/data/clie
 import { approvalIssues } from "@/lib/data/approval";
 import { loadExercises } from "@/lib/data/libraries";
 import { getSettings } from "@/lib/data/settings";
-import { Badge, Banner, Card, Empty, fmt, statusTone } from "@/components/ui";
+import { Badge, Banner, Card, Collapsible, Empty, fmt, statusTone } from "@/components/ui";
 import { ApproveForm, OverrideForm, PlanEditForm } from "@/components/plan-forms";
 import { GenerateForm } from "@/components/generate-form";
 import { SubmitButton } from "@/components/submit-button";
@@ -184,16 +184,16 @@ function Training({ plan, editable, week, base, candidates, fileBase }: { plan: 
           </Link>
         ))}
       </nav>
-      <Card title={`Send week ${wk.week}`}>
-        <p className="muted mb-2">Day-by-day workouts with a set-by-set log (weight × reps) for the client to fill in, plus cardio and mobility. PDF to print or mark up, Excel to type into, text to paste into a message. Leaves out calories, energy numbers and your notes.{plan.status !== "approved" ? " Marked DRAFT until the plan is approved." : ""}</p>
+      <div id="send" className="scroll-mt-24"><Card title={`Send week ${wk.week}`}>
+        <p className="muted mb-3">Send this week&apos;s workouts. Your client fills in weight and reps as they train (Excel, or marks up the PDF), then sends it back. Import the Excel on their <Link href={`/clients/${plan.client_id}?tab=log`}>Log tab</Link> to save every set. Leaves out calories and your notes.{plan.status !== "approved" ? " Marked DRAFT until the plan is approved." : ""}</p>
         <ShareWeek planId={plan.id} week={wk.week} fileBase={fileBase} />
-      </Card>
+      </Card></div>
       <p className="text-sm">
         <b>Week {wk.week}</b> · {PHASES[wk.phase].label}{wk.deload ? " · DELOAD (≈40% fewer sets, stop at RPE 5–6)" : ""}{wk.retest ? " · retest at the last session" : ""} · {t.split_label}, lifting on {t.lifting_days.map((d) => DAY_NAMES[d]).join(", ")}
       </p>
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
-        {t.sessions.map((s) => (
-          <Card key={s.key} title={`${s.name}`} actions={<span className="text-xs text-muted">≈{wk.session_minutes[s.key]} min of work + warm-up</span>}>
+        {t.sessions.map((s, si) => (
+          <Collapsible key={s.key} defaultOpen={si === 0} title={s.name} hint={`${s.slots.filter((sl) => wk.prescriptions[sl.id]).length} exercises · ≈${wk.session_minutes[s.key]} min + warm-up`}>
             <div className="table-wrap"><table className="table table-stack">
               <thead><tr><th>Exercise</th><th>Sets × reps</th><th>Rest</th><th>RPE</th></tr></thead>
               <tbody>
@@ -249,7 +249,7 @@ function Training({ plan, editable, week, base, candidates, fileBase }: { plan: 
                 })}
               </tbody>
             </table></div>
-          </Card>
+          </Collapsible>
         ))}
       </div>
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">

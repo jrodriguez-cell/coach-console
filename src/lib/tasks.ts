@@ -113,6 +113,12 @@ export function generateTasks(s: ClientSnapshot, today: string, hourNow: number,
   const planActive = plan.status === "approved" && plan.start_date <= today && today <= addDays(end, 7);
 
   if (planActive) {
+    // --- Send this week's workouts to the client --------------------------------
+    const planWeekNow = Math.floor(daysBetween(plan.start_date, today) / 7) + 1;
+    if (planWeekNow >= 1 && planWeekNow <= plan.weeks) {
+      add("send_week", weekStart(plan.start_date, planWeekNow), `Send week ${planWeekNow} plan to ${c.name}`, "plan");
+    }
+
     // --- Weekly Sunday weigh-in ------------------------------------------------
     const sunday = sundayOnOrBefore(today);
     if (sunday >= plan.start_date && sunday <= end) {
@@ -204,4 +210,22 @@ export function upcomingKeyDates(s: ClientSnapshot, today: string, days = 7): Ke
   for (const wk of plan.retest_weeks) push(retestDate(plan, wk), `Week ${wk} retest`);
   push(end, "Plan ends");
   return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * Task titles name the client so they read well on Today; on the client's
+ * own page the name is noise. Drop it and tidy the leftover wording.
+ */
+export function shortTaskTitle(title: string, clientName: string | null | undefined): string {
+  if (!clientName) return title;
+  const n = clientName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const t = title
+    .replace(new RegExp(`^${n}: `), "")
+    .replace(new RegExp(`: ${n}$`), "")
+    .replace(new RegExp(`^Text ${n} `), "Text client ")
+    .replace(new RegExp(` with ${n} / `), " with ")
+    .replace(new RegExp(` (?:for|with|to) (?:prospect )?${n}(?=$|[ :(])`), "")
+    .replace(new RegExp(` / ${n}`), "")
+    .trim();
+  return t.charAt(0).toUpperCase() + t.slice(1);
 }

@@ -63,7 +63,7 @@ export function ShareWeek({ planId, week, fileBase }: { planId: string; week: nu
     <div className="actions">
       {canShare && <button type="button" className="btn btn-primary" onClick={share} disabled={!ready || ready.week !== week}>{ready && ready.week === week ? `Share week ${week}…` : "Preparing…"}</button>}
       <a className={canShare ? "btn" : "btn btn-primary"} href={url("pdf")}>Week {week} PDF</a>
-      <a className="btn" href={url("xlsx")}>Excel</a>
+      <a className="btn" href={url("xlsx")}>Fillable Excel</a>
       <button type="button" className="btn" onClick={copy} disabled={busy}>Copy text</button>
       {msg && <span className="col-span-2 text-xs text-muted">{msg}</span>}
     </div>

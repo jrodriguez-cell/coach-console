@@ -179,3 +179,49 @@ export async function markReviewedAction(clientId: string, weekStart: string) {
   await db.from("entry_reviews").upsert({ client_id: clientId, week_start: weekStart, reviewed_at: new Date().toISOString() });
   revalidatePath("/entry");
 }
+
+export interface ImportState {
+  error: string | null;
+  summary?: { sessions: number; sets: number; skipped: string[]; week: number };
+}
+
+/** Import a client's filled-in week sheet (Excel) as logged sessions and sets. */
+export async function importWeekSheetAction(clientId: string, _prev: ImportState, form: FormData): Promise<ImportState> {
+  const file = form.get("sheet");
+  if (!(file instanceof File) || file.size === 0) return { error: "Choose the Excel file your client sent back." };
+  if (file.size > 2_000_000) return { error: "That file is too large for a week sheet." };
+  const { readWeekSheet } = await import("@/lib/export/client-week-import");
+  let parsed;
+  try {
+    parsed = await readWeekSheet(await file.arrayBuffer());
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Couldn't read that file." };
+  }
+  if (parsed.meta.clientId !== clientId) return { error: "This sheet belongs to a different client." };
+  if (parsed.sessions.length === 0) return { error: "No weights or reps were filled in on this sheet." };
+  const db = createClient();
+  const skipped: string[] = [];
+  let sessions = 0;
+  let sets = 0;
+  for (const s of parsed.sessions) {
+    const { data: existing } = await db.from("workout_sessions").select("id").eq("client_id", clientId).eq("date", s.date).eq("planned_session_key", s.sessionKey).limit(1);
+    if (existing && existing.length) {
+      skipped.push(s.date);
+      continue;
+    }
+    const notes = s.sets.filter((x) => x.note).map((x) => `Set ${x.set}: ${x.note}`).join("; ");
+    const { data, error } = await db
+      .from("workout_sessions")
+      .insert({ client_id: clientId, plan_id: parsed.meta.planId, date: s.date, planned_session_key: s.sessionKey, status: "completed", notes: [`Imported from the week ${parsed.meta.week} sheet.`, notes].filter(Boolean).join(" "), source: "client_sheet" })
+      .select("id")
+      .single();
+    if (error) return { error: error.message };
+    const rows = s.sets.map((x) => ({ session_id: data.id, exercise_id: x.exerciseId, set_number: x.set, weight_lb: x.weightLb, reps: x.reps, rpe: null, is_test: false }));
+    const { error: e2 } = await db.from("set_logs").insert(rows);
+    if (e2) return { error: e2.message };
+    sessions++;
+    sets += rows.length;
+  }
+  revalidateClient(clientId);
+  return { error: null, summary: { sessions, sets, skipped, week: parsed.meta.week } };
+}

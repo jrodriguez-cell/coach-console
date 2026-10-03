@@ -34,10 +34,10 @@ export default async function TodayPage() {
       <PageHeader eyebrow="Today" title={formatDate(today)} meta={`${tasks.length} open ${tasks.length === 1 ? "task" : "tasks"}`} />
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
-          {order.length === 0 && <Card><Empty>Nothing needs your attention right now.</Empty></Card>}
+          {order.length === 0 && <Card><Empty>Nothing needs your attention right now. New tasks appear here as weigh-ins, check-ins and checkpoints come due.</Empty></Card>}
           {order.map((k) => (
             <Card key={k} title={k === "_general" ? "General" : <Link className="title-sm" href={`/clients/${k}`}>{names[k] ?? "Client"}</Link>}>
-              <TaskList tasks={groups.get(k)!} showClient={false} />
+              <TaskList tasks={groups.get(k)!} showClient={false} clientName={k === "_general" ? undefined : names[k]} />
             </Card>
           ))}
         </div>

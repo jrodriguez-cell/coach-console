@@ -104,6 +104,9 @@
   .input, input:not([type="checkbox"]):not([type="radio"]), select, textarea { font-size: 16px !important; }
 }
 
+/* Rows hidden by the type-to-filter search, even where a layout sets display. */
+[data-filter][hidden] { display: none !important; }
+
 @layer utilities {
   .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
   .no-scrollbar { scrollbar-width: none; }

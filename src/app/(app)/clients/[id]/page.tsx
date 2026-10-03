@@ -5,6 +5,7 @@ import { getClientBundle } from "@/lib/data/clients";
 import { Badge, Banner, Card, Empty, Field, TabBar, fmt } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { PageHeader } from "@/components/page-header";
+import { ImportWeekForm } from "@/components/import-week-form";
 import { GenerateForm } from "@/components/generate-form";
 import { CheckinForm, MeasurementsForm, TestResultForm, WeighInForm } from "@/components/quick-add";
 import { TaskList } from "@/components/task-list";
@@ -141,7 +142,7 @@ export default async function ClientPage({ params, searchParams }: { params: { i
                 {plan.training ? <p>{plan.training.split_label}, {plan.training.lifting_days.length} days/week · cardio {plan.training.cardio.removed ? "removed" : `${plan.training.cardio.weeks[0]?.sessions}×${plan.training.cardio.weeks[0]?.minutes} min`}</p> : <p className="text-alert">{plan.nutrition?.training_blocked_reason ?? "Training not generated."}</p>}
               </div>
             ) : (
-              <Empty>No plan yet.</Empty>
+              <Empty>{intake ? "No plan yet. Generate a draft below; it uses the intake answers." : <>No plan yet. <Link href={`/clients/${client.id}/intake`}>Complete the intake</Link> first, then generate a draft.</>}</Empty>
             )}
             {intake && (
               <details className="mt-3" open={!plan}>
@@ -157,14 +158,14 @@ export default async function ClientPage({ params, searchParams }: { params: { i
           </Card>
 
             </div>
-            <Card title="Tasks"><TaskList tasks={b.tasks} showClient={false} /></Card>
+            <Card title="Tasks"><TaskList tasks={b.tasks} showClient={false} clientName={client.name} /></Card>
           </div>
         </>
       )}
 
       {tab === "log" && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+          <div className="space-y-8 lg:col-span-2">
           <Card title="Quick add">
             <div className="divide-y divide-fg/15 border-y border-fg/15">
               {[
@@ -188,6 +189,7 @@ export default async function ClientPage({ params, searchParams }: { params: { i
             </div>
           </Card>
 
+            <Card title="Import a client's workout sheet"><ImportWeekForm clientId={client.id} /></Card>
           </div>
           <Card title="Contact log">
             <form action={logContactAction.bind(null, client.id)} className="mb-3 space-y-2">
@@ -200,7 +202,7 @@ export default async function ClientPage({ params, searchParams }: { params: { i
               <input className="input" name="summary" placeholder="Summary" />
               <SubmitButton className="btn-sm btn-primary">Log contact</SubmitButton>
             </form>
-            {b.contacts.length === 0 ? <Empty>No contact logged.</Empty> : (
+            {b.contacts.length === 0 ? <Empty>No contact logged yet. Log texts, calls and check-ins above so outreach reminders stay accurate.</Empty> : (
               <ul className="space-y-1 text-sm">
                 {b.contacts.map((c) => <li key={c.id}><b>{formatDate(c.date)}</b> · {c.channel.replace("_", " ")}{c.summary ? ` — ${c.summary}` : ""}</li>)}
               </ul>

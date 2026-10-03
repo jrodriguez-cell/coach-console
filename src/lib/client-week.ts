@@ -12,6 +12,8 @@ import { holdSeconds, sessionsForWeek } from "./training";
 import type { PlanParameters, TrainingPlan } from "./plan-types";
 
 export interface ClientWeekExercise {
+  /** library exercise id (used to read a filled-in sheet back) */
+  exerciseId: string;
   name: string;
   sets: number;
   /** per-set target, e.g. "8–12 reps" or "30–45 s" */
@@ -28,7 +30,7 @@ export interface ClientWeekExercise {
 export interface ClientWeekDay {
   date: string;
   label: string; // "Mon, Oct 6"
-  strength: { name: string; minutes: number; exercises: ClientWeekExercise[] } | null;
+  strength: { key: string; name: string; minutes: number; exercises: ClientWeekExercise[] } | null;
   cardio: string | null;
   mobility: { text: string; moves: string[] } | null;
   other: string[];
@@ -74,6 +76,7 @@ export function clientWeek(
       if (!rx) continue; // trimmed from this block
       const reps = sl.unit === "seconds" ? `${range(...holdSeconds(rx))} s` : range(rx.reps_min, rx.reps_max);
       exercises.push({
+        exerciseId: sl.exercise.id,
         name: sl.exercise.name,
         sets: rx.sets,
         target: sl.unit === "seconds" ? reps : `${reps} reps`,
@@ -91,7 +94,7 @@ export function clientWeek(
     return {
       date: d.date,
       label: `${DAY_NAMES[d.weekday]}, ${shortDate(d.date)}`,
-      strength: s ? { name: s.name, minutes: wp.session_minutes[s.key] ?? 0, exercises } : null,
+      strength: s ? { key: s.key, name: s.name, minutes: wp.session_minutes[s.key] ?? 0, exercises } : null,
       cardio: cardioItem && cw ? `${METS[t.cardio.activity].label} · ${cw.minutes} min${hr}${lift ? " · after lifting" : ""}` : null,
       mobility: mobilityItem ? { text: `Mobility / recovery · ${t.mobility.minutes} min`, moves: t.mobility.flow.map((m) => m.name) } : null,
       other: d.items.filter((i) => i === "Weigh-in" || i === "Retest" || i.startsWith("Day 1")).map((i) => (i === "Weigh-in" ? "Weigh-in (morning, after the bathroom, before eating)" : i === "Retest" ? "Retest day — we'll check your progress on the main lifts" : "Day 1: baseline weigh-in and measurements")),

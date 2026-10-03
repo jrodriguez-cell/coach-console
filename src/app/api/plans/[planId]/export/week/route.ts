@@ -26,7 +26,7 @@ export async function GET(req: Request, { params }: { params: { planId: string }
     return new NextResponse(clientWeekText(w), { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "private, no-store" } });
   }
   if (url.searchParams.get("format") === "xlsx") {
-    const xbuf = await buildClientWeekWorkbook(w);
+    const xbuf = await buildClientWeekWorkbook(w, { clientId: client.id, planId: plan.id });
     return new NextResponse(new Uint8Array(xbuf), {
       headers: { "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Content-Disposition": `attachment; filename="${filename}.xlsx"`, "Cache-Control": "private, no-store" },
     });

@@ -95,3 +95,19 @@ export function TabBar({ tabs, active, href }: { tabs: { key: string; label: str
     </nav>
   );
 }
+
+/** A section that starts folded: title row is the toggle; detail on demand. */
+export function Collapsible({ title, hint, children, defaultOpen = false }: { title: ReactNode; hint?: ReactNode; children: ReactNode; defaultOpen?: boolean }) {
+  return (
+    <details className="card group" open={defaultOpen}>
+      <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+        <span className="min-w-0">
+          <h2>{title}</h2>
+          {hint && <span className="mt-0.5 block text-sm text-muted">{hint}</span>}
+        </span>
+        <span aria-hidden className="shrink-0 text-xl leading-none text-muted transition-transform group-open:rotate-45">+</span>
+      </summary>
+      <div className="mt-4">{children}</div>
+    </details>
+  );
+}

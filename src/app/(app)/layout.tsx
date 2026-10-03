@@ -2,8 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/actions/auth";
-import { BottomTabBar, TopNavLinks } from "@/components/app-nav";
+import { BottomTabBar, SettingsIconLink, TopNavLinks } from "@/components/app-nav";
 import { Logo } from "@/components/logo";
+import { Toaster } from "@/components/toaster";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const db = createClient();
@@ -23,13 +24,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <Logo mark="monogram" className="h-6 w-6" title="Make Time To Move · Coach Console" />
           </Link>
           <TopNavLinks />
-          <form action={signOut} className="ml-auto">
+          <Link href="/log" className="btn btn-primary btn-sm ml-auto hidden whitespace-nowrap lg:inline-flex">+ Log</Link>
+          <SettingsIconLink />
+          <form action={signOut}>
             <button className="btn btn-sm whitespace-nowrap">Sign out</button>
           </form>
         </div>
       </nav>
       <main className="mx-auto max-w-[1200px] space-y-6 px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:pb-12">{children}</main>
       <BottomTabBar />
+      <Toaster />
     </div>
   );
 }

@@ -2,9 +2,11 @@
 import { useFormState } from "react-dom";
 import { saveCalibrationAction, type CalibrationState } from "@/app/actions/calibration";
 import { SubmitButton } from "./submit-button";
+import { useToastOn } from "./toaster";
 
 export function CalibrationForm({ clientId, checkpointId, recommended, adherence }: { clientId: string; checkpointId: string | null; recommended: { decision: string; adjustment: number }; adherence: number | null }) {
   const [state, action] = useFormState<CalibrationState, FormData>(saveCalibrationAction.bind(null, clientId), { error: null });
+  useToastOn(Boolean(state.ok), "Decision saved", state);
   if (state.ok)
     return (
       <div className="note-info p-3 text-sm">

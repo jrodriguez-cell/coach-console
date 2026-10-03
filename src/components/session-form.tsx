@@ -2,6 +2,7 @@
 import { Fragment, useState, useTransition } from "react";
 import { logSessionAction, type SetInput } from "@/app/actions/entries";
 import type { EntryState } from "@/lib/data/entries";
+import { useToastOn } from "./toaster";
 
 interface SessionOption {
   key: string;
@@ -13,6 +14,7 @@ export function SessionForm({ clientId, planId, sessions, library }: { clientId:
   const [key, setKey] = useState(sessions[0]?.key ?? "");
   const [sets, setSets] = useState<SetInput[]>(() => initialSets(sessions[0]));
   const [state, setState] = useState<EntryState>({ error: null });
+  useToastOn(state.saved != null && !state.error, "Session saved", state);
   const [pending, start] = useTransition();
   const names = new Map(library.map((e) => [e.id, e.name]));
 

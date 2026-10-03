@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
+import { ListFilter } from "@/components/list-filter";
 import { createClient } from "@/lib/supabase/server";
 import { Badge, Card, Empty } from "@/components/ui";
 import { goalLabel, STATUS_TONE } from "@/lib/labels";
@@ -28,6 +29,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: { st
         <PageHeader title="Clients" display />
         <Link href="/clients/new" className="btn btn-primary shrink-0">New client</Link>
       </div>
+      <ListFilter target="client-list" placeholder="Search clients" noun="clients" />
       <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 text-sm sm:mx-0 sm:flex-wrap sm:px-0">
         {["all", "prospect", "active", "paused", "completed"].map((s) => (
           <Link key={s} href={`/clients?status=${s}`} className={`btn btn-sm shrink-0 ${filter === s ? "btn-primary" : ""}`}>{s}</Link>
@@ -35,9 +37,9 @@ export default async function ClientsPage({ searchParams }: { searchParams: { st
       </div>
       <Card>
         {rows.length === 0 ? (
-          <Empty>No clients yet.</Empty>
+          <Empty>{filter === "all" ? "No clients yet. Add your first one with New client." : `No ${filter} clients.`}</Empty>
         ) : (
-          <div className="table-wrap"><table className="table table-stack">
+          <div className="table-wrap" id="client-list"><table className="table table-stack">
             <thead>
               <tr><th>Name</th><th>Status</th><th>Goal</th><th>Week</th><th>Next key date</th><th>Flags</th></tr>
             </thead>
@@ -53,7 +55,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: { st
                 const next = (cps ?? []).find((x) => x.client_id === c.id);
                 const week = plan?.status === "approved" ? Math.floor(daysBetween(plan.parameters.start_date, today) / 7) + 1 : null;
                 return (
-                  <tr key={c.id}>
+                  <tr key={c.id} data-filter={`${c.name} ${c.email ?? ""} ${goalLabel(c.goal_category)}`.toLowerCase()}>
                     <td data-primary><Link href={`/clients/${c.id}`}>{c.name}</Link></td>
                     <td data-label="Status"><Badge tone={STATUS_TONE[c.status]}>{c.status}</Badge></td>
                     <td data-label="Goal">{goalLabel(c.goal_category)}</td>

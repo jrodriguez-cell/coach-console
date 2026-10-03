@@ -34,14 +34,39 @@ export function TopNavLinks() {
   );
 }
 
-/** Phones: fixed bottom tab bar within thumb reach. */
+const SETTINGS_ICON = NAV.find((n) => n.href === "/settings")!.icon;
+const LOG = { href: "/log", label: "Log", short: "Log", icon: "M12 5v14M5 12h14" };
+// Phones: Settings moves to the header so the centre slot can hold Log.
+const BOTTOM = [NAV[0], NAV[1], LOG, NAV[2], NAV[3]];
+
+/** Settings gear for the phone header (desktop has it in the top nav). */
+export function SettingsIconLink() {
+  const path = usePathname();
+  return (
+    <Link href="/settings" aria-label="Settings" className={clsx("ml-auto flex h-10 w-10 items-center justify-center no-underline lg:hidden", isActive(path, "/settings") ? "text-fg" : "text-muted")}>
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d={SETTINGS_ICON} />
+      </svg>
+    </Link>
+  );
+}
+
+/** Phones: fixed bottom tab bar within thumb reach; Log is the centre action. */
 export function BottomTabBar() {
   const path = usePathname();
   return (
     <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-fg/15 bg-canvas lg:hidden">
       <div className="grid grid-cols-5">
-        {NAV.map((n) => {
+        {BOTTOM.map((n) => {
           const on = isActive(path, n.href);
+          if (n.href === "/log")
+            return (
+              <Link key={n.href} href={n.href} aria-label="Log data" className="flex items-center justify-center py-1.5 no-underline hover:no-underline">
+                <span className={clsx("flex h-11 w-11 items-center justify-center", on ? "bg-fg/80 text-canvas" : "bg-fg text-canvas")}>
+                  <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden><path d={n.icon} /></svg>
+                </span>
+              </Link>
+            );
           return (
             <Link
               key={n.href}

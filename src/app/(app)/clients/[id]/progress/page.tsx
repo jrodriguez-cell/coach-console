@@ -6,7 +6,7 @@ import { getClient } from "@/lib/data/clients";
 import { getSettings } from "@/lib/data/settings";
 import { loadMetricDefs, loadProgressData, summarize } from "@/lib/data/progress-data";
 import { volumeRows, weightRows } from "@/lib/data/progress-view";
-import { Badge, Card, Empty, Field, fmt, Stat, type Tone } from "@/components/ui";
+import { Badge, Collapsible, Card, Empty, Field, fmt, Stat, type Tone } from "@/components/ui";
 import { BarSeries, SeriesChart, WeightChart } from "@/components/charts";
 import { SubmitButton } from "@/components/submit-button";
 import { createBenchmarkAction, deleteBenchmarkAction, updateBenchmarkAction } from "@/app/actions/entries";
@@ -83,8 +83,8 @@ export default async function ClientProgressPage({ params }: { params: { id: str
         </Card>
 
         {/* 2. Measurements */}
-        <Card title="Measurements (in)">
-          {d.measurements.length === 0 ? <Empty>No measurements yet.</Empty> : (
+        <Collapsible title="Measurements (in)" hint="Baseline, latest and change by site">
+          {d.measurements.length === 0 ? <Empty>No measurements yet. <Link href={`/log?client=${client.id}`}>Log the first set</Link> (every 4 weeks is plenty).</Empty> : (
             <div className="table-wrap"><table className="table table-stack">
               <thead><tr><th>Site</th><th>Baseline</th><th>Latest</th><th>Change</th></tr></thead>
               <tbody>
@@ -98,13 +98,13 @@ export default async function ClientProgressPage({ params }: { params: { id: str
           )}
           {d.intake?.answers.body_fat_pct != null && <p className="mt-2 text-sm">Body fat at intake: {d.intake.answers.body_fat_pct}%</p>}
           {bySite("waist").length > 1 && <div className="mt-2"><h3 className="text-sm font-semibold">Waist</h3><SeriesChart points={bySite("waist")} unit="in" height={120} /></div>}
-        </Card>
+        </Collapsible>
       </div>
 
       {/* 3. Strength */}
-      <Card title="Strength">
+      <Collapsible title="Strength" hint="Estimated 5RM by lift, PRs, next progression">
           <p className="muted mb-3">Estimated 5RM (Epley).</p>
-        {s.lifts.length === 0 ? <Empty>Log sessions with sets to track lifts.</Empty> : (
+        {s.lifts.length === 0 ? <Empty>No lifts tracked yet. <Link href={`/clients/${client.id}/session`}>Log a workout</Link> or import a returned week sheet to start tracking strength.</Empty> : (
           <div className="table-wrap"><table className="table table-stack">
             <thead><tr><th>Lift</th><th>Baseline 5RM</th><th>Latest 5RM</th><th>% of baseline</th><th>PRs</th><th>Next session</th></tr></thead>
             <tbody>
@@ -128,11 +128,11 @@ export default async function ClientProgressPage({ params }: { params: { id: str
           </table></div>
         )}
         <p className="mt-1 text-xs text-muted">e1RM = weight × (1 + reps/30), adding reps in reserve (10 − RPE) when RPE is logged; 5RM = e1RM ÷ (1 + 5/30). Double progression: when every set hits the top of the rep range at RPE 8 or easier, add weight next session.</p>
-      </Card>
+      </Collapsible>
 
       {/* 4. Benchmarks */}
-      <Card title="Benchmarks and goals">
-        {s.benchmarks.length === 0 ? <Empty>No benchmarks yet.</Empty> : (
+      <Collapsible title="Benchmarks and goals" hint="Targets and how far along each one is">
+        {s.benchmarks.length === 0 ? <Empty>No benchmarks yet. They&apos;re created from the goal presets when a plan is approved, or add one below.</Empty> : (
           <div className="table-wrap"><table className="table table-stack">
             <thead><tr><th>Benchmark</th><th>Baseline</th><th>Target</th><th>Target date</th><th>Current</th><th>% of the way</th><th>Status</th><th></th></tr></thead>
             <tbody>
@@ -170,39 +170,39 @@ export default async function ClientProgressPage({ params }: { params: { id: str
             <div><SubmitButton className="btn-sm btn-primary">Add</SubmitButton></div>
           </form>
         </details>
-      </Card>
+      </Collapsible>
 
       {/* 6. Volume and log */}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <Card title="Training volume">
-          <p className="muted mb-3">Weekly total, lb × reps.</p><BarSeries points={volumeRows(d)} unit="lb·reps" /></Card>
-        <Card title="Training log">
-          {d.sessions.length === 0 ? <Empty>No sessions logged.</Empty> : (
+        <Collapsible title="Training volume" hint="Weekly lb × reps">
+          <BarSeries points={volumeRows(d)} unit="lb·reps" /></Collapsible>
+        <Collapsible title="Training log" hint="Every logged session and its sets">
+          {d.sessions.length === 0 ? <Empty>No workouts logged yet. <Link href={`/clients/${client.id}?tab=log`}>Import a week sheet or log one</Link>.</Empty> : (
             <div className="table-wrap"><table className="table table-stack text-xs">
               <thead><tr><th>Date</th><th>Session</th><th>Status</th><th>Sets</th></tr></thead>
               <tbody>
                 {[...d.sessions].reverse().slice(0, 15).map((ss) => (
                   <tr key={ss.id}>
                     <td data-primary>{formatDate(ss.date)}</td><td data-label="Session">{ss.planned_session_key ?? "—"}</td><td data-label="Status">{ss.status}</td>
-                    <td data-label="Sets" data-block>{d.sets.filter((x) => x.session_id === ss.id).map((x) => `${x.exercise_name} ${x.weight_lb ?? "bw"}×${x.reps ?? "?"}${x.rpe ? `@${x.rpe}` : ""}${x.is_test ? " (test)" : ""}`).join("; ") || "—"}</td>
+                    <td data-label="Sets" data-block>{d.sets.filter((x) => x.session_id === ss.id).map((x) => `${x.exercise_name} ${x.weight_lb ?? "bw"}×${x.reps ?? "?"}${x.rpe ? `@${x.rpe}` : ""}${x.is_test ? " (test)" : ""}`).join("; ") || "—"}{(ss as { notes?: string | null }).notes && <div className="mt-1 text-xs text-muted">{(ss as { notes?: string | null }).notes}</div>}</td>
                   </tr>
                 ))}
               </tbody>
             </table></div>
           )}
-        </Card>
+        </Collapsible>
       </div>
 
       {customDefs.length > 0 && (
-        <Card title="Custom metrics">
+        <Collapsible title="Custom metrics">
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
             {customDefs.map((m) => <div key={m.id}><h3 className="text-sm font-semibold">{m.label}</h3><SeriesChart points={d.metrics[m.key] ?? []} unit={m.unit} height={140} /></div>)}
           </div>
-        </Card>
+        </Collapsible>
       )}
 
       {/* 7. Checkpoints */}
-      <Card title="Checkpoints and calibrations">
+      <Collapsible title="Checkpoints and calibrations">
         {d.calibrations.length === 0 ? <Empty>No calibrations yet.</Empty> : (
           <ul className="text-sm">
             {d.calibrations.map((c) => (
@@ -213,7 +213,7 @@ export default async function ClientProgressPage({ params }: { params: { id: str
         <ul className="mt-2 text-sm text-muted">
           {d.checkpoints.map((c) => <li key={c.id}>{formatDate(c.due_date)} · week {c.week} {c.kind === "review" ? "calibration" : c.kind} {c.completed_at ? "✔" : ""}</li>)}
         </ul>
-      </Card>
+      </Collapsible>
     </div>
   );
 }

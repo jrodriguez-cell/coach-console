@@ -1,4 +1,5 @@
 "use client";
+import { createContext, useContext, useRef, useState } from "react";
 import { useFormState } from "react-dom";
 import { saveIntakeAction } from "@/app/actions/clients";
 import { SubmitButton } from "./submit-button";
@@ -9,9 +10,13 @@ import { NEAT_FACTORS } from "@/config/energy";
 import { COOKING_LABEL, EQUIPMENT_LABEL, HISTORY_LABEL } from "@/lib/labels";
 import { DAY_NAMES } from "@/lib/dates";
 
-function Section({ title, children, hint }: { title: string; children: React.ReactNode; hint?: string }) {
+const STEPS = ["Goals", "Body & history", "Health screening", "Nutrition", "Schedule"] as const;
+const StepContext = createContext(1);
+
+function Section({ title, children, hint, step }: { title: string; children: React.ReactNode; hint?: string; step: number }) {
+  const current = useContext(StepContext);
   return (
-    <fieldset className="card space-y-3">
+    <fieldset data-step={step} hidden={step !== current} className="card space-y-3">
       <legend className="px-1 text-base font-semibold">{title}</legend>
       {hint && <p className="muted -mt-2">{hint}</p>}
       {children}
@@ -35,9 +40,44 @@ export function IntakeForm({ clientId, prev, parq, refer }: { clientId: string; 
   const ft = a.height_in ? Math.floor(a.height_in / 12) : "";
   const inch = a.height_in ? Math.round((a.height_in % 12) * 10) / 10 : "";
   const cx = a.current_exercise ?? [];
+  const [step, setStep] = useState(1);
+  const formRef = useRef<HTMLFormElement>(null);
+  const last = STEPS.length;
+  const editing = prev != null;
+  // Check only the visible step's fields before moving on.
+  const stepValid = () => {
+    const fields = formRef.current?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(`fieldset[data-step="${step}"] :is(input, select, textarea)`) ?? [];
+    for (const f of Array.from(fields)) if (!f.checkValidity()) return f.reportValidity();
+    return true;
+  };
+  const go = (n: number) => {
+    setStep(n);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
   return (
-    <form action={action} className="space-y-4">
-      <Section title="Purpose and goals">
+    <StepContext.Provider value={step}>
+    <form
+      ref={formRef}
+      action={action}
+      className="space-y-6"
+      // A required answer on another step: jump there so the browser can show it.
+      onInvalidCapture={(e) => {
+        const fs = (e.target as HTMLElement).closest<HTMLElement>("fieldset[data-step]");
+        if (fs && Number(fs.dataset.step) !== step) setStep(Number(fs.dataset.step));
+      }}
+    >
+      <div className="space-y-2">
+        <div className="flex items-baseline justify-between gap-3 text-sm">
+          <span className="font-semibold">{STEPS[step - 1]}</span>
+          <span className="text-muted">Step {step} of {last}</span>
+        </div>
+        <div className="grid grid-cols-5 gap-1" aria-hidden>
+          {STEPS.map((label, i) => (
+            <button key={label} type="button" title={label} onClick={() => (i + 1 < step || editing ? go(i + 1) : stepValid() && go(i + 1))} className={`h-1.5 ${i + 1 <= step ? "bg-fg" : "bg-fg/20"}`} />
+          ))}
+        </div>
+      </div>
+      <Section step={1} title="Purpose and goals">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <F label="Primary goal" wide><input className="input" name="primary_goal" defaultValue={a.primary_goal} /></F>
           <F label="What does success look like in 90 days?" wide><textarea className="input" name="success_90_days" rows={2} defaultValue={a.success_90_days} /></F>
@@ -47,7 +87,7 @@ export function IntakeForm({ clientId, prev, parq, refer }: { clientId: string; 
         </div>
       </Section>
 
-      <Section title="Preferences">
+      <Section step={1} title="Preferences">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <F label="Exercises they enjoy"><textarea className="input" name="exercise_likes" rows={2} defaultValue={a.exercise_likes} /></F>
           <F label="Exercises they dislike" hint="Comma-separated; matching library exercises are excluded."><textarea className="input" name="exercise_dislikes" rows={2} defaultValue={(a.exercise_dislikes ?? []).join(", ")} /></F>
@@ -55,7 +95,7 @@ export function IntakeForm({ clientId, prev, parq, refer }: { clientId: string; 
         </div>
       </Section>
 
-      <Section title="Status and history">
+      <Section step={2} title="Status and history">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <F label="Age"><input className="input" type="number" name="age" required min={14} max={100} defaultValue={a.age} /></F>
           <F label="Sex (for energy equations)">
@@ -103,7 +143,7 @@ export function IntakeForm({ clientId, prev, parq, refer }: { clientId: string; 
         </div>
       </Section>
 
-      <Section title="PAR-Q" hint="Any “yes” flags the client NEEDS PHYSICIAN CLEARANCE; the plan cannot be approved until clearance status is recorded.">
+      <Section step={3} title="PAR-Q" hint="Any “yes” flags the client NEEDS PHYSICIAN CLEARANCE; the plan cannot be approved until clearance status is recorded.">
         {PARQ_QUESTIONS.map((q, i) => (
           <div key={i} className="flex flex-col gap-2 border-b sm:flex-row sm:items-start sm:justify-between sm:gap-4 border-fg/15 pb-2 text-sm">
             <span>{i + 1}. {q}</span>
@@ -115,7 +155,7 @@ export function IntakeForm({ clientId, prev, parq, refer }: { clientId: string; 
         ))}
       </Section>
 
-      <Section title="Health and refer-out screening" hint="Flags show a Refer-out banner and block generation of the affected section until you record how it was handled. Advice about these is never auto-generated.">
+      <Section step={3} title="Health and refer-out screening" hint="Flags show a Refer-out banner and block generation of the affected section until you record how it was handled. Advice about these is never auto-generated.">
         <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
           {REFER_OUT_KEYS.map((k) => (
             <label key={k} className="flex items-start gap-2 text-sm">
@@ -136,7 +176,7 @@ export function IntakeForm({ clientId, prev, parq, refer }: { clientId: string; 
         </div>
       </Section>
 
-      <Section title="Nutrition preferences">
+      <Section step={4} title="Nutrition preferences">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <F label="Dietary pattern">
             <select className="input" name="dietary_pattern" defaultValue={a.dietary_pattern ?? "omnivore"}>
@@ -162,7 +202,7 @@ export function IntakeForm({ clientId, prev, parq, refer }: { clientId: string; 
         <F label="Supplements" wide><input className="input" name="supplements" defaultValue={a.supplements} /></F>
       </Section>
 
-      <Section title="Equipment and schedule">
+      <Section step={5} title="Equipment and schedule">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <F label="Training days per week"><input className="input" type="number" name="training_days_per_week" min={2} max={6} required defaultValue={a.training_days_per_week ?? 3} /></F>
           <F label="Session length (min)"><input className="input" type="number" name="session_length_min" min={20} max={120} required defaultValue={a.session_length_min ?? 60} /></F>
@@ -183,7 +223,12 @@ export function IntakeForm({ clientId, prev, parq, refer }: { clientId: string; 
       </Section>
 
       {state.error && <p className="note-alert p-2 text-sm">{state.error}</p>}
-      <SubmitButton className="btn-primary" pendingText="Saving…">Save intake</SubmitButton>
+      <div className="sticky bottom-20 z-20 -mx-4 flex gap-2 border-t border-fg/15 bg-canvas px-4 py-3 sm:static sm:mx-0 sm:border-0 sm:px-0 lg:bottom-0">
+        {step > 1 && <button type="button" className="btn" onClick={() => go(step - 1)}>Back</button>}
+        {step < last && <button type="button" className={`btn ${editing ? "" : "btn-primary"} flex-1 sm:flex-none`} onClick={() => stepValid() && go(step + 1)}>Next: {STEPS[step]}</button>}
+        {(step === last || editing) && <SubmitButton className={`${step === last ? "btn-primary" : ""} flex-1 sm:flex-none`} pendingText="Saving…">Save intake</SubmitButton>}
+      </div>
     </form>
+    </StepContext.Provider>
   );
 }

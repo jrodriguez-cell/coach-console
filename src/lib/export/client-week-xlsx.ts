@@ -25,7 +25,18 @@ const COLS = [
 ];
 const INPUT_COLS = [6, 7, 8];
 
-export async function buildClientWeekWorkbook(w: ClientWeek): Promise<Buffer> {
+/** Hidden sheet that maps input rows back to plan sets, for importing. */
+export const META_SHEET = "coach_console_meta";
+export interface WeekSheetMeta {
+  v: 1;
+  clientId: string;
+  planId: string;
+  week: number;
+  sets: { row: number; date: string; sessionKey: string; exerciseId: string; set: number; unit: "reps" | "seconds" }[];
+}
+
+export async function buildClientWeekWorkbook(w: ClientWeek, ids?: { clientId: string; planId: string }): Promise<Buffer> {
+  const metaSets: WeekSheetMeta["sets"] = [];
   const wb = new ExcelJS.Workbook();
   wb.creator = "Coach Console";
   const ws = wb.addWorksheet(`Week ${w.week}`, {
@@ -84,6 +95,7 @@ export async function buildClientWeekWorkbook(w: ClientWeek): Promise<Buffer> {
         if (n === 2 && e.easier) row.getCell(1).value = `  Easier: ${e.easier}`;
         if (n === 2 && e.easier) row.getCell(1).font = { name: FONT, size: 8, color: { argb: "FF475569" } };
         input(row);
+        if (d.strength) metaSets.push({ row: row.number, date: d.date, sessionKey: d.strength.key, exerciseId: e.exerciseId, set: n, unit: e.unit });
       }
     }
     if (d.cardio) {
@@ -121,5 +133,10 @@ export async function buildClientWeekWorkbook(w: ClientWeek): Promise<Buffer> {
   note.alignment = { wrapText: true };
   ws.getRow(r).height = 26;
 
+  if (ids) {
+    const meta: WeekSheetMeta = { v: 1, clientId: ids.clientId, planId: ids.planId, week: w.week, sets: metaSets };
+    const ms = wb.addWorksheet(META_SHEET, { state: "veryHidden" });
+    ms.getCell("A1").value = JSON.stringify(meta);
+  }
   return Buffer.from(await wb.xlsx.writeBuffer());
 }
