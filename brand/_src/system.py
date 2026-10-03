@@ -6,7 +6,7 @@ Spacing rule (the whole identity runs on one unit U = the letter height):
   line gap        = 1U
   clear space     = 1U around any logo
   monogram        = M T / T M on the same gaps -> a 3U x 3U square
-  single line     = MAKETIME, one empty box, TOMOVE -> 29U x 1U
+  single line     = MAKETIMETOMOVE in one run, no word gap -> 27U x 1U
 """
 from __future__ import annotations
 
@@ -99,7 +99,7 @@ def glyphs_for(kind, lettering=REGULAR, layout="A"):
         return g
     if kind == "single-line":
         step = lettering.W * 2
-        return [(c, i * step, U) for i, c in enumerate("MAKETIME TOMOVE") if c != " "]
+        return [(c, i * step, U) for i, c in enumerate("MAKETIMETOMOVE")]
     raise KeyError(kind)
 
 

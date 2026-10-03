@@ -329,7 +329,8 @@ def hoodie(colour, view):
     t = tones(colour)
     cx, y0 = HOOD_W / 2, 16.0
     neck = 4.3
-    seam_x, seam_y = 12.41, y0 + 1.3      # dropped shoulder seam (lands in a letter gap of the back print)
+    # dropped shoulder seam, centred in the letter gap between K and E of the 40 in back print (27 U wide)
+    seam_x, seam_y = 20.0 - 5.5 * 40.0 / 27, y0 + 1.3
     half = 11.0
     arm_y = y0 + 11.6                     # underarm
     sl_end = seam_x + 20.5                # start of the cuff

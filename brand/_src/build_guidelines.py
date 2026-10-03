@@ -190,7 +190,7 @@ Feel: minimalist, clean, confident, high-end, quiet. Restraint over loudness. Ne
 LOGO: custom equal-width capitals, thin monoline (stroke = 12% of letter height). Every letter sits in a 1x1 square box. Letter gap = 1 letter, line gap = 1 letter.
   Wordmark (primary): MAKETIME over TOMOVE, centred, no word gap. 15 x 3 units.
   Monogram: M T over T M, same spacing, a 3 x 3 square. Used for avatar, favicon, labels, small merch.
-  Single line: MAKETIME, one empty box, TOMOVE. For hats, sleeves, website header, narrow spaces.
+  Single line: MAKETIMETOMOVE in one run, no word gap. For hats, sleeves, website header, narrow spaces.
   Heavy cut: same letters with a thicker stroke, for favicons and embroidery only.
   Clear space = 1 letter height on all sides. Always use the supplied files. Never retype the logo in a font.
 
@@ -271,7 +271,7 @@ D.ul(["Every letter sits in a **1 U × 1 U** square. All letters share that widt
       "Gap between letters: **1 U**. Gap between the two lines: **1 U**. The wordmark is 15 U × 3 U.",
       "Line 2 (TOMOVE) is centred under line 1 (MAKETIME) on the same columns. There is no word gap: the line break separates the words.",
       "Monogram: M T over T M with the same gaps, giving a **3 U × 3 U** square.",
-      "Single line: MAKETIME, one empty box, TOMOVE, giving 29 U × 1 U.",
+      "Single line: MAKETIMETOMOVE in one run with the same 1 U letter gaps and no word gap, giving 27 U × 1 U.",
       "Stroke: 12% of U for the regular weight, the same as the regular font weight. The heavy cut is 22%.",
       "The letters are custom: square boxes, a circular O, a plain-stroke I, and a K made of two straight diagonals meeting the stem. No font reproduces them, so never retype the logo."])
 
