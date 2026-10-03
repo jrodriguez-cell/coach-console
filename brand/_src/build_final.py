@@ -129,6 +129,17 @@ for t in THEMES:
     body = mono_at(IW / 2, IH / 2, 0.5 * IW / 2 ** 0.5 * 1.25, hexc(t["fg"]))
     ig(f"highlights/mttm-ig-highlight-{t['id']}", canvas(hexc(t["bg"]), body, title=f"Highlight: {t['pillar']}"))
 
+# Ink & Bone story set: brand cover story frame + highlight cover, primary (Bone on Ink) and inverse
+for slug, fg, bg in (("bone-on-ink", "bone", "ink"), ("ink-on-bone", "ink", "bone")):
+    f, g, grey = hexc(fg), hexc(bg), hexc("stone")
+    wm, _ = placed("wordmark", IW / 2, 900, width=780)
+    body = (text("@MAKETIMETOMOVE", IW / 2, 340, 16, grey, tracking=0.5) + path(wm, f)
+            + f'<rect x="{IW / 2 - 40}" y="1190" width="80" height="2" fill="{grey}"/>'
+            + text("STRENGTH · MOBILITY · MINDSET", IW / 2, 1278, 17, grey, tracking=0.5))
+    ig(f"stories/mttm-ig-story-brand-cover-{slug}", canvas(g, body, title="Make Time To Move story cover"))
+    ig(f"highlights/mttm-ig-highlight-cover-{slug}",
+       canvas(g, mono_at(IW / 2, IH / 2, 0.5 * IW / 2 ** 0.5 * 1.25, f), title="MTTM highlight cover"))
+
 # Interview series title card (Moss) and template
 moss, chalk, lichen = hexc("moss"), hexc("chalk"), hexc("lichen")
 Q = ("WHY DO YOU", "MAKE TIME", "TO MOVE?")
