@@ -308,6 +308,7 @@ html = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name
 </body></html>"""
 for k, uri in data.items():
     html = html.replace(f"@@{k}@@", uri)
-with open(os.path.join(ROOT, "preview.html"), "w") as fh:
+html = html.replace('href="exploration/', 'href="').replace('href="type-exploration.html"', 'href="../type-exploration.html"')
+with open(os.path.join(EXP, "round-3.html"), "w") as fh:
     fh.write(html)
 print("ok")

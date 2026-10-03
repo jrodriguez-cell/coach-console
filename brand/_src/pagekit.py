@@ -53,3 +53,84 @@ code{font-size:13px}
 
 FONT_LINK = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
              '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Michroma&display=swap" rel="stylesheet">')
+
+
+# ---------------------------------------------------------------- shared helpers
+import base64
+import json
+import math
+import os
+import subprocess
+
+from mttm import MonogramSpec, bbox_of, fmt, monogram_glyphs
+
+
+def lum(h):
+    c = [int(h[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+    c = [v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4 for v in c]
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+
+
+def contrast(a, b):
+    x, y = sorted((lum(a), lum(b)), reverse=True)
+    return (x + 0.05) / (y + 0.05)
+
+
+def sized(svg, width):
+    return svg.replace("<svg ", f'<svg width="{width}" ', 1)
+
+
+def aspect(svg):
+    vb = svg.split('viewBox="')[1].split('"')[0].split()
+    return float(vb[3]) / float(vb[2])
+
+
+def monogram_svg(lettering, gap, leading, fg="#FFFFFF", bg="#000000", ring=True, fit=0.82):
+    """M T / T M centred so the block's diagonal sits inside `fit` of the circle's
+    diameter (survives the Instagram crop)."""
+    g, _ = monogram_glyphs(lettering, MonogramSpec(track=gap, leading=leading))
+    x0, y0, x1, y1 = bbox_of(lettering, g)
+    side = math.hypot(x1 - x0, y1 - y0) / fit
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    vx, vy = cx - side / 2, cy - side / 2
+    d = " ".join(lettering.path(c, x, b) for c, x, b in g)
+    ground = (f'<circle cx="{fmt(cx)}" cy="{fmt(cy)}" r="{fmt(side / 2)}" fill="{bg}"/>' if ring else
+              f'<rect x="{fmt(vx)}" y="{fmt(vy)}" width="{fmt(side)}" height="{fmt(side)}" fill="{bg}"/>')
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{fmt(vx)} {fmt(vy)} {fmt(side)} {fmt(side)}" '
+            f'role="img" aria-label="MTTM monogram"><title>MTTM monogram</title>{ground}'
+            f'<path fill="{fg}" d="{d}"/></svg>')
+
+
+class Embedder:
+    """Rasterise SVGs at exact pixel sizes and embed them as data URIs, so review
+    pages work when opened on their own."""
+
+    def __init__(self, tmpdir):
+        self.tmp = tmpdir
+        os.makedirs(tmpdir, exist_ok=True)
+        self.jobs, self.out = [], {}
+
+    def add(self, svg, w, h, key):
+        src = os.path.join(self.tmp, f"{key}.svg")
+        with open(src, "w") as f:
+            f.write(svg)
+        out = os.path.join(self.tmp, f"{key}.png")
+        self.jobs.append({"src": src, "out": out, "width": w, "height": h})
+        self.out[key] = out
+        return key
+
+    @staticmethod
+    def img(key, w, h, cls="", dw=None, dh=None):
+        return f'<img class="{cls}" src="@@{key}@@" width="{dw or w}" height="{dh or h}" alt="">'
+
+    def run_and_fill(self, html):
+        jf = os.path.join(self.tmp, "jobs.json")
+        with open(jf, "w") as fh:
+            json.dump(self.jobs, fh)
+        subprocess.run(["node", os.path.join(os.path.dirname(os.path.abspath(__file__)), "render.mjs"), jf], check=True)
+        for k, p in self.out.items():
+            html = html.replace(f"@@{k}@@", "data:image/png;base64," + base64.b64encode(open(p, "rb").read()).decode())
+        for f in os.listdir(self.tmp):
+            os.remove(os.path.join(self.tmp, f))
+        os.rmdir(self.tmp)
+        return html
