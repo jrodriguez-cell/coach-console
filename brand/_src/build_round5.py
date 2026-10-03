@@ -234,6 +234,7 @@ html = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name
 <script>document.querySelectorAll('.toggle').forEach(b=>b.addEventListener('click',()=>document.body.classList.toggle('show-grid')));</script>
 </body></html>"""
 html = EMB.run_and_fill(html)
-with open(os.path.join(ROOT, "preview.html"), "w") as fh:
+html = html.replace('href="exploration/', 'href="').replace('href="type-exploration.html"', 'href="../type-exploration.html"')
+with open(os.path.join(EXP, "round-5.html"), "w") as fh:
     fh.write(html)
 print("ok")

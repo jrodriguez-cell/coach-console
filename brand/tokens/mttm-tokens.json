@@ -1,0 +1,134 @@
+{
+  "brand": {
+    "name": "Make Time To Move",
+    "short": "MTTM",
+    "handle": "@maketimetomove",
+    "file_prefix": "mttm-"
+  },
+  "color": {
+    "ink": {
+      "value": "#0E0E0D",
+      "role": "Master dark"
+    },
+    "bone": {
+      "value": "#EFEBE3",
+      "role": "Master light"
+    },
+    "stone": {
+      "value": "#8F8B83",
+      "role": "Grey for secondary text on Ink or Bone"
+    },
+    "moss": {
+      "value": "#1E2A23",
+      "role": "Interviews ground"
+    },
+    "chalk": {
+      "value": "#E8E6DD",
+      "role": "Light on Moss"
+    },
+    "lichen": {
+      "value": "#8C948D",
+      "role": "Grey on Moss"
+    },
+    "midnight": {
+      "value": "#121A26",
+      "role": "Mindset ground"
+    },
+    "mist": {
+      "value": "#E3E7EC",
+      "role": "Light on Midnight"
+    },
+    "slate": {
+      "value": "#87909C",
+      "role": "Grey on Midnight"
+    },
+    "sage": {
+      "value": "#B7C0AE",
+      "role": "Mobility ground (light)"
+    },
+    "fern": {
+      "value": "#5F665A",
+      "role": "Grey on Sage"
+    },
+    "black": {
+      "value": "#000000",
+      "role": "Utility: one-colour reproduction"
+    },
+    "white": {
+      "value": "#FFFFFF",
+      "role": "Utility: one-colour reproduction"
+    }
+  },
+  "theme": {
+    "start-here": {
+      "pillar": "Start Here",
+      "foreground": "#0E0E0D",
+      "background": "#EFEBE3",
+      "muted": "#8F8B83"
+    },
+    "strength": {
+      "pillar": "Strength",
+      "foreground": "#EFEBE3",
+      "background": "#0E0E0D",
+      "muted": "#8F8B83"
+    },
+    "mobility": {
+      "pillar": "Mobility",
+      "foreground": "#0E0E0D",
+      "background": "#B7C0AE",
+      "muted": "#5F665A"
+    },
+    "mindset": {
+      "pillar": "Mindset",
+      "foreground": "#E3E7EC",
+      "background": "#121A26",
+      "muted": "#87909C"
+    },
+    "interviews": {
+      "pillar": "Interviews",
+      "foreground": "#E8E6DD",
+      "background": "#1E2A23",
+      "muted": "#8C948D"
+    }
+  },
+  "font": {
+    "display": {
+      "family": "Michroma",
+      "fallback": "Eurostile, 'Arial Black', sans-serif",
+      "case": "uppercase",
+      "letterSpacing": "0.3em",
+      "source": "https://fonts.google.com/specimen/Michroma"
+    },
+    "body": {
+      "family": "Manrope",
+      "fallback": "system-ui, sans-serif",
+      "weights": [
+        400,
+        500,
+        600
+      ],
+      "source": "https://fonts.google.com/specimen/Manrope"
+    }
+  },
+  "space": {
+    "unit": "8px",
+    "scale": [
+      4,
+      8,
+      16,
+      24,
+      32,
+      48,
+      64,
+      96,
+      128
+    ]
+  },
+  "radius": {
+    "none": "0",
+    "subtle": "2px"
+  },
+  "rule": {
+    "hairline": "1px"
+  }
+}

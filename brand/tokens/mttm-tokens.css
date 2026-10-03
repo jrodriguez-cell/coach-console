@@ -1,0 +1,43 @@
+:root {
+  /* Make Time To Move: design tokens. Master theme = Ink & Bone. */
+  --mttm-ink: #0E0E0D; /* Master dark */
+  --mttm-bone: #EFEBE3; /* Master light */
+  --mttm-stone: #8F8B83; /* Grey for secondary text on Ink or Bone */
+  --mttm-moss: #1E2A23; /* Interviews ground */
+  --mttm-chalk: #E8E6DD; /* Light on Moss */
+  --mttm-lichen: #8C948D; /* Grey on Moss */
+  --mttm-midnight: #121A26; /* Mindset ground */
+  --mttm-mist: #E3E7EC; /* Light on Midnight */
+  --mttm-slate: #87909C; /* Grey on Midnight */
+  --mttm-sage: #B7C0AE; /* Mobility ground (light) */
+  --mttm-fern: #5F665A; /* Grey on Sage */
+  --mttm-black: #000000; /* Utility: one-colour reproduction */
+  --mttm-white: #FFFFFF; /* Utility: one-colour reproduction */
+
+  /* Active theme (defaults to master: Bone lettering on Ink) */
+  --mttm-fg: var(--mttm-bone);
+  --mttm-bg: var(--mttm-ink);
+  --mttm-muted: var(--mttm-stone);
+
+  --mttm-font-display: 'Michroma', Eurostile, 'Arial Black', sans-serif;
+  --mttm-font-body: 'Manrope', system-ui, sans-serif;
+  --mttm-tracking-display: 0.3em;
+  --mttm-tracking-label: 0.24em;
+
+  --mttm-space-1: 4px; --mttm-space-2: 8px; --mttm-space-3: 16px; --mttm-space-4: 24px;
+  --mttm-space-5: 32px; --mttm-space-6: 48px; --mttm-space-7: 64px; --mttm-space-8: 96px;
+  --mttm-radius: 0; --mttm-rule: 1px solid var(--mttm-muted);
+}
+
+[data-mttm-theme="start-here"] { --mttm-fg: var(--mttm-ink); --mttm-bg: var(--mttm-bone); --mttm-muted: var(--mttm-stone); }
+[data-mttm-theme="strength"] { --mttm-fg: var(--mttm-bone); --mttm-bg: var(--mttm-ink); --mttm-muted: var(--mttm-stone); }
+[data-mttm-theme="mobility"] { --mttm-fg: var(--mttm-ink); --mttm-bg: var(--mttm-sage); --mttm-muted: var(--mttm-fern); }
+[data-mttm-theme="mindset"] { --mttm-fg: var(--mttm-mist); --mttm-bg: var(--mttm-midnight); --mttm-muted: var(--mttm-slate); }
+[data-mttm-theme="interviews"] { --mttm-fg: var(--mttm-chalk); --mttm-bg: var(--mttm-moss); --mttm-muted: var(--mttm-lichen); }
+
+/* Google Fonts: */
+/* @import url('https://fonts.googleapis.com/css2?family=Michroma&family=Manrope:wght@400;500;600&display=swap'); */
+
+body { background: var(--mttm-bg); color: var(--mttm-fg); font-family: var(--mttm-font-body); }
+.mttm-display { font-family: var(--mttm-font-display); text-transform: uppercase; letter-spacing: var(--mttm-tracking-display); font-weight: 400; }
+.mttm-label { font-family: var(--mttm-font-display); text-transform: uppercase; letter-spacing: var(--mttm-tracking-label); font-size: 0.75rem; color: var(--mttm-muted); }
