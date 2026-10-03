@@ -74,10 +74,14 @@ def _union(paths) -> Path:
 
 
 class EqualLettering:
-    def __init__(self, width=136.0, stem=12.0, bar=11.0, name="MTTM Equal (Michroma weight)", slab_i=True):
+    def __init__(self, width=136.0, stem=12.0, bar=11.0, name="MTTM Equal (Michroma weight)", slab_i=True,
+                 o_style="squircle", k_style="stub"):
+        """o_style: "squircle" (Michroma's rounded-square O) or "ellipse" (true ellipse; a circle when W = 100).
+        k_style: "stub" (Michroma's arm stub) or "simple" (both diagonals meet the stem at mid-height)."""
         self.W, self.sv, self.sh = width, stem, bar
         self.name = name
         self.slab_i = slab_i
+        self.o_style, self.k_style = o_style, k_style
         self.widest = width
         self._cache = {}
 
@@ -96,6 +100,16 @@ class EqualLettering:
             if self.slab_i:
                 parts += [_rect(0, 100 - sh, W, 100), _rect(0, 0, W, sh)]
             return _union(parts)
+        if ch == "O" and self.o_style == "ellipse":
+            outer = _rrect(0, 0, W, 100, W / 2, 50)
+            inner = _rrect(sv, sh, W - sv, 100 - sh, W / 2 - sv, 50 - sh)
+            return op(outer, inner, PathOp.DIFFERENCE)
+        if ch == "K" and self.k_style == "simple":
+            t = sv * 1.0
+            arm = _stroke((sv * 0.5, 50), (W - sv * 0.55, 100), t)
+            leg = _stroke((sv * 0.5, 50), (W - sv * 0.55, 0), t)
+            arms = op(clip(_union([arm, leg])), _rect(sv * 0.5, 0, W, 100), PathOp.INTERSECTION)
+            return _union([_rect(0, 0, sv, 100), arms])
         if ch == "O":
             outer = _rrect(0, 0, W, 100, 40, 44)
             inner = _rrect(sv, sh, W - sv, 100 - sh, 40 - sv, 44 - sh)
