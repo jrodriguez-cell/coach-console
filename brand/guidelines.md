@@ -37,7 +37,7 @@ VOICE: short, direct, imperative, calm. No hype, no fitness clichés, no exclama
 IMAGERY: natural light, real people, honest movement, muted or black-and-white colour, generous negative space. No stock gym imagery, no neon, no flexing for the camera.
 
 RULES FOR AI ASSISTANTS AND DESIGNERS
-  1. Use the supplied logo files (SVG or PNG). Never draw, retype or approximate the logo.
+  1. Use the supplied logo files (SVG or PNG). Never draw, retype or approximate the logo. The single line is always MAKETIMETOMOVE in one run: never add a space or word gap between MAKETIME and TOMOVE.
   2. Headlines and labels: MTTM Lettering only, capitals, letter-spacing 0. It is a custom font that exists only in the brand files: fonts/mttm-lettering-regular.woff2 / .otf (and -heavy), tokens/mttm-brand.css (font embedded), or the embed code in Appendix 13 of these guidelines. Never substitute Michroma or any other typeface. If you cannot access the font, ask for the files before producing work.
   3. Body text: Manrope. Never use any other typeface.
   4. One theme per layout. Default to Ink & Bone unless the content belongs to a pillar.
@@ -257,7 +257,7 @@ Short, direct, imperative. Calm confidence. Say less, and mean it.
 - Don’t stretch, squash, rotate, skew or re-space the letters. The equal spacing is the logo.
 - Don’t type the logo, not even in MTTM Lettering. Always use the supplied artwork.
 - Don’t recolour outside the approved pairs, and don’t put two theme colours in one logo.
-- Don’t add a word gap, or move TOMOVE off-centre.
+- Don’t add a word gap or a space anywhere in the logo. The single line is always MAKETIMETOMOVE in one run, and in the wordmark TOMOVE stays centred under MAKETIME.
 - Don’t place the logo on busy photography without enough contrast, or inside its clear space.
 - Don’t lock the logo up with taglines, icons or other marks. Keep each mark on its own.
 - Don’t use the heavy cut at large sizes on screen. It exists for small sizes and thread.
