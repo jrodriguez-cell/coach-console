@@ -15,6 +15,7 @@ import { GOAL_CATEGORIES } from "@/config/goal-templates";
 import { goalLabel, STATUS_TONE } from "@/lib/labels";
 import { formatDate, todayIn } from "@/lib/dates";
 import { describePrediction } from "@/lib/energy";
+import { programDefaults } from "@/lib/generator";
 
 export const dynamic = "force-dynamic";
 
@@ -147,7 +148,7 @@ export default async function ClientPage({ params, searchParams }: { params: { i
             {intake && (
               <details className="mt-3" open={!plan}>
                 <summary className="cursor-pointer text-sm font-medium">{plan ? "Generate a new draft (keeps versions)" : "Generate a draft plan"}</summary>
-                <div className="mt-2"><GenerateForm clientId={client.id} defaults={{ start_date: client.start_date ?? today }} /></div>
+                <div className="mt-2"><GenerateForm clientId={client.id} defaults={{ start_date: client.start_date ?? today }} program={programDefaults(client.goal_category, intake.answers, plan?.parameters)} /></div>
               </details>
             )}
             {b.plans.length > 1 && (

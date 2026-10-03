@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 import { EXERCISES } from "@/data/exercises";
 import type { LibExercise } from "./plan-types";
 import {
-  assembleTraining, buildSkeleton, cardioDays, cardioPrescription, chooseSplit, defaultPhaseSequence, defaultSelection,
+  assembleTraining, buildSkeleton, cardioDays, cardioPrescription, defaultPhaseSequence, defaultSelection,
   exerciseLoadsForWeek, isUsable, liftingDays, prescribe, sessionsForWeek,
 } from "./training";
 import { PHASES } from "@/config/training-variables";
+import { PROGRAM_STYLES, SPLITS } from "@/config/program-styles";
 
 export const LIB: LibExercise[] = EXERCISES.map((e) => ({
   id: e.slug, name: e.name, pattern: e.pattern, primary_muscles: e.primary_muscles, equipment: e.equipment,
@@ -31,13 +32,6 @@ describe("seed library integrity", () => {
 });
 
 describe("split and schedule", () => {
-  it("chooses the split from days/week", () => {
-    expect(chooseSplit(2)).toBe("full_body");
-    expect(chooseSplit(3)).toBe("full_body");
-    expect(chooseSplit(4)).toBe("upper_lower");
-    expect(chooseSplit(5)).toBe("ppl");
-    expect(chooseSplit(6)).toBe("ppl");
-  });
   it("uses preferred days when enough are given", () => {
     expect(liftingDays(3, [2, 4, 6])).toEqual([2, 4, 6]);
     expect(liftingDays(3, [2])).toEqual([1, 3, 5]);
@@ -148,5 +142,63 @@ describe("skeleton → training plan", () => {
     expect(loads.some((l) => l.category === "cardio")).toBe(true);
     expect(loads.some((l) => l.category === "mobility")).toBe(true);
     expect(sessionsForWeek(t, 1).map((s) => s.key)).toEqual(["A", "B", "C"]);
+  });
+});
+
+describe("program styles", () => {
+  const filterFor = (equipment: "commercial_gym" | "home_basic" | "bodyweight") => ({ equipment, injuryAreas: [], dislikes: [] });
+  it("every style builds a usable week on every day count it supports, with any equipment", () => {
+    for (const split of SPLITS) for (const days of PROGRAM_STYLES[split].days) for (const eq of ["commercial_gym", "home_basic", "bodyweight"] as const) {
+      if (PROGRAM_STYLES[split].needsGym && eq !== "commercial_gym") continue;
+      const sk = buildSkeleton({ goal: "muscle_gain", split, daysPerWeek: days, sessionLengthMin: 60, preferredDays: [], weeks: 12, phaseSequence: ["hypertrophy"], level: "intermediate", deconditioned: false, age: 30, filter: filterFor(eq) }, LIB);
+      const keys = new Set(sk.sessions.map((s) => s.key));
+      for (const k of sk.rotation) expect(keys.has(k), `${split}/${days}/${eq}: ${k}`).toBe(true);
+      for (const s of sk.sessions) {
+        expect(s.slots.length, `${split}/${days}/${eq}: ${s.name}`).toBeGreaterThanOrEqual(3);
+        expect(s.slots.some((x) => x.role === "main" || x.role === "secondary" || x.role === "power"), `${split} ${s.name}`).toBe(true);
+      }
+      // defaults never repeat an exercise within a session
+      const sel = defaultSelection(sk);
+      for (const s of sk.sessions) {
+        const ids = s.slots.map((x) => sel[x.id]);
+        expect(new Set(ids).size, `${split}/${days}/${eq}: ${s.name}`).toBe(ids.length);
+      }
+    }
+  });
+
+  it("adds focus slots to the sessions that train that area", () => {
+    const sk = buildSkeleton({ goal: "general_health", split: "upper_lower", focus: ["glutes", "arms"], daysPerWeek: 4, sessionLengthMin: 60, preferredDays: [], weeks: 12, phaseSequence: ["hypertrophy"], level: "intermediate", deconditioned: false, age: 30, filter: filterFor("commercial_gym") }, LIB);
+    const lower = sk.sessions.find((s) => s.key === "LA")!;
+    const upper = sk.sessions.find((s) => s.key === "UA")!;
+    expect(lower.slots.some((x) => x.focus === "glutes")).toBe(true);
+    expect(lower.slots.some((x) => x.focus === "arms")).toBe(false);
+    expect(upper.slots.filter((x) => x.focus === "arms").length).toBe(2);
+    // glute slot leads with a glute exercise
+    const g = lower.slots.find((x) => x.focus === "glutes")!;
+    expect(g.candidates[0].primary_muscles[0]).toContain("glutes");
+  });
+
+  it("rotates accessories each block but keeps the main lifts", () => {
+    const sk = buildSkeleton({ goal: "muscle_gain", split: "upper_lower", daysPerWeek: 4, sessionLengthMin: 75, preferredDays: [], weeks: 12, phaseSequence: ["hypertrophy", "hypertrophy", "strength"], level: "intermediate", deconditioned: false, age: 30, filter: filterFor("commercial_gym") }, LIB);
+    const choices = Object.fromEntries(Object.entries(defaultSelection(sk)).map(([k, v]) => [k, { exercise_id: v }]));
+    const t = assembleTraining(sk, choices, LIB, { weeks: 12, phaseSequence: ["hypertrophy", "hypertrophy", "strength"], sessionLengthMin: 75, filter: filterFor("commercial_gym"), shortRest: false, guidelines: [], clearanceNotes: null, coachingNotes: [], summary: "", source: "library_default", rotateAccessories: true });
+    expect(t.block_rotations).toHaveLength(3);
+    expect(sessionsForWeek(t, 1).map((s) => s.key)).toEqual(["UA", "LA", "UB", "LB"]);
+    expect(sessionsForWeek(t, 5).map((s) => s.key)).toEqual(["UA2", "LA2", "UB2", "LB2"]);
+    const a1 = t.sessions.find((s) => s.key === "UA")!;
+    const a2 = t.sessions.find((s) => s.key === "UA2")!;
+    a1.slots.forEach((sl, i) => {
+      if (sl.role === "main") expect(a2.slots[i].exercise.id).toBe(sl.exercise.id);
+    });
+    const changed = a1.slots.filter((sl, i) => sl.role !== "main" && a2.slots[i].exercise.id !== sl.exercise.id);
+    expect(changed.length).toBeGreaterThan(0);
+    // prescriptions only for the block's own sessions
+    expect(Object.keys(t.weeks[0].prescriptions).every((id) => !/^[A-Z]+2-/.test(id))).toBe(true);
+    expect(Object.keys(t.weeks[4].prescriptions).every((id) => /^[A-Z]+2-/.test(id))).toBe(true);
+    expect(exerciseLoadsForWeek(t, 5).filter((l) => l.category === "strength").every((l) => l.minutes > 0)).toBe(true);
+    // no rotation: one set of sessions
+    const fixed = assembleTraining(sk, choices, LIB, { weeks: 12, phaseSequence: ["hypertrophy"], sessionLengthMin: 75, filter: filterFor("commercial_gym"), shortRest: false, guidelines: [], clearanceNotes: null, coachingNotes: [], summary: "", source: "library_default", rotateAccessories: false });
+    expect(fixed.sessions).toHaveLength(4);
+    expect(fixed.block_rotations).toBeUndefined();
   });
 });

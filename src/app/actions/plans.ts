@@ -11,6 +11,7 @@ import { approvalIssues } from "@/lib/data/approval";
 import { todayIn, weekStart } from "@/lib/dates";
 import { checkpointDate, planEndDate, retestDate } from "@/lib/tasks";
 import { isUsable, recomputeWeekMinutes, resolveVariation, unitFor } from "@/lib/training";
+import { FOCUS_AREAS, SPLITS, type Focus, type Split } from "@/config/program-styles";
 import { candidateFilter } from "@/lib/generator";
 import { PRESET_BENCHMARKS } from "@/config/goal-templates";
 import { METS, NEAT_FACTORS, type Activity, type NeatLevel } from "@/config/energy";
@@ -57,6 +58,13 @@ function parseOverrides(form: FormData): Partial<PlanParameters> {
   if (deficit != null) o.deficit = deficit;
   const seq = str(form, "phase_sequence");
   if (seq) o.phase_sequence = seq.split(",").map((s) => s.trim()).filter(Boolean) as Phase[];
+  // Program options (only when the form shows them).
+  if (form.has("split")) {
+    const sp = str(form, "split");
+    o.split = (SPLITS as string[]).includes(sp) ? (sp as Split) : null;
+  }
+  if (form.has("focus_set")) o.focus = form.getAll("focus").map(String).filter((f): f is Focus => (FOCUS_AREAS as string[]).includes(f));
+  if (form.has("rotate_set")) o.rotate_accessories = form.get("rotate_accessories") === "on";
   return o;
 }
 

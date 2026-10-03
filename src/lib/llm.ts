@@ -19,7 +19,7 @@ const OutputShape = z4.object({
 });
 
 const SYSTEM = `You help an ISSA-certified personal trainer draft client programs. A deterministic calculator has already set every number (sets, reps, rest, RPE, cardio minutes, calories). Your only jobs:
-1. For each slot, choose exactly one exercise from that slot's candidate list (use its code). Do not repeat an exercise within a session. Prefer variety across sessions, the client's likes, and exercises that fit their goal and experience.
+1. For each slot, choose exactly one exercise from that slot's candidate list (use its code). Do not repeat an exercise within a session. Prefer variety across sessions, the client's likes, and exercises that fit their goal, experience and program style. Slots with a "focus" add work for an area the client wants to bring up: pick the exercise that targets it most directly.
 2. Write a short coaching note for each slot: a technique cue or focus. Plain words only.
 3. Write three to six short coaching notes for the program and a brief program summary (two to four sentences).
 

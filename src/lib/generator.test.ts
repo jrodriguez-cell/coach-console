@@ -11,7 +11,8 @@ const base = (over: Partial<GeneratorContext> = {}): GeneratorContext => ({
 describe("generator", () => {
   it("weight-loss sample: full pipeline with reconciled macros and example days", async () => {
     const p = await generatePlan(base(), {}, "2026-10-05", libraryDefaultSelector);
-    expect(p.training?.split).toBe("upper_lower");
+    // deconditioned beginner: full body, rotating three sessions over four days
+    expect(p.training?.split).toBe("full_body");
     expect(p.energy?.planned_exercise_kcal_per_day).toBeGreaterThan(0);
     const t = p.nutrition.targets!;
     expect(Math.abs(kcalFromMacros(t.protein_g, t.carbs_g, t.fat_g) - t.calories)).toBeLessThanOrEqual(2);
@@ -24,9 +25,10 @@ describe("generator", () => {
     expect(p.nutrition.prediction_text).toMatch(/likely between/);
   });
 
-  it("performance sample: full body, power slots, vegetarian peanut-free foods, ankle contraindications", async () => {
+  it("performance sample: athletic split, power slots, vegetarian peanut-free foods, ankle contraindications", async () => {
     const p = await generatePlan(base({ goal: "performance", intake: PERF_INTAKE }), {}, "2026-10-05", libraryDefaultSelector);
-    expect(p.training?.split).toBe("full_body");
+    expect(p.training?.split).toBe("athletic");
+    expect(p.training?.split_reasons?.[0]).toMatch(/Performance/);
     expect(p.training?.sessions.some((s) => s.slots.some((x) => x.role === "power"))).toBe(true);
     for (const s of p.training!.sessions) for (const x of s.slots) {
       const ex = EX_LIB.find((e) => e.id === x.exercise.id)!;

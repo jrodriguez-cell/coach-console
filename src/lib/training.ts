@@ -7,7 +7,9 @@ import { DELOAD, PHASES, WARMUP_MIN, type Phase } from "@/config/training-variab
 import { GOAL_TEMPLATES, HR_ZONES, hrMax, type GoalCategory } from "@/config/goal-templates";
 import { METS } from "@/config/energy";
 import { EQUIPMENT_ACCESS, type EquipmentAccess, type Pattern } from "@/data/exercises";
+import { FOCUS_SLOTS, PROGRAM_STYLES, SPLIT_LABELS, type Focus, type Split, type Template, type TemplateSlot } from "@/config/program-styles";
 import type { ExerciseLoad } from "./energy";
+import { chooseProgram } from "./program-design";
 import type {
   CardioPlan,
   CardioWeek,
@@ -24,117 +26,55 @@ import type {
 } from "./plan-types";
 
 // ---------------------------------------------------------------------------
-// Split selection
+// Split and session templates (styles live in src/config/program-styles.ts;
+// which one a client gets is chosen in src/lib/program-design.ts)
 // ---------------------------------------------------------------------------
 
-export type Split = TrainingPlan["split"];
-
-export function chooseSplit(daysPerWeek: number): Split {
-  if (daysPerWeek <= 3) return "full_body";
-  if (daysPerWeek === 4) return "upper_lower";
-  return "ppl";
-}
-
-export const SPLIT_LABELS: Record<Split, string> = {
-  full_body: "Full body",
-  upper_lower: "Upper / lower",
-  ppl: "Push / pull / legs",
-};
-
-interface TemplateSlot {
-  pattern: Pattern;
-  role: SlotRole;
-  muscle?: string;
-}
-interface Template {
-  key: string;
-  name: string;
-  slots: TemplateSlot[];
-}
-
-const FB: Template[] = [
-  { key: "A", name: "Full Body A", slots: [
-    { pattern: "squat", role: "main" }, { pattern: "horizontal_push", role: "main" }, { pattern: "horizontal_pull", role: "secondary" },
-    { pattern: "hinge", role: "secondary" }, { pattern: "core_anti_extension", role: "core" }, { pattern: "isolation_arms", role: "isolation", muscle: "biceps" },
-  ] },
-  { key: "B", name: "Full Body B", slots: [
-    { pattern: "hinge", role: "main" }, { pattern: "vertical_pull", role: "main" }, { pattern: "vertical_push", role: "secondary" },
-    { pattern: "lunge", role: "secondary" }, { pattern: "core_anti_rotation", role: "core" }, { pattern: "isolation_arms", role: "isolation", muscle: "triceps" },
-  ] },
-  { key: "C", name: "Full Body C", slots: [
-    { pattern: "lunge", role: "main" }, { pattern: "horizontal_pull", role: "main" }, { pattern: "horizontal_push", role: "secondary" },
-    { pattern: "squat", role: "accessory" }, { pattern: "carry", role: "core" }, { pattern: "isolation_shoulders", role: "isolation" },
-  ] },
-];
-
-const UL: Template[] = [
-  { key: "UA", name: "Upper A", slots: [
-    { pattern: "horizontal_push", role: "main" }, { pattern: "horizontal_pull", role: "main" }, { pattern: "vertical_push", role: "secondary" },
-    { pattern: "vertical_pull", role: "secondary" }, { pattern: "isolation_arms", role: "isolation", muscle: "biceps" }, { pattern: "core_anti_rotation", role: "core" },
-  ] },
-  { key: "LA", name: "Lower A", slots: [
-    { pattern: "squat", role: "main" }, { pattern: "hinge", role: "secondary" }, { pattern: "lunge", role: "accessory" },
-    { pattern: "isolation_legs", role: "isolation", muscle: "hamstrings" }, { pattern: "core_anti_extension", role: "core" },
-  ] },
-  { key: "UB", name: "Upper B", slots: [
-    { pattern: "vertical_push", role: "main" }, { pattern: "vertical_pull", role: "main" }, { pattern: "horizontal_push", role: "secondary" },
-    { pattern: "horizontal_pull", role: "secondary" }, { pattern: "isolation_shoulders", role: "isolation" }, { pattern: "isolation_arms", role: "isolation", muscle: "triceps" },
-  ] },
-  { key: "LB", name: "Lower B", slots: [
-    { pattern: "hinge", role: "main" }, { pattern: "squat", role: "secondary" }, { pattern: "lunge", role: "accessory" },
-    { pattern: "isolation_legs", role: "isolation", muscle: "calves" }, { pattern: "carry", role: "core" },
-  ] },
-];
-
-const PPL: Template[] = [
-  { key: "PU", name: "Push", slots: [
-    { pattern: "horizontal_push", role: "main" }, { pattern: "vertical_push", role: "secondary" }, { pattern: "isolation_chest", role: "isolation" },
-    { pattern: "isolation_shoulders", role: "isolation" }, { pattern: "isolation_arms", role: "isolation", muscle: "triceps" },
-  ] },
-  { key: "PL", name: "Pull", slots: [
-    { pattern: "vertical_pull", role: "main" }, { pattern: "horizontal_pull", role: "secondary" }, { pattern: "horizontal_pull", role: "accessory", muscle: "rear delts" },
-    { pattern: "isolation_arms", role: "isolation", muscle: "biceps" }, { pattern: "core_anti_rotation", role: "core" },
-  ] },
-  { key: "LG", name: "Legs", slots: [
-    { pattern: "squat", role: "main" }, { pattern: "hinge", role: "secondary" }, { pattern: "lunge", role: "accessory" },
-    { pattern: "isolation_legs", role: "isolation", muscle: "calves" }, { pattern: "core_anti_extension", role: "core" },
-  ] },
-  { key: "UP", name: "Upper", slots: [
-    { pattern: "vertical_push", role: "main" }, { pattern: "horizontal_pull", role: "main" }, { pattern: "horizontal_push", role: "secondary" },
-    { pattern: "vertical_pull", role: "secondary" }, { pattern: "isolation_arms", role: "isolation", muscle: "biceps" },
-  ] },
-  { key: "LO", name: "Lower", slots: [
-    { pattern: "hinge", role: "main" }, { pattern: "lunge", role: "secondary" }, { pattern: "squat", role: "accessory" },
-    { pattern: "isolation_legs", role: "isolation", muscle: "hamstrings" }, { pattern: "carry", role: "core" },
-  ] },
-];
+export type { Split };
+export { SPLIT_LABELS };
 
 const ROLE_PRIORITY: Record<SlotRole, number> = { main: 1, power: 2, secondary: 3, core: 4, accessory: 5, isolation: 6 };
+/** Focus slots rank just after core work, so they survive trimming before ordinary accessories. */
+const FOCUS_PRIORITY = 45;
 
-export function sessionTemplates(split: Split, daysPerWeek: number, goal: GoalCategory): { templates: { key: string; name: string; slots: SlotDef[] }[]; rotation: string[] } {
+const LOWER: Pattern[] = ["squat", "hinge", "lunge", "isolation_legs"];
+const UPPER: Pattern[] = ["horizontal_push", "vertical_push", "horizontal_pull", "vertical_pull", "isolation_arms", "isolation_shoulders", "isolation_chest"];
+function trains(t: Template, region: "lower" | "upper" | "any"): boolean {
+  if (region === "any") return true;
+  const pats = region === "lower" ? LOWER : UPPER;
+  // A region counts when the session has a main or secondary lift there.
+  return t.slots.some((s) => pats.includes(s.pattern) && (s.role === "main" || s.role === "secondary"));
+}
+
+export function sessionTemplates(split: Split, daysPerWeek: number, goal: GoalCategory, focus: Focus[] = []): { templates: { key: string; name: string; slots: SlotDef[] }[]; rotation: string[] } {
   const tpl = GOAL_TEMPLATES[goal];
-  let base: Template[];
-  let rotation: string[];
-  if (split === "full_body") {
-    base = daysPerWeek === 2 ? FB.slice(0, 2) : FB;
-    rotation = base.map((t) => t.key);
-  } else if (split === "upper_lower") {
-    base = UL;
-    rotation = ["UA", "LA", "UB", "LB"];
-  } else {
-    base = daysPerWeek === 5 ? PPL : PPL.slice(0, 3);
-    rotation = daysPerWeek === 5 ? ["PU", "PL", "LG", "UP", "LO"] : ["PU", "PL", "LG", "PU", "PL", "LG"];
-  }
-  // Isolation work: muscle gain, or inherent to body-part splits (5–6 days).
-  const keepIsolation = tpl.includesIsolation || split === "ppl";
+  const style = PROGRAM_STYLES[split];
+  const days = style.rotation[daysPerWeek] ? daysPerWeek : style.days.reduce((a, b) => (Math.abs(b - daysPerWeek) < Math.abs(a - daysPerWeek) ? b : a));
+  const rotation = style.rotation[days];
+  const base = style.templates.filter((t) => rotation.includes(t.key));
+  // Isolation work: muscle gain, or inherent to body-part style splits.
+  const keepIsolation = tpl.includesIsolation || Boolean(style.keepIsolation);
   const templates = base.map((t) => {
-    let slots: TemplateSlot[] = t.slots.filter((s) => keepIsolation || s.role !== "isolation");
+    let slots: (TemplateSlot & { focus?: Focus })[] = t.slots.filter((s) => keepIsolation || s.role !== "isolation");
     // Performance: power work first, while fresh (skip pure pull days).
-    if (tpl.includesPower && t.key !== "PL") slots = [{ pattern: "power", role: "power" }, ...slots];
+    if (tpl.includesPower && !style.hasPower && t.key !== "PL") slots = [{ pattern: "power", role: "power" }, ...slots];
+    // Focus areas: extra work on the sessions that train that region.
+    for (const f of focus) {
+      const rule = FOCUS_SLOTS[f];
+      if (!trains(t, rule.region)) continue;
+      slots = [...slots, ...rule.slots.map((s) => ({ ...s, focus: f }))];
+    }
     return {
       key: t.key,
       name: t.name,
-      slots: slots.map((s, i) => ({ id: `${t.key}-${i + 1}`, pattern: s.pattern, role: s.role, priority: ROLE_PRIORITY[s.role] * 10 + i, muscle: s.muscle })),
+      slots: slots.map((s, i): SlotDef => ({
+        id: `${t.key}-${i + 1}`,
+        pattern: s.pattern,
+        role: s.role,
+        priority: (s.focus ? FOCUS_PRIORITY : ROLE_PRIORITY[s.role] * 10) + i,
+        muscle: s.muscle,
+        ...(s.focus ? { focus: s.focus } : {}),
+      })),
     };
   });
   return { templates, rotation };
@@ -146,9 +86,10 @@ export function sessionTemplates(split: Split, daysPerWeek: number, goal: GoalCa
 
 export type TrainingLevel = "none" | "beginner" | "intermediate" | "advanced";
 
-export function defaultPhaseSequence(goal: GoalCategory, level: TrainingLevel, deconditioned: boolean, weeks: number): Phase[] {
+export function defaultPhaseSequence(goal: GoalCategory, level: TrainingLevel, deconditioned: boolean, weeks: number, hint: "strength" | "power" | null = null): Phase[] {
   let seq: Phase[];
   if (deconditioned || level === "none" || level === "beginner") seq = ["endurance", "hypertrophy", "strength"];
+  else if (hint === "strength") seq = ["hypertrophy", "strength", "strength"];
   else if (goal === "performance") seq = ["hypertrophy", "strength", "power"];
   else if (goal === "muscle_gain") seq = level === "advanced" ? ["hypertrophy", "hypertrophy", "strength"] : ["endurance", "hypertrophy", "hypertrophy"];
   else seq = level === "advanced" ? ["hypertrophy", "hypertrophy", "strength"] : ["endurance", "hypertrophy", "strength"];
@@ -325,6 +266,8 @@ export function candidatesForSlot(slot: SlotDef, lib: LibExercise[], f: Candidat
   };
   const score = (e: LibExercise) => {
     let s = Math.abs(chainDepth(e, byId) - target) + equipFit(e);
+    // Focus slots: prefer exercises that lead with the target muscle (hip thrust over deadlift for glutes).
+    if (slot.focus && slot.muscle && !e.primary_muscles[0]?.includes(slot.muscle)) s += 2;
     if (wantCompound && !e.is_compound) s += 5;
     if (slot.role === "main") {
       if (!nearestInChain(e, "regression", byId, f)) s += 3;
@@ -435,6 +378,10 @@ export function mobilityPlan(lifting: number[], lib: LibExercise[], f: Candidate
 
 export interface SkeletonInput {
   goal: GoalCategory;
+  /** defaults to the automatic choice (program-design.ts) */
+  split?: Split;
+  splitReasons?: string[];
+  focus?: Focus[];
   daysPerWeek: number;
   sessionLengthMin: number;
   preferredDays: number[];
@@ -455,6 +402,8 @@ export interface SlotWithCandidates extends SlotDef {
 
 export interface Skeleton {
   split: Split;
+  split_reasons: string[];
+  focus: Focus[];
   rotation: string[];
   lifting_days: number[];
   sessions: { key: string; name: string; slots: SlotWithCandidates[] }[];
@@ -463,18 +412,29 @@ export interface Skeleton {
 }
 
 export function buildSkeleton(input: SkeletonInput, lib: LibExercise[]): Skeleton {
-  const split = chooseSplit(input.daysPerWeek);
-  const { templates, rotation } = sessionTemplates(split, input.daysPerWeek, input.goal);
+  const auto = input.split ? null : chooseProgram({ goal: input.goal, daysPerWeek: input.daysPerWeek, level: input.level, deconditioned: input.deconditioned, age: input.age, sessionLengthMin: input.sessionLengthMin, text: "" });
+  const split = input.split ?? auto!.split;
+  const focus = input.focus ?? [];
+  const { templates, rotation } = sessionTemplates(split, input.daysPerWeek, input.goal, focus);
   const lifting = liftingDays(input.daysPerWeek, input.preferredDays);
-  const sessions = templates.map((t) => ({
-    key: t.key,
-    name: t.name,
-    slots: t.slots
+  const sessions = templates.map((t) => {
+    // Repeated slots (two biceps slots on arms day) need a distinct exercise each; drop extras the library can't fill.
+    const seen = new Map<string, number>();
+    const slots = t.slots
       .map((s) => ({ ...s, candidates: candidatesForSlot(s, lib, input.filter, input.level) }))
-      .filter((s) => s.candidates.length > 0),
-  }));
+      .filter((s) => {
+        const k = `${s.pattern}|${s.muscle ?? ""}`;
+        const n = (seen.get(k) ?? 0) + 1;
+        if (s.candidates.length < n) return false;
+        seen.set(k, n);
+        return true;
+      });
+    return { key: t.key, name: t.name, slots };
+  });
   return {
     split,
+    split_reasons: input.splitReasons ?? auto?.reasons ?? [],
+    focus,
     rotation,
     lifting_days: lifting,
     sessions,
@@ -504,6 +464,14 @@ export function defaultSelection(sk: Skeleton): Record<string, string> {
  * doesn't fit the client's session length (plus warm-up), the lowest-priority
  * slots are left out for that block (no prescription = not performed).
  */
+/** Sessions used in a 4-week block (0-based): that block's variants when accessories rotate, else the base sessions. */
+export function sessionsInBlock<T extends { block?: number }>(sessions: T[], block: number): T[] {
+  const own = sessions.filter((s) => (s.block ?? 1) === block + 1);
+  return own.length ? own : sessions.filter((s) => (s.block ?? 1) === 1);
+}
+
+export const blockOfWeek = (week: number) => Math.floor((week - 1) / DELOAD.everyNWeeks);
+
 export function buildWeeks(sessions: SessionPlan[], weeks: number, sequence: Phase[], shortRest: boolean, sessionLengthMin = 999): WeekPlan[] {
   const blockLen = DELOAD.everyNWeeks;
   const dropped = new Map<number, Set<string>>(); // block index → slot ids left out
@@ -514,7 +482,7 @@ export function buildWeeks(sessions: SessionPlan[], weeks: number, sequence: Pha
     const heaviest = Math.min(b * blockLen + 3, weeks); // week 3 of the block
     const drop = new Set<string>();
     let shortenRest = false;
-    for (const s of sessions) {
+    for (const s of sessionsInBlock(sessions, b)) {
       const active = [...s.slots];
       const over = () => {
         const rx = Object.fromEntries(active.map((x) => [x.id, prescribe(phase, x.role, heaviest, { shortRest, minRest: shortenRest })]));
@@ -539,7 +507,7 @@ export function buildWeeks(sessions: SessionPlan[], weeks: number, sequence: Pha
     const drop = dropped.get(block) ?? new Set<string>();
     const prescriptions: Record<string, Prescription> = {};
     const minutes: Record<string, number> = {};
-    for (const s of sessions) {
+    for (const s of sessionsInBlock(sessions, block)) {
       for (const slot of s.slots) if (!drop.has(slot.id)) prescriptions[slot.id] = prescribe(phase, slot.role, w, { shortRest, minRest: minRest.get(block) });
       minutes[s.key] = estimateSessionMinutes(s.slots, prescriptions, phase);
     }
@@ -551,7 +519,7 @@ export function buildWeeks(sessions: SessionPlan[], weeks: number, sequence: Pha
 /** Recompute a week's estimated minutes after edits. */
 export function recomputeWeekMinutes(sessions: SessionPlan[], week: WeekPlan): WeekPlan {
   const minutes: Record<string, number> = {};
-  for (const s of sessions) minutes[s.key] = estimateSessionMinutes(s.slots, week.prescriptions, week.phase);
+  for (const s of sessionsInBlock(sessions, blockOfWeek(week.week))) minutes[s.key] = estimateSessionMinutes(s.slots, week.prescriptions, week.phase);
   return { ...week, session_minutes: minutes };
 }
 
@@ -564,33 +532,80 @@ export function assembleTraining(
   sk: Skeleton,
   choices: Record<string, { exercise_id: string; note?: string }>,
   lib: LibExercise[],
-  p: { weeks: number; phaseSequence: Phase[]; sessionLengthMin: number; filter: CandidateFilter; shortRest: boolean; guidelines: string[]; clearanceNotes: string | null; coachingNotes: string[]; summary: string; source: "llm" | "library_default" },
+  p: { weeks: number; phaseSequence: Phase[]; sessionLengthMin: number; filter: CandidateFilter; shortRest: boolean; guidelines: string[]; clearanceNotes: string | null; coachingNotes: string[]; summary: string; source: "llm" | "library_default"; rotateAccessories?: boolean },
 ): TrainingPlan {
   const byId = new Map(lib.map((e) => [e.id, e]));
-  const sessions: SessionPlan[] = sk.sessions.map((s) => ({
+  const choose = (slot: SlotWithCandidates, chosen: LibExercise, note: string, id = slot.id): SlotChoice => {
+    const { candidates: _c, ...def } = slot;
+    void _c;
+    return {
+      ...def,
+      id,
+      exercise: { id: chosen.id, name: chosen.name },
+      regression: resolveVariation(chosen, "regression", lib, p.filter, slot.role === "main" || slot.role === "secondary"),
+      progression: resolveVariation(chosen, "progression", lib, p.filter, slot.role === "main" || slot.role === "secondary"),
+      note,
+      unit: unitFor(chosen.name),
+    };
+  };
+  const base: SessionPlan[] = sk.sessions.map((s) => ({
     key: s.key,
     name: s.name,
-    slots: s.slots.map((slot): SlotChoice => {
-      const chosen = byId.get(choices[slot.id]?.exercise_id ?? "") ?? slot.candidates[0];
-      const { candidates: _c, ...def } = slot;
-      void _c;
-      return {
-        ...def,
-        exercise: { id: chosen.id, name: chosen.name },
-        regression: resolveVariation(chosen, "regression", lib, p.filter, slot.role === "main" || slot.role === "secondary"),
-        progression: resolveVariation(chosen, "progression", lib, p.filter, slot.role === "main" || slot.role === "secondary"),
-        note: choices[slot.id]?.note ?? "",
-        unit: unitFor(chosen.name),
-      };
-    }),
+    slots: s.slots.map((slot) => choose(slot, byId.get(choices[slot.id]?.exercise_id ?? "") ?? slot.candidates[0], choices[slot.id]?.note ?? "")),
   }));
+
+  // Rotate accessories each 4-week block: main and power lifts stay the same
+  // (so strength progress is comparable); everything else moves to the next
+  // best candidate not used yet for that slot.
+  const blocks = Math.ceil(p.weeks / DELOAD.everyNWeeks);
+  let sessions = base;
+  let blockRotations: string[][] | undefined;
+  if (p.rotateAccessories && blocks > 1) {
+    sessions = base.map((s) => ({ ...s, block: 1 }));
+    blockRotations = [sk.rotation];
+    const history = new Map<string, Set<string>>(base.flatMap((s) => s.slots.map((sl) => [sl.id, new Set([sl.exercise.id])] as [string, Set<string>])));
+    let prev = base;
+    for (let b = 1; b < blocks; b++) {
+      const keyOf = (k: string) => `${k}${b + 1}`;
+      const usedInBlock = new Set<string>();
+      const next: SessionPlan[] = prev.map((s, si) => {
+        const inSession = new Set<string>();
+        const slots = s.slots.map((sl, i) => {
+          const skSlot = sk.sessions[si].slots[i];
+          const id = sl.id.replace(/^[^-]+/, keyOf(sk.sessions[si].key));
+          if (sl.role === "main" || sl.role === "power") {
+            inSession.add(sl.exercise.id);
+            return { ...sl, id };
+          }
+          const seen = history.get(skSlot.id)!;
+          const free = (c: LibExercise) => !inSession.has(c.id);
+          const pick =
+            skSlot.candidates.find((c) => free(c) && !seen.has(c.id) && !usedInBlock.has(c.id)) ??
+            skSlot.candidates.find((c) => free(c) && !seen.has(c.id)) ??
+            skSlot.candidates.find((c) => free(c) && c.id !== sl.exercise.id) ??
+            byId.get(sl.exercise.id)!;
+          seen.add(pick.id);
+          inSession.add(pick.id);
+          usedInBlock.add(pick.id);
+          return pick.id === sl.exercise.id ? { ...sl, id } : choose(skSlot, pick, "", id);
+        });
+        return { key: keyOf(sk.sessions[si].key), name: s.name, block: b + 1, slots };
+      });
+      sessions = [...sessions, ...next];
+      blockRotations.push(sk.rotation.map(keyOf));
+      prev = next;
+    }
+  }
 
   return {
     split: sk.split,
     split_label: SPLIT_LABELS[sk.split],
+    split_reasons: sk.split_reasons,
+    focus: sk.focus,
     lifting_days: sk.lifting_days,
     sessions,
     rotation: sk.rotation,
+    ...(blockRotations ? { block_rotations: blockRotations } : {}),
     weeks: buildWeeks(sessions, p.weeks, p.phaseSequence, p.shortRest, p.sessionLengthMin),
     cardio: sk.cardio,
     mobility: sk.mobility,
@@ -603,9 +618,10 @@ export function assembleTraining(
 }
 
 /** Session key scheduled on each lifting day of a given week. */
-export function sessionsForWeek(t: Pick<TrainingPlan, "rotation" | "lifting_days">, week: number): { day: number; key: string }[] {
+export function sessionsForWeek(t: Pick<TrainingPlan, "rotation" | "lifting_days" | "block_rotations">, week: number): { day: number; key: string }[] {
   const perWeek = t.lifting_days.length;
-  return t.lifting_days.map((day, i) => ({ day, key: t.rotation[((week - 1) * perWeek + i) % t.rotation.length] }));
+  const rotation = t.block_rotations?.[Math.min(blockOfWeek(week), t.block_rotations.length - 1)] ?? t.rotation;
+  return t.lifting_days.map((day, i) => ({ day, key: rotation[((week - 1) * perWeek + i) % rotation.length] }));
 }
 
 /** Exercise loads (for the energy model) in a given plan week. */

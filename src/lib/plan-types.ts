@@ -2,6 +2,7 @@
 import type { Phase } from "@/config/training-variables";
 import type { GoalCategory } from "@/config/goal-templates";
 import type { Pattern } from "@/data/exercises";
+import type { Focus, Split } from "@/config/program-styles";
 import type { NeatLevel, Activity } from "@/config/energy";
 import type { EnergyOutputs } from "./energy";
 import type { MacroTargets } from "./nutrition";
@@ -43,6 +44,8 @@ export interface SlotDef {
   /** lower = more important (kept first when trimming to session length) */
   priority: number;
   muscle?: string;
+  /** extra work for a focus area the client wants to bring up */
+  focus?: Focus;
 }
 
 export interface ExerciseRef {
@@ -61,6 +64,8 @@ export interface SlotChoice extends SlotDef {
 export interface SessionPlan {
   key: string;
   name: string;
+  /** 4-week block this version of the session belongs to (accessories rotate per block); absent = every block */
+  block?: number;
   slots: SlotChoice[];
 }
 
@@ -110,12 +115,17 @@ export interface MobilityPlan {
 }
 
 export interface TrainingPlan {
-  split: "full_body" | "upper_lower" | "ppl";
+  split: Split;
   split_label: string;
+  /** why this program style was chosen (shown to the trainer) */
+  split_reasons?: string[];
+  focus?: Focus[];
   lifting_days: number[];
   sessions: SessionPlan[];
   /** order sessions rotate through lifting days */
   rotation: string[];
+  /** per 4-week block rotation when accessories rotate; falls back to `rotation` */
+  block_rotations?: string[][];
   weeks: WeekPlan[];
   cardio: CardioPlan;
   mobility: MobilityPlan;
@@ -147,6 +157,12 @@ export interface PlanParameters {
   energy_week: number;
   /** body weight (lb) used for the energy model; current weight at each recompute */
   weight_lb: number;
+  /** program style chosen by the trainer; null = automatic */
+  split?: Split | null;
+  /** focus areas; null = suggested from the intake */
+  focus?: Focus[] | null;
+  /** swap accessory exercises at each new 4-week block (default on) */
+  rotate_accessories?: boolean;
   /** weight at approval — anchors the planned trajectory */
   start_weight_lb?: number;
   /** planned lb/week at approval — anchors the planned trajectory */

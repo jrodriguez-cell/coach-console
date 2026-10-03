@@ -18,8 +18,10 @@ import { METS, NEAT_FACTORS } from "@/config/energy";
 import { goalLabel, PATTERN_LABEL } from "@/lib/labels";
 import { DAY_NAMES, formatDate, todayIn } from "@/lib/dates";
 import { describePrediction } from "@/lib/energy";
-import { holdSeconds, isUsable } from "@/lib/training";
-import { candidateFilter } from "@/lib/generator";
+import { blockOfWeek, holdSeconds, isUsable, sessionsInBlock } from "@/lib/training";
+import { candidateFilter, programDefaults } from "@/lib/generator";
+import { FOCUS_LABELS } from "@/config/program-styles";
+import type { ProgramDefaults } from "@/components/generate-form";
 import { IntakeAnswersSchema } from "@/lib/intake";
 import { planCalendar } from "@/lib/calendar";
 import type { PlanRow } from "@/lib/data/types";
@@ -63,7 +65,7 @@ export default async function PlanPage({ params, searchParams }: { params: { id:
       {plan.status === "draft" && (
         <Banner tone={issues.length ? "yellow" : "green"} title={issues.length ? "DRAFT — not approved. Before you can approve:" : "DRAFT — ready to approve."}>
           {issues.length > 0 && <ul className="list-disc pl-5">{issues.map((i, k) => <li key={k}>{i}</li>)}</ul>}
-          <p className="mt-1 text-xs">There is no sending to clients in v1. Exports are labeled DRAFT until approval.</p>
+          <p className="mt-1 text-xs">Exports and week sheets are labeled DRAFT until approval.</p>
         </Banner>
       )}
 
@@ -85,7 +87,7 @@ export default async function PlanPage({ params, searchParams }: { params: { id:
           )}
 
           <GuardrailPanel plan={plan} overrides={overrides} editable={editable} />
-          <Overview plan={plan} editable={editable} clientId={client.id} purpose={client.purpose_text} intakeGoal={intake?.answers.primary_goal} />
+          <Overview plan={plan} editable={editable} clientId={client.id} purpose={client.purpose_text} intakeGoal={intake?.answers.primary_goal} program={intake ? programDefaults(plan.goal_category, intake.answers, plan.parameters) : undefined} />
         </>
       )}
       {tab === "training" && <Training plan={plan} editable={editable} week={Number(searchParams.week) || currentPlanWeek(plan.parameters, todayIn())} fileBase={client.name.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "")} base={base} candidates={await swapCandidates(db, plan, intake?.answers)} />}
@@ -135,11 +137,17 @@ function GuardrailPanel({ plan, overrides, editable }: { plan: PlanRow; override
   );
 }
 
-function Overview({ plan, editable, clientId, purpose, intakeGoal }: { plan: PlanRow; editable: boolean; clientId: string; purpose: string | null; intakeGoal?: string }) {
+function Overview({ plan, editable, clientId, purpose, intakeGoal, program }: { plan: PlanRow; editable: boolean; clientId: string; purpose: string | null; intakeGoal?: string; program?: ProgramDefaults }) {
   const p = plan.parameters;
   const tpl = GOAL_TEMPLATES[plan.goal_category];
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+      {plan.training?.split_reasons?.length ? (
+        <Card title={`Why ${plan.training.split_label.toLowerCase()}`} className="lg:col-span-2">
+          <ul className="list-disc space-y-1 pl-5 text-sm">{plan.training.split_reasons.map((r, i) => <li key={i}>{r}</li>)}</ul>
+          {editable && <p className="mt-2 text-xs text-muted">To change it, open “Change program style” under Parameters.</p>}
+        </Card>
+      ) : null}
       <Card title="Programming guidelines">
         {(purpose || intakeGoal) && <p className="mb-2 text-sm">Purpose: {purpose || intakeGoal}</p>}
         <ol className="list-decimal space-y-1 pl-5 text-sm">{tpl.guidelines.map((g) => <li key={g}>{g}</li>)}</ol>
@@ -152,6 +160,7 @@ function Overview({ plan, editable, clientId, purpose, intakeGoal }: { plan: Pla
           <tbody>
             <tr><td>Start date</td><td>{formatDate(p.start_date)}</td></tr>
             <tr><td>Length</td><td>{p.weeks} weeks · {p.days_per_week} lifting days/week · {p.session_length_min} min sessions</td></tr>
+            {plan.training && <tr><td>Program style</td><td>{plan.training.split_label}{plan.training.focus?.length ? ` · focus: ${plan.training.focus.map((f) => FOCUS_LABELS[f]).join(", ")}` : ""}{plan.training.block_rotations ? " · accessories change each block" : ""}</td></tr>}
             <tr><td>Phases (4-week blocks)</td><td>{p.phase_sequence.map((ph) => PHASES[ph].label).join(" → ")}</td></tr>
             <tr><td>Calorie target mode</td><td>{p.calorie_mode === "fixed" ? `fixed at ${p.target_override} kcal` : `${p.deficit >= 0 ? "deficit" : "surplus"} of ${Math.abs(p.deficit)} kcal/day`}</td></tr>
             <tr><td>Energy model</td><td>{p.energy_mode} mode · {p.bmr_method === "katch" ? "Katch-McArdle" : "Mifflin-St Jeor"} · {NEAT_FACTORS[p.neat_level].label}</td></tr>
@@ -160,8 +169,8 @@ function Overview({ plan, editable, clientId, purpose, intakeGoal }: { plan: Pla
         </table></div>
         {editable && (
           <details className="mt-3">
-            <summary className="cursor-pointer text-sm font-medium">Change structure (regenerates a new draft)</summary>
-            <div className="mt-2"><GenerateForm clientId={clientId} fromPlanId={plan.id} defaults={{ start_date: p.start_date, weeks: p.weeks, days_per_week: p.days_per_week }} label="Regenerate draft" /></div>
+            <summary className="cursor-pointer text-sm font-medium">Change program style, focus or structure (regenerates a new draft)</summary>
+            <div className="mt-2"><GenerateForm clientId={clientId} fromPlanId={plan.id} defaults={{ start_date: p.start_date, weeks: p.weeks, days_per_week: p.days_per_week }} program={program} label="Regenerate draft" /></div>
             <p className="mt-1 text-xs text-muted">The current draft is archived and kept as a version.</p>
           </details>
         )}
@@ -189,10 +198,10 @@ function Training({ plan, editable, week, base, candidates, fileBase }: { plan: 
         <ShareWeek planId={plan.id} week={wk.week} fileBase={fileBase} />
       </Card></div>
       <p className="text-sm">
-        <b>Week {wk.week}</b> · {PHASES[wk.phase].label}{wk.deload ? " · DELOAD (≈40% fewer sets, stop at RPE 5–6)" : ""}{wk.retest ? " · retest at the last session" : ""} · {t.split_label}, lifting on {t.lifting_days.map((d) => DAY_NAMES[d]).join(", ")}
+        <b>Week {wk.week}</b> · {PHASES[wk.phase].label}{wk.deload ? " · DELOAD (≈40% fewer sets, stop at RPE 5–6)" : ""}{wk.retest ? " · retest at the last session" : ""}{t.block_rotations ? ` · block ${blockOfWeek(wk.week) + 1} exercises` : ""} · {t.split_label}, lifting on {t.lifting_days.map((d) => DAY_NAMES[d]).join(", ")}
       </p>
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
-        {t.sessions.map((s, si) => (
+        {sessionsInBlock(t.sessions, blockOfWeek(wk.week)).map((s, si) => (
           <Collapsible key={s.key} defaultOpen={si === 0} title={s.name} hint={`${s.slots.filter((sl) => wk.prescriptions[sl.id]).length} exercises · ≈${wk.session_minutes[s.key]} min + warm-up`}>
             <div className="table-wrap"><table className="table table-stack">
               <thead><tr><th>Exercise</th><th>Sets × reps</th><th>Rest</th><th>RPE</th></tr></thead>
@@ -203,7 +212,7 @@ function Training({ plan, editable, week, base, candidates, fileBase }: { plan: 
                   return (
                     <tr key={sl.id} className={clsx(!rx && "opacity-50")}>
                       <td data-primary>
-                        <div className="font-medium">{sl.exercise.name} <span className="text-xs font-normal text-muted">{PATTERN_LABEL[sl.pattern]} · {sl.role}</span></div>
+                        <div className="font-medium">{sl.exercise.name} <span className="text-xs font-normal text-muted">{PATTERN_LABEL[sl.pattern]} · {sl.role}{sl.focus ? ` · ${FOCUS_LABELS[sl.focus].toLowerCase()} focus` : ""}</span></div>
                         {sl.regression && <div className="text-xs text-muted">↓ Regression: {sl.regression.name}</div>}
                         {sl.progression && <div className="text-xs text-muted">↑ Progression: {sl.progression.name}</div>}
                         {sl.note && <div className="text-xs italic text-muted">{sl.note}</div>}

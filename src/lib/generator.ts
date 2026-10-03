@@ -10,10 +10,12 @@ import { DEFAULT_PLAN_WEEKS, PHASES } from "@/config/training-variables";
 import { buildEnergyModel, describePrediction, inToCm, lbToKg, type EnergyOutputs, type ExerciseLoad } from "./energy";
 import { allowedFoods, buildExampleDays, foodLists, groceryStaples, swapTable } from "./example-days";
 import { evaluateGuardrails, type GuardrailResult } from "./guardrails";
-import { blockedSections, isDeconditioned, REFER_OUT_FLAGS, type IntakeAnswers, type ReferOutFlags, type ReferralHandling } from "./intake";
+import { blockedSections, IntakeAnswersSchema, isDeconditioned, REFER_OUT_FLAGS, type IntakeAnswers, type ReferOutFlags, type ReferralHandling } from "./intake";
 import { computeMacroTargets, withEditedMacros, type MacroTargets } from "./nutrition";
 import type { GeneratedPlan, LibExercise, LibFood, NutritionPlan, PlanParameters, TrainingPlan } from "./plan-types";
 import { assembleTraining, buildSkeleton, defaultPhaseSequence, defaultSelection, exerciseLoadsForWeek, recomputeWeekMinutes, SPLIT_LABELS, type CandidateFilter } from "./training";
+import { chooseProgram, phaseHint, suggestFocus, type ProgramChoice } from "./program-design";
+import { FOCUS_LABELS, type Focus } from "@/config/program-styles";
 import type { Selector } from "./selection";
 
 export interface ClearanceContext {
@@ -39,16 +41,32 @@ export interface GeneratorContext {
   uncertainty?: { formula: number; measured: number } | null;
 }
 
+/** The client's own words the program designer reads for focus and style. */
+export function intakeText(a: IntakeAnswers): string {
+  return [a.primary_goal, a.success_90_days, a.sport_activity, a.exercise_likes, a.timeline_event].filter(Boolean).join(" \n ");
+}
+
+/** Program style and focus for these parameters (trainer's choice, else automatic). */
+export function programFor(goal: GoalCategory, a: IntakeAnswers, p: Pick<PlanParameters, "days_per_week" | "session_length_min" | "split" | "focus">): ProgramChoice & { focus: Focus[]; focusReason: string } {
+  const choice = chooseProgram({ goal, daysPerWeek: p.days_per_week, level: a.training_history, deconditioned: isDeconditioned(a), age: a.age, sessionLengthMin: p.session_length_min, equipment: a.equipment, text: intakeText(a), override: p.split ?? null });
+  const focus = p.focus ?? suggestFocus(intakeText(a));
+  const focusReason = p.focus ? (p.focus.length ? `Focus chosen by you: ${p.focus.map((f) => FOCUS_LABELS[f]).join(", ")}.` : "") : focus.length ? `Focus from the client's goals: ${focus.map((f) => FOCUS_LABELS[f]).join(", ")}.` : "";
+  return { ...choice, focus, focusReason };
+}
+
 export function defaultParameters(ctx: Pick<GeneratorContext, "goal" | "intake" | "defaultDeficits">, overrides: Partial<PlanParameters> = {}, today: string): PlanParameters {
   const a = ctx.intake;
   const weeks = overrides.weeks ?? DEFAULT_PLAN_WEEKS;
   const measured = a.measured_tdee != null;
+  const days = overrides.days_per_week ?? a.training_days_per_week;
+  const length = overrides.session_length_min ?? a.session_length_min;
+  const program = programFor(ctx.goal, a, { days_per_week: days, session_length_min: length, split: overrides.split ?? null, focus: overrides.focus ?? null });
   return {
     start_date: overrides.start_date ?? today,
     weeks,
-    days_per_week: overrides.days_per_week ?? a.training_days_per_week,
-    session_length_min: overrides.session_length_min ?? a.session_length_min,
-    phase_sequence: overrides.phase_sequence ?? defaultPhaseSequence(ctx.goal, a.training_history, isDeconditioned(a), weeks),
+    days_per_week: days,
+    session_length_min: length,
+    phase_sequence: overrides.phase_sequence ?? defaultPhaseSequence(ctx.goal, a.training_history, isDeconditioned(a), weeks, phaseHint(program.split, a.training_history)),
     calorie_mode: overrides.calorie_mode ?? "deficit",
     deficit: overrides.deficit ?? ctx.defaultDeficits?.[ctx.goal] ?? DEFAULT_DEFICIT[ctx.goal],
     target_override: overrides.target_override ?? null,
@@ -62,6 +80,9 @@ export function defaultParameters(ctx: Pick<GeneratorContext, "goal" | "intake" 
     uncertainty_pct: overrides.uncertainty_pct ?? null,
     energy_week: overrides.energy_week ?? 1,
     weight_lb: overrides.weight_lb ?? a.weight_lb,
+    split: overrides.split ?? null,
+    focus: overrides.focus ?? null,
+    rotate_accessories: overrides.rotate_accessories ?? true,
   };
 }
 
@@ -262,9 +283,13 @@ export async function generatePlan(ctx: GeneratorContext, overrides: Partial<Pla
     trainingBlockedReason = `Training not generated — refer out: ${blocked.training.map((f) => REFER_OUT_FLAGS[f].label).join(", ")}. Record clearance or referral to unlock.`;
   } else {
     const filter = candidateFilter(a);
+    const program = programFor(ctx.goal, a, params);
     const sk = buildSkeleton(
       {
         goal: ctx.goal,
+        split: program.split,
+        splitReasons: [...program.reasons, ...(program.focusReason ? [program.focusReason] : []), ...(program.overrideIgnored ? [program.overrideIgnored] : [])],
+        focus: program.focus,
         daysPerWeek: params.days_per_week,
         sessionLengthMin: params.session_length_min,
         preferredDays: a.preferred_days,
@@ -288,6 +313,8 @@ export async function generatePlan(ctx: GeneratorContext, overrides: Partial<Pla
       exercise_likes: a.exercise_likes,
       cardio_preferences: a.cardio_preferences,
       split_label: SPLIT_LABELS[sk.split],
+      split_reasons: sk.split_reasons,
+      focus: sk.focus.map((f) => FOCUS_LABELS[f]),
       phases: params.phase_sequence.map((p) => PHASES[p].label),
     });
     training = assembleTraining(sk, sel.choices, ctx.exercises, {
@@ -301,6 +328,7 @@ export async function generatePlan(ctx: GeneratorContext, overrides: Partial<Pla
       coachingNotes: sel.coaching_notes,
       summary: sel.program_summary,
       source: sel.source,
+      rotateAccessories: params.rotate_accessories ?? true,
     });
     training = applyRpeCeiling(training, ctx.clearance?.rpe_ceiling);
   }
@@ -352,3 +380,14 @@ export function diffDerived(before: { energy: EnergyOutputs | null; nutrition: N
 }
 
 export { recomputeWeekMinutes };
+
+/** What the generate form shows for program style and focus. */
+export function programDefaults(goal: GoalCategory, answers: unknown, p?: Partial<PlanParameters>): { split: PlanParameters["split"]; auto: { split: ProgramChoice["split"]; reason: string }; focus: Focus[]; rotate: boolean; session_length_min: number } | undefined {
+  const parsed = IntakeAnswersSchema.safeParse(answers);
+  if (!parsed.success) return undefined;
+  const a = parsed.data;
+  const days = p?.days_per_week ?? a.training_days_per_week;
+  const length = p?.session_length_min ?? a.session_length_min;
+  const auto = programFor(goal, a, { days_per_week: days, session_length_min: length, split: null, focus: p?.focus ?? null });
+  return { split: p?.split ?? null, auto: { split: auto.split, reason: auto.reasons[0] ?? "" }, focus: auto.focus, rotate: p?.rotate_accessories ?? true, session_length_min: length };
+}

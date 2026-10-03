@@ -18,12 +18,14 @@ export interface SelectionRequest {
     exercise_likes: string;
     cardio_preferences: string;
     split_label: string;
+    split_reasons?: string[];
+    focus?: string[];
     phases: string[];
   };
   sessions: {
     key: string;
     name: string;
-    slots: { slot_id: string; pattern: string; role: string; candidates: { code: string; name: string }[] }[];
+    slots: { slot_id: string; pattern: string; role: string; focus?: string; candidates: { code: string; name: string }[] }[];
   }[];
 }
 
@@ -68,6 +70,7 @@ export function buildRequest(sk: Skeleton, client: SelectionRequest["client"]): 
           slot_id: sl.id,
           pattern: sl.pattern.replace(/_/g, " "),
           role: sl.role,
+          ...(sl.focus ? { focus: sl.focus } : {}),
           candidates: sl.candidates.slice(0, 12).map((c) => ({ code: codeFor(c.id), name: c.name })),
         })),
       })),

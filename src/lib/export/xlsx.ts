@@ -122,7 +122,7 @@ export async function buildPlanWorkbook(x: ExportInput): Promise<Buffer> {
     ["Carbohydrate (g)", (c) => formula(c, "'Nutrition Targets'!B7", t?.carbs_g ?? null)],
     ["Fat (g)", (c) => formula(c, "'Nutrition Targets'!B8", t?.fat_g ?? null)],
     ["Lifting days / week", (c) => (c.value = p.days_per_week)],
-    ["Split", (c) => (c.value = x.training?.split_label ?? "Training on hold (refer out)")],
+    ["Program style", (c) => (c.value = x.training ? `${x.training.split_label}${x.training.split_reasons?.length ? ` — ${x.training.split_reasons.join(" ")}` : ""}` : "Training on hold (refer out)")],
     ["Phases (4-week blocks)", (c) => (c.value = p.phase_sequence.map((ph) => PHASES[ph].label).join(" → "))],
     ["Calibration checkpoints (weeks)", (c) => (c.value = p.checkpoint_weeks.join(", "))],
   ];

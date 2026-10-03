@@ -37,11 +37,12 @@ Font.register({
 });
 Font.registerHyphenationCallback((w) => [w]);
 
+// Sage (Mobility) theme, matching the app: Ink on Sage, Fern for secondary text.
 export const INK = "#0E0E0D";
-export const BONE = "#EFEBE3";
-export const STONE = "#8F8B83";
-const RULE = "#CDCAC3"; // Ink at 15% on Bone
-const RULE_STRONG = "#ACA9A3"; // Ink at 30% on Bone
+export const SAGE = "#B7C0AE";
+export const FERN = "#4F5549"; // Fern deepened for small-text contrast, as in the app
+const RULE = "#9EA596"; // Ink at 15% on Sage
+const RULE_STRONG = "#848A7E"; // Ink at 30% on Sage
 
 // Map characters missing from Manrope's latin set.
 export function pdfText(s: string): string {
@@ -72,20 +73,20 @@ const CAPS = { fontFamily: "Manrope", fontWeight: 600, textTransform: "uppercase
 const BOLD = { fontFamily: "Manrope", fontWeight: 600 } as const;
 
 const s = StyleSheet.create({
-  page: { padding: 40, paddingTop: 64, paddingBottom: 56, fontSize: 9, lineHeight: 1.45, fontFamily: "Manrope", color: INK, backgroundColor: BONE },
+  page: { padding: 40, paddingTop: 64, paddingBottom: 56, fontSize: 9, lineHeight: 1.45, fontFamily: "Manrope", color: INK, backgroundColor: SAGE },
   header: { position: "absolute", top: 24, left: 40, right: 40, flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingBottom: 8, borderBottomWidth: 0.75, borderBottomColor: INK },
-  headerText: { ...CAPS, fontSize: 6.5, color: STONE, maxWidth: "60%", textAlign: "right" },
-  footer: { position: "absolute", bottom: 22, left: 40, right: 40, fontSize: 7, color: STONE, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  headerText: { ...CAPS, fontSize: 6.5, color: FERN, maxWidth: "60%", textAlign: "right" },
+  footer: { position: "absolute", bottom: 22, left: 40, right: 40, fontSize: 7, color: FERN, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   watermark: { position: "absolute", top: 340, left: 70, ...DISPLAY, fontSize: 96, color: INK, opacity: 0.05, transform: "rotate(-35deg)" },
   h1: { ...DISPLAY, fontSize: 13, marginBottom: 8, lineHeight: 1.35 },
   h2: { ...DISPLAY, fontSize: 9, marginTop: 16, marginBottom: 6, paddingBottom: 4, borderBottomWidth: 0.5, borderBottomColor: RULE_STRONG },
   h3: { ...DISPLAY, fontSize: 8, marginTop: 8, marginBottom: 4 },
-  muted: { color: STONE },
+  muted: { color: FERN },
   box: { borderWidth: 0.5, borderColor: RULE_STRONG, padding: 8, marginVertical: 5 },
-  alert: { backgroundColor: INK, color: BONE, padding: 8, marginVertical: 6 },
+  alert: { backgroundColor: INK, color: SAGE, padding: 8, marginVertical: 6 },
   row: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: RULE, paddingVertical: 3 },
-  th: { ...CAPS, fontSize: 6.5, color: STONE, borderBottomColor: INK, borderBottomWidth: 0.75, paddingVertical: 4 },
-  disclaimer: { fontSize: 7.5, color: STONE, borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: RULE_STRONG, paddingVertical: 6, marginVertical: 8 },
+  th: { ...CAPS, fontSize: 6.5, color: FERN, borderBottomColor: INK, borderBottomWidth: 0.75, paddingVertical: 4 },
+  disclaimer: { fontSize: 7.5, color: FERN, borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: RULE_STRONG, paddingVertical: 6, marginVertical: 8 },
 });
 
 /** Logo artwork as vector, filled with the lettering colour. */
@@ -167,6 +168,8 @@ export function PlanDocument({ x }: { x: ExportInput }) {
 
         <H style={s.h2}>Training — week by week</H>
         {!tr && <T>{x.nutrition.training_blocked_reason ?? "Training not generated."}</T>}
+        {tr && <T style={BOLD}>{`Program: ${tr.split_label}${tr.block_rotations ? " · accessory exercises change each 4-week block" : ""}`}</T>}
+        {(tr?.split_reasons ?? []).map((r, i) => <T key={i} style={s.muted}>{`• ${r}`}</T>)}
         {tr?.weeks.map((w) => (
           <View key={w.week} style={{ marginBottom: 6 }}>
             <H style={s.h3} minPresenceAhead={80}>{`Week ${w.week} — ${PHASES[w.phase].label}${w.deload ? " — DELOAD (~40% fewer sets, stop at RPE 5-6)" : ""}${w.retest ? " — retest at last session" : ""}`}</H>
@@ -311,11 +314,11 @@ export async function renderProgressPdf(r: ProgressReportInput): Promise<Buffer>
 
 const g = StyleSheet.create({
   cell: { borderRightWidth: 0.5, borderBottomWidth: 0.5, borderColor: RULE_STRONG, padding: 4, justifyContent: "center" },
-  head: { ...CAPS, fontSize: 6.5, color: STONE, borderBottomColor: INK, borderBottomWidth: 0.75 },
-  dayBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: INK, color: BONE, paddingVertical: 5, paddingHorizontal: 7, ...DISPLAY, fontSize: 7.5 },
+  head: { ...CAPS, fontSize: 6.5, color: FERN, borderBottomColor: INK, borderBottomWidth: 0.75 },
+  dayBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: INK, color: SAGE, paddingVertical: 5, paddingHorizontal: 7, ...DISPLAY, fontSize: 7.5 },
   line: { flexDirection: "row", alignItems: "center", marginTop: 4 },
   box: { width: 8, height: 8, borderWidth: 0.75, borderColor: INK, marginRight: 6 },
-  small: { fontSize: 7, color: STONE },
+  small: { fontSize: 7, color: FERN },
 });
 
 /** Log table: one row per exercise, one blank weight × reps cell per set. */
@@ -331,7 +334,7 @@ function SetLog({ exercises, sets }: { exercises: ClientWeekExercise[]; sets: nu
         {Array.from({ length: sets }, (_, i) => (
           <View key={i} style={[g.cell, g.head, { width: `${setW}%`, alignItems: "center" }]}>
             <Text>{`SET ${i + 1}`}</Text>
-            <Text style={{ fontFamily: "Manrope", fontWeight: 400, fontSize: 6, color: STONE, marginTop: 2 }}>lb × reps</Text>
+            <Text style={{ fontFamily: "Manrope", fontWeight: 400, fontSize: 6, color: FERN, marginTop: 2 }}>lb × reps</Text>
           </View>
         ))}
       </View>
