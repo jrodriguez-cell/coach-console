@@ -127,7 +127,7 @@ class EqualLettering:
             d2 = _stroke((W - sv * 0.55, 100), (W / 2 + flat / 2 - sv * 0.55, 0), sv)
             return clip(_union([d1, d2]))
         if ch == "A":
-            flat = 15.0
+            flat = 15.0 if sv <= 12 else sv * 1.3  # keep the apex flat (not notched) on heavier cuts
             d1 = _stroke((sv * 0.55, 0), (W / 2 - flat / 2 + sv * 0.55, 100), sv)
             d2 = _stroke((W - sv * 0.55, 0), (W / 2 + flat / 2 - sv * 0.55, 100), sv)
             legs = clip(_union([d1, d2]))
