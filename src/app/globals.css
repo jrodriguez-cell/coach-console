@@ -6,9 +6,10 @@
  * Make Time To Move brand, Strength theme: Bone on Ink, Stone for secondary
  * text. Two colours plus one grey; tints of Bone only for hairlines and
  * hover. Square corners, 1px rules, no shadows or gradients.
- * Display: MTTM Lettering, capitals, letter-spacing 0 (spacing is built in);
- * Regular for titles, Heavy for anything under ~14px tall.
- * Body: Manrope.
+ * Display: MTTM Lettering Regular, capitals, letter-spacing 0 (spacing is
+ * built in) for headings, section titles, buttons, tabs and navigation.
+ * Small labels, table headers and badges: Manrope in spaced capitals (as in
+ * the guide's own tables). Body: Manrope.
  */
 :root {
   --ink: #0e0e0d;
@@ -20,9 +21,10 @@
   :root { color-scheme: dark; }
   html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
   body { @apply bg-ink font-sans text-[15px] leading-relaxed text-bone antialiased sm:text-base; }
-  h1, h2, h3, .display { @apply font-display font-extrabold uppercase tracking-normal; }
-  h1 { @apply text-base font-normal leading-snug sm:text-lg; }
-  h2 { @apply text-xs leading-snug sm:text-[13px]; }
+  h1, h2, h3, .display { @apply font-display font-normal uppercase tracking-normal; }
+  h1 { @apply text-lg leading-snug sm:text-xl; }
+  h2 { @apply text-[13px] leading-snug; }
+  h3 { @apply text-xs leading-snug; }
   a { @apply text-bone underline decoration-bone/30 underline-offset-4 hover:decoration-bone; }
   summary { @apply select-none; }
   input[type="checkbox"], input[type="radio"] { @apply h-4 w-4 accent-bone; }
@@ -31,6 +33,8 @@
 
 @layer components {
   .card { @apply border border-bone/15 bg-ink p-4 sm:p-5; }
+  /* Small spaced capitals in Manrope: eyebrows, table headers, badges. */
+  .caps { @apply font-sans text-[11px] font-medium uppercase leading-none tracking-[0.12em] text-stone; }
   /* Dynamic titles (names, dates) in Manrope; MTTM stays for short labels. */
   .title { @apply font-sans text-[22px] font-semibold normal-case leading-tight tracking-tight sm:text-[26px]; }
   .title-sm { @apply font-sans text-base font-semibold normal-case leading-snug tracking-normal; }
@@ -39,10 +43,10 @@
   .actions { @apply grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center; }
   .actions > *, .actions > form > .btn { @apply w-full sm:w-auto; }
   .actions > .btn-primary, .actions > form:has(.btn-primary), .actions > :last-child:nth-child(odd) { @apply col-span-2; }
-  .btn { @apply inline-flex min-h-[40px] items-center justify-center gap-1 border border-bone/30 bg-transparent px-3 py-1.5 text-center font-display text-[10px] font-extrabold uppercase leading-snug tracking-normal text-bone no-underline hover:border-bone hover:no-underline active:bg-bone/10 disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-0 sm:py-2; }
+  .btn { @apply inline-flex min-h-[40px] items-center justify-center gap-1 border border-bone/30 bg-transparent px-3 py-1.5 text-center font-display text-[10px] font-normal uppercase leading-snug tracking-normal text-bone no-underline sm:text-[11px] hover:border-bone hover:no-underline active:bg-bone/10 disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-0 sm:py-2; }
   .btn-primary { @apply border-bone bg-bone text-ink hover:bg-bone/90 active:bg-bone/80; }
   .btn-danger { @apply border-bone bg-transparent text-bone underline decoration-bone/50 underline-offset-4; }
-  .btn-sm { @apply min-h-[34px] px-2 py-1 text-[9px] sm:min-h-0; }
+  .btn-sm { @apply min-h-[34px] px-2 py-1 text-[10px] sm:min-h-0 sm:text-[10px]; }
   /* 16px on phones stops iOS Safari zooming into focused fields. */
   .input { @apply w-full border border-bone/25 bg-ink px-2 py-2 font-sans text-base text-bone placeholder:text-stone focus:border-bone focus:outline-none sm:py-1.5 sm:text-sm; }
   /* Field labels are read as sentences: Manrope. MTTM stays on headings,
@@ -50,7 +54,7 @@
   .label { @apply mb-1.5 block break-words font-sans text-[13px] font-medium normal-case leading-snug tracking-normal text-stone; }
   .table-wrap { @apply -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0; }
   .table { @apply w-full border-collapse text-sm; }
-  .table th { @apply whitespace-nowrap border-b border-bone/30 px-2 py-2 text-left font-display text-[9px] font-extrabold uppercase tracking-normal text-stone; }
+  .table th { @apply whitespace-nowrap border-b border-bone/30 px-2 py-2 text-left font-sans text-[11px] font-medium uppercase tracking-[0.12em] text-stone; }
   .table td { @apply border-b border-bone/10 px-2 py-2 align-top; }
   .table tbody tr:hover td { @apply bg-bone/[0.03]; }
   .muted { @apply text-sm text-stone; }
@@ -64,7 +68,7 @@
     .table-stack tbody tr:hover td { background: transparent; }
     .table-stack td { @apply flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-0 px-0 py-1 text-right; }
     .table-stack td:empty { display: none; }
-    .table-stack td::before { content: attr(data-label); @apply shrink-0 text-left font-display text-[9px] font-extrabold uppercase text-stone; }
+    .table-stack td::before { content: attr(data-label); @apply shrink-0 text-left font-sans text-[11px] font-medium uppercase tracking-[0.12em] text-stone; }
     .table-stack td[data-primary] { @apply block pb-1.5 text-left text-base font-semibold; }
     .table-stack td[data-block] { @apply block text-left; }
     .table-stack td[data-block]::before { @apply mb-1 block; }

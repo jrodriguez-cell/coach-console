@@ -160,7 +160,7 @@ export default async function ClientPage({ params }: { params: { id: string } })
               ].map((q) => (
                 <details key={q.key} open={q.open} className="group">
                   <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
-                    <h3 className="text-[10px]">{q.title}</h3>
+                    <h3>{q.title}</h3>
                     <span aria-hidden className="text-stone transition-transform group-open:rotate-45">+</span>
                   </summary>
                   <div className="pb-4">{q.body}</div>

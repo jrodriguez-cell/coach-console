@@ -28,7 +28,7 @@ const TONES: Record<Tone, string> = {
 
 export function Badge({ tone = "gray", children, title }: { tone?: Tone; children: ReactNode; title?: string }) {
   return (
-    <span title={title} className={clsx("inline-flex shrink-0 items-center whitespace-nowrap border px-1.5 py-1 font-display text-[9px] font-extrabold uppercase leading-none", TONES[tone])}>
+    <span title={title} className={clsx("caps inline-flex shrink-0 items-center whitespace-nowrap border px-1.5 py-1 text-[10px]", TONES[tone])}>
       {children}
     </span>
   );
@@ -56,7 +56,7 @@ export function Field({ label, hint, children, className }: { label: ReactNode; 
 export function Stat({ label, value, sub }: { label: ReactNode; value: ReactNode; sub?: ReactNode }) {
   return (
     <div className="border border-bone/15 p-3">
-      <div className="label mb-0">{label}</div>
+      <div className="caps">{label}</div>
       <div className="mt-1 text-lg font-semibold text-bone">{value}</div>
       {sub && <div className="text-xs text-stone">{sub}</div>}
     </div>

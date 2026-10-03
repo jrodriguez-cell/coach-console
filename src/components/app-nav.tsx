@@ -23,7 +23,7 @@ export function TopNavLinks() {
           key={n.href}
           href={n.href}
           className={clsx(
-            "display border-b px-2.5 py-1.5 text-[10px] no-underline hover:no-underline",
+            "display border-b px-2.5 py-1.5 text-[11px] no-underline hover:no-underline",
             isActive(path, n.href) ? "border-bone text-bone" : "border-transparent text-stone hover:text-bone",
           )}
         >

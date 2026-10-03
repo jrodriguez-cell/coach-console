@@ -18,10 +18,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen">
       <nav className="sticky top-0 z-30 border-b border-bone/15 bg-ink" style={{ paddingTop: "env(safe-area-inset-top)" }}>
         <div className="mx-auto flex max-w-[1200px] items-center gap-4 px-4 py-3 sm:px-6">
-          <Link href="/today" aria-label="Coach Console home" className="mr-2 flex items-center gap-3 text-bone no-underline hover:no-underline">
-            <Logo mark="single-line" className="hidden h-auto w-[240px] lg:block" />
-            <Logo mark="monogram" className="h-8 w-8 lg:hidden" />
-            <span className="display whitespace-nowrap border-l border-bone/20 pl-3 text-[9px] text-stone lg:hidden">Coach Console</span>
+          <Link href="/today" aria-label="Coach Console home" className="mr-4 flex items-center text-bone no-underline hover:no-underline">
+            <Logo mark="monogram" className="h-8 w-8" title="Make Time To Move · Coach Console" />
           </Link>
           <TopNavLinks />
           <form action={signOut} className="ml-auto">

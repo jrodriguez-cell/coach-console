@@ -77,7 +77,7 @@ export default async function PlanPage({ params, searchParams }: { params: { id:
 
       <div className="no-scrollbar -mx-3 flex gap-1 overflow-x-auto border-b border-bone/15 px-3 sm:mx-0 sm:px-0">
         {TABS.map((t) => (
-          <Link key={t} href={`${base}?tab=${t}`} className={clsx("display -mb-px shrink-0 whitespace-nowrap border-b px-3 py-2.5 text-[10px] no-underline hover:no-underline", t === tab ? "border-bone text-bone" : "border-transparent text-stone hover:text-bone")}>
+          <Link key={t} href={`${base}?tab=${t}`} className={clsx("display -mb-px shrink-0 whitespace-nowrap border-b px-3 py-2.5 text-[11px] no-underline hover:no-underline", t === tab ? "border-bone text-bone" : "border-transparent text-stone hover:text-bone")}>
             {t === "nutrition" ? "Nutrition guidance" : t}
           </Link>
         ))}
@@ -411,7 +411,7 @@ function Calendar({ plan }: { plan: PlanRow }) {
         {cal.map((w) => (
           <li key={w.week} className={clsx("border-t border-bone/15 pt-3", w.deload && "border-bone/40")}>
             <div className="mb-2 flex items-baseline justify-between gap-3">
-              <h3 className="text-[11px]">Week {w.week}</h3>
+              <h3>Week {w.week}</h3>
               <span className="text-xs text-stone">{w.phase ? PHASES[w.phase as keyof typeof PHASES].label : ""}{w.deload ? " · deload" : ""}</span>
             </div>
             <ul className="space-y-2 text-sm">

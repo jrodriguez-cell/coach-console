@@ -11,7 +11,7 @@ export default function LoginPage() {
       <form action={action} className="w-full max-w-sm space-y-5">
         <div className="flex flex-col items-center gap-6 pb-6 text-center">
           <Logo mark="wordmark" className="h-auto w-[260px] text-bone" />
-          <h1 className="text-[11px] font-extrabold text-stone">Coach Console</h1>
+          <h1 className="text-[13px] text-stone">Coach Console</h1>
         </div>
         <label className="block">
           <span className="label">Email</span>

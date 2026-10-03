@@ -14,7 +14,7 @@ export function PageHeader({ back, eyebrow, title, display, badge, meta, actions
         </Link>
       )}
       <div className="space-y-2">
-        {eyebrow && <p className="label mb-0">{eyebrow}</p>}
+        {eyebrow && <p className="caps">{eyebrow}</p>}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <h1 className={display ? undefined : "title"}>{title}</h1>
           {badge}

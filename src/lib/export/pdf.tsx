@@ -18,7 +18,7 @@ import { DAY_NAMES, formatDate } from "@/lib/dates";
 import { describePrediction } from "@/lib/energy";
 import type { ExportInput } from "./xlsx";
 import { EFFORT_NOTE, maxSets, type ClientWeek, type ClientWeekExercise } from "@/lib/client-week";
-import { MONOGRAM, SINGLE_LINE, type LogoMark } from "@/lib/brand/logo";
+import { MONOGRAM, type LogoMark } from "@/lib/brand/logo";
 
 const FONT_DIR = path.join(process.cwd(), "src/lib/export/fonts");
 Font.register({
@@ -68,23 +68,23 @@ export function displayText(s: string): string {
 }
 
 const DISPLAY = { fontFamily: "MTTM Lettering", fontWeight: 400 } as const;
-const DISPLAY_HEAVY = { fontFamily: "MTTM Lettering", fontWeight: 800 } as const;
+const CAPS = { fontFamily: "Manrope", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.9 } as const;
 const BOLD = { fontFamily: "Manrope", fontWeight: 600 } as const;
 
 const s = StyleSheet.create({
   page: { padding: 40, paddingTop: 64, paddingBottom: 56, fontSize: 9, lineHeight: 1.45, fontFamily: "Manrope", color: INK, backgroundColor: BONE },
   header: { position: "absolute", top: 24, left: 40, right: 40, flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingBottom: 8, borderBottomWidth: 0.75, borderBottomColor: INK },
-  headerText: { ...DISPLAY_HEAVY, fontSize: 6, color: STONE, maxWidth: "55%", textAlign: "right" },
+  headerText: { ...CAPS, fontSize: 6.5, color: STONE, maxWidth: "60%", textAlign: "right" },
   footer: { position: "absolute", bottom: 22, left: 40, right: 40, fontSize: 7, color: STONE, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   watermark: { position: "absolute", top: 340, left: 70, ...DISPLAY, fontSize: 96, color: INK, opacity: 0.05, transform: "rotate(-35deg)" },
   h1: { ...DISPLAY, fontSize: 13, marginBottom: 8, lineHeight: 1.35 },
-  h2: { ...DISPLAY_HEAVY, fontSize: 8, marginTop: 16, marginBottom: 6, paddingBottom: 4, borderBottomWidth: 0.5, borderBottomColor: RULE_STRONG },
-  h3: { ...DISPLAY_HEAVY, fontSize: 7, marginTop: 8, marginBottom: 4 },
+  h2: { ...DISPLAY, fontSize: 9, marginTop: 16, marginBottom: 6, paddingBottom: 4, borderBottomWidth: 0.5, borderBottomColor: RULE_STRONG },
+  h3: { ...DISPLAY, fontSize: 8, marginTop: 8, marginBottom: 4 },
   muted: { color: STONE },
   box: { borderWidth: 0.5, borderColor: RULE_STRONG, padding: 8, marginVertical: 5 },
   alert: { backgroundColor: INK, color: BONE, padding: 8, marginVertical: 6 },
   row: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: RULE, paddingVertical: 3 },
-  th: { ...DISPLAY_HEAVY, fontSize: 5.5, color: STONE, borderBottomColor: INK, borderBottomWidth: 0.75, paddingVertical: 4 },
+  th: { ...CAPS, fontSize: 6.5, color: STONE, borderBottomColor: INK, borderBottomWidth: 0.75, paddingVertical: 4 },
   disclaimer: { fontSize: 7.5, color: STONE, borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: RULE_STRONG, paddingVertical: 6, marginVertical: 8 },
 });
 
@@ -106,7 +106,7 @@ function Table({ cols, rows, widths }: { cols: string[]; rows: (string | number)
   return (
     <View style={{ marginTop: 4 }}>
       <View style={[s.row, s.th]} wrap={false}>
-        {cols.map((c, i) => <Text key={i} style={{ width: `${widths[i]}%`, paddingRight: 3 }}>{displayText(c)}</Text>)}
+        {cols.map((c, i) => <Text key={i} style={{ width: `${widths[i]}%`, paddingRight: 3 }}>{pdfText(c)}</Text>)}
       </View>
       {rows.map((r, i) => (
         <View key={i} style={s.row} wrap={false}>
@@ -122,15 +122,12 @@ function Chrome({ x }: { x: Pick<ExportInput, "clientName" | "status"> & { versi
   return (
     <>
       <View style={s.header} fixed>
-        <LogoPdf mark={SINGLE_LINE} width={150} />
-        <Text style={s.headerText}>{displayText(x.version ? `${x.clientName} · v${x.version}` : x.clientName)}{draft ? <Text style={{ color: INK }}>{"   DRAFT"}</Text> : null}</Text>
+        <LogoPdf mark={MONOGRAM} width={22} />
+        <Text style={s.headerText}>{pdfText(x.version ? `${x.clientName} · v${x.version}` : x.clientName)}{draft ? <Text style={{ color: INK }}>{"   DRAFT"}</Text> : null}</Text>
       </View>
       {draft && <Text style={s.watermark} fixed>DRAFT</Text>}
       <View style={s.footer} fixed>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <LogoPdf mark={MONOGRAM} width={12} />
-          <Text style={{ marginLeft: 8 }}>Estimates for educational purposes; not medical advice.</Text>
-        </View>
+        <Text>Estimates for educational purposes; not medical advice.</Text>
         <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
       </View>
     </>
@@ -314,8 +311,8 @@ export async function renderProgressPdf(r: ProgressReportInput): Promise<Buffer>
 
 const g = StyleSheet.create({
   cell: { borderRightWidth: 0.5, borderBottomWidth: 0.5, borderColor: RULE_STRONG, padding: 4, justifyContent: "center" },
-  head: { ...DISPLAY_HEAVY, fontSize: 5.5, color: STONE, borderBottomColor: INK, borderBottomWidth: 0.75 },
-  dayBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: INK, color: BONE, paddingVertical: 5, paddingHorizontal: 7, ...DISPLAY_HEAVY, fontSize: 6.5 },
+  head: { ...CAPS, fontSize: 6.5, color: STONE, borderBottomColor: INK, borderBottomWidth: 0.75 },
+  dayBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: INK, color: BONE, paddingVertical: 5, paddingHorizontal: 7, ...DISPLAY, fontSize: 7.5 },
   line: { flexDirection: "row", alignItems: "center", marginTop: 4 },
   box: { width: 8, height: 8, borderWidth: 0.75, borderColor: INK, marginRight: 6 },
   small: { fontSize: 7, color: STONE },
@@ -373,15 +370,12 @@ export function ClientWeekDocument({ w }: { w: ClientWeek }) {
     <Document title={`${w.clientName} week ${w.week}`} author="Make Time To Move">
       <Page size="LETTER" style={s.page}>
         <View style={s.header} fixed>
-          <LogoPdf mark={SINGLE_LINE} width={150} />
-          <Text style={s.headerText}>{displayText(`${w.clientName} · Week ${w.week} of ${w.totalWeeks}`)}{w.draft ? <Text style={{ color: INK }}>{"   DRAFT"}</Text> : null}</Text>
+          <LogoPdf mark={MONOGRAM} width={22} />
+          <Text style={s.headerText}>{pdfText(`${w.clientName} · Week ${w.week} of ${w.totalWeeks}`)}{w.draft ? <Text style={{ color: INK }}>{"   DRAFT"}</Text> : null}</Text>
         </View>
         {w.draft && <Text style={s.watermark} fixed>DRAFT</Text>}
         <View style={s.footer} fixed>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <LogoPdf mark={MONOGRAM} width={12} />
-            <Text style={{ marginLeft: 8 }}>Stop any exercise that causes sharp pain and tell your coach.</Text>
-          </View>
+          <Text>Stop any exercise that causes sharp pain and tell your coach.</Text>
           <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
         </View>
         <Text style={s.h1}>{displayText(`Week ${w.week}`)}</Text>
