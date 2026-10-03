@@ -27,6 +27,7 @@ import { planCalendar } from "@/lib/calendar";
 import type { PlanRow } from "@/lib/data/types";
 import { currentPlanWeek } from "@/lib/client-week";
 import { ShareWeek } from "@/components/share-week";
+import { ExportFileButton } from "@/components/export-file-button";
 
 export const dynamic = "force-dynamic";
 
@@ -52,8 +53,8 @@ export default async function PlanPage({ params, searchParams }: { params: { id:
         meta={<>{goalLabel(plan.goal_category)} · generated {formatDate(plan.generated_at.slice(0, 10))}{plan.approved_at ? ` · approved ${formatDate(plan.approved_at.slice(0, 10))}` : ""} · {plan.training?.selection_source === "llm" ? "exercise picks drafted by Claude from the library" : "library-default exercise picks"}</>}
         actions={
           <>
-            <a className="btn" href={`/api/plans/${plan.id}/export/xlsx`}>Plan Excel</a>
-            <a className="btn" href={`/api/plans/${plan.id}/export/pdf`}>Plan PDF</a>
+            <ExportFileButton url={`/api/plans/${plan.id}/export/xlsx`} label="Plan Excel" />
+            <ExportFileButton url={`/api/plans/${plan.id}/export/pdf`} label="Plan PDF" />
             {plan.status !== "draft" && (
               <form action={revisePlanAction.bind(null, plan.id)}><SubmitButton className="w-full sm:w-auto">Create revision</SubmitButton></form>
             )}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
+import { ExportFileButton } from "@/components/export-file-button";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getClient } from "@/lib/data/clients";
@@ -49,7 +50,7 @@ export default async function ClientProgressPage({ params }: { params: { id: str
         actions={
           <>
             <Link className="btn" href={`/clients/${client.id}/entry`}>Enter data</Link>
-            <a className="btn" href={`/api/clients/${client.id}/progress-report`}>Report PDF</a>
+            <ExportFileButton url={`/api/clients/${client.id}/progress-report`} label="Report PDF" />
           </>
         }
       />

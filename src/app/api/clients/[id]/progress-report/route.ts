@@ -10,6 +10,8 @@ import { MEASUREMENT_SITES } from "@/config/metrics";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Building a long plan can take several seconds on a cold start.
+export const maxDuration = 30;
 
 const sgn = (v: number | null | undefined, d = 1) => (v == null ? "—" : `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(d)}`);
 

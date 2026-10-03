@@ -8,6 +8,8 @@ import { todayIn } from "@/lib/dates";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Building a long plan can take several seconds on a cold start.
+export const maxDuration = 30;
 
 /** Client-facing week sheet. ?week=N (default: current plan week) &format=pdf|txt|xlsx */
 export async function GET(req: Request, { params }: { params: { planId: string } }) {

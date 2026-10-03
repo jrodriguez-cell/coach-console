@@ -5,6 +5,8 @@ import { buildPlanWorkbook } from "@/lib/export/xlsx";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Building a long plan can take several seconds on a cold start.
+export const maxDuration = 30;
 
 export async function GET(_req: Request, { params }: { params: { planId: string } }) {
   const db = createClient();
