@@ -341,6 +341,6 @@ html = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name
 <title>MTTM Brand Preview</title>{FONT_LINK}<style>{CSS}</style></head><body><div class="wrap">{''.join(parts)}</div>
 <script>document.querySelectorAll('.toggle').forEach(b=>b.addEventListener('click',()=>document.body.classList.toggle('show-grid')));</script>
 </body></html>"""
-with open(os.path.join(ROOT, "preview.html"), "w") as fh:
-    fh.write(html)
+with open(os.path.join(EXP, "round-2.html"), "w") as fh:
+    fh.write(html.replace('src="exploration/', 'src="').replace('href="exploration/round-1.html"', 'href="round-1.html"').replace('href="type-exploration.html"', 'href="../type-exploration.html"'))
 print("ok")
