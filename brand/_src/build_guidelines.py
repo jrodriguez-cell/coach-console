@@ -187,7 +187,7 @@ Personal training brand and healthy-living movement. The name is a command that 
 Pillars: Strength, Mobility, Mindset. Signature series: stranger interviews asking "Why do you make time to move?"
 Feel: minimalist, clean, confident, high-end, quiet. Restraint over loudness. Never gym-floor aggressive.
 
-LOGO: custom equal-width capitals, thin monoline (stroke = 12% of letter height), derived from Michroma. Every letter sits in a 1x1 square box. Letter gap = 1 letter, line gap = 1 letter.
+LOGO: custom equal-width capitals, thin monoline (stroke = 12% of letter height). Every letter sits in a 1x1 square box. Letter gap = 1 letter, line gap = 1 letter.
   Wordmark (primary): MAKETIME over TOMOVE, centred, no word gap. 15 x 3 units.
   Monogram: M T over T M, same spacing, a 3 x 3 square. Used for avatar, favicon, labels, small merch.
   Single line: MAKETIME, one empty box, TOMOVE. For hats, sleeves, website header, narrow spaces.
@@ -203,7 +203,7 @@ COLOUR (two colours per layout, plus one grey for secondary text):
   Utility: pure Black #000000 and White #FFFFFF for one-colour reproduction.
   No gradients, effects, shadows, outlines or extra colours.
 
-TYPE: MTTM Lettering (the brand's own font, built from the logo letters; files in fonts/) for headlines, labels, title cards and slogans. Capitals only, spacing built in (leave letter-spacing at 0). Regular for general use, Heavy only for small sizes and embroidery. Manrope (Google Fonts) for body text and anything read as sentences (400/500/600). Michroma is retired.
+TYPE: MTTM Lettering is the brand's own custom font (capitals only, spacing built in, so leave letter-spacing at 0). Use it for headlines, labels, title cards and slogans. Regular for general use; Heavy only for small sizes and embroidery. Font files: fonts/mttm-lettering-regular.woff2 / .otf and -heavy. For websites it is embedded in tokens/mttm-brand.css and in Appendix 13 of the guidelines. Never substitute another typeface (no Michroma, no lookalikes). Manrope (Google Fonts) for body text and anything read as sentences (400/500/600).
 
 VOICE: short, direct, imperative, calm. No hype, no fitness clichés, no exclamation marks. Examples: "Make time to move." "Start where you are." "Why do you make time to move?"
 
@@ -211,7 +211,7 @@ IMAGERY: natural light, real people, honest movement, muted or black-and-white c
 
 RULES FOR AI ASSISTANTS AND DESIGNERS
   1. Use the supplied logo files (SVG or PNG). Never draw, retype or approximate the logo.
-  2. Headlines and labels: MTTM Lettering, capitals, letter-spacing 0. If the font is not available, use Michroma in capitals with letter-spacing 0.3em as a stand-in and say so.
+  2. Headlines and labels: MTTM Lettering only, capitals, letter-spacing 0. It is a custom font that exists only in the brand files: fonts/mttm-lettering-regular.woff2 / .otf (and -heavy), tokens/mttm-brand.css (font embedded), or the embed code in Appendix 13 of these guidelines. Never substitute Michroma or any other typeface. If you cannot access the font, ask for the files before producing work.
   3. Body text: Manrope. Never use any other typeface.
   4. One theme per layout. Default to Ink & Bone unless the content belongs to a pillar.
   5. Keep on-image text to 8 words or fewer, in the brand voice.
@@ -272,7 +272,7 @@ D.ul(["Every letter sits in a **1 U × 1 U** square. All letters share that widt
       "Line 2 (TOMOVE) is centred under line 1 (MAKETIME) on the same columns. There is no word gap: the line break separates the words.",
       "Monogram: M T over T M with the same gaps, giving a **3 U × 3 U** square.",
       "Single line: MAKETIME, one empty box, TOMOVE, giving 29 U × 1 U.",
-      "Stroke: 12% of U for the regular weight, matching Michroma. The heavy cut is 22%.",
+      "Stroke: 12% of U for the regular weight, the same as the regular font weight. The heavy cut is 22%.",
       "The letters are custom: square boxes, a circular O, a plain-stroke I, and a K made of two straight diagonals meeting the stem. No font reproduces them, so never retype the logo."])
 
 D.section("clearspace", "04", "Clear space & minimum sizes")
@@ -317,6 +317,37 @@ D.table(["Role", "Typeface", "Setting", "Use"], [
     ["Body", "Manrope (Google Fonts)", "Sentence case · 400 / 500 / 600 · line-height 1.6",
      "Captions, website copy, emails, documents"],
 ])
+D.sub("The alphabet · MTTM Lettering")
+D.p("This is the brand font. Every character below is drawn from the font files. Letters and figures sit in a 1 U square; "
+    "punctuation is narrower. In use, characters are 1 U apart and words are 3 U apart.")
+
+
+def alphabet_chart(alpha, cols=10):
+    from alphabet import CHARSET
+    cw, chh = 150, 190
+    cells = []
+    for i, ch in enumerate(CHARSET):
+        cx, cy = (i % cols) * cw, (i // cols) * chh
+        bw = alpha.box(ch)
+        ox = cx + (cw - bw) / 2
+        pen_d = alpha.path(ch, ox + 50, cy + 125)  # glyph ink starts at the box's left edge
+        lab = {"’": "’", '"': "&quot;", "&": "&amp;"}.get(ch, ch)
+        cells.append(f'<rect x="{ox}" y="{cy + 25}" width="{bw}" height="100" fill="none" stroke="{STONE}" '
+                     f'stroke-width="1.5" stroke-dasharray="6 5"/><path fill="{INK}" d="{pen_d}"/>'
+                     f'<text x="{cx + cw / 2}" y="{cy + 165}" text-anchor="middle">{lab}</text>')
+    rows = (len(CHARSET) + cols - 1) // cols
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {cols * cw} {rows * chh}" role="img" '
+            f'aria-label="MTTM Lettering character set"><g font-family="Manrope, sans-serif" font-size="22" fill="{STONE}">'
+            f'{"".join(cells)}</g></svg>')
+
+
+from alphabet import CHARSET as _CS, HEAVY_ALPHABET as _HA, REGULAR_ALPHABET as _RA  # noqa: E402
+D.visual(f'<div class="alpha"><h4>Regular</h4>{alphabet_chart(_RA)}<h4>Heavy · small sizes and embroidery</h4>{alphabet_chart(_HA)}</div>')
+D.md.append("Character set (Regular and Heavy): `" + _CS + "` · lowercase keys type capitals.\n")
+D.ul(["Square box for every letter and figure; constant stroke of 12% of the letter height (Heavy: 22%).",
+      "O is a perfect circle; 0 (zero) is a rounded square; I is a single stroke; K is two straight diagonals meeting the stem; W is M upside down.",
+      "A, M and V have small flat points rather than sharp tips. C, G, S, 2, 3, 5, 6, 8, 9 are built from the same ellipse geometry as the O.",
+      "Spacing is part of the font: 1 U between characters, 3 U between words. Always leave letter-spacing at 0."])
 D.visual(f"""<div class="specimen">
  <div class="spec-d">WHY DO YOU MAKE TIME TO MOVE?</div>
  <div class="spec-l">STRENGTH · MOBILITY · MINDSET</div>
@@ -329,7 +360,7 @@ D.ul(["MTTM Lettering is the logo’s alphabet: every character in a square box,
       "Characters: A–Z, 0–9 and . , : ! ? ' \" - – — / · @ + # ( ) &. The zero is a rounded square so it is never confused with the circular O.",
       "Use Heavy only for labels smaller than about 14 px tall on screen and for embroidery.",
       "The logo stays fixed artwork. Never type it, even though the font has the letters.",
-      "Web fallbacks: MTTM Lettering → Michroma, Arial Black, sans-serif. Manrope → system-ui, sans-serif."])
+      "On websites, load MTTM Lettering from `tokens/mttm-brand.css` (font embedded) or the code in Appendix 13. Never substitute another typeface. The generic `sans-serif` keyword is the only fallback and should never be visible."])
 
 D.section("instagram", "07", "Instagram",
           "Templates live in `instagram/`. Every PNG has a matching SVG; files ending in `-template.svg` keep "
@@ -432,11 +463,35 @@ D.table(["Folder", "Contents"], [
     ["`instagram/`", "Avatar, highlights, interview title card and lower third, reel covers (+ editable templates)"],
     ["`merch/`", "Print-ready transparent files in Bone, Ink, White and Black"],
     ["`fonts/`", "MTTM Lettering font files: OTF (install for Canva, Figma, desktop) and WOFF2 (websites), Regular and Heavy, plus a specimen page"],
-    ["`tokens/`", "CSS and JSON design tokens for websites and apps"],
+    ["`tokens/`", "`mttm-brand.css` (self-contained: tokens plus the embedded brand font), `mttm-tokens.css` and `.json`"],
     ["`_src/`", "Source fonts and the build scripts that generate every file"],
 ])
-D.p("Typefaces: MTTM Lettering is the brand’s own custom font, drawn in the style of Michroma (© Vernon Adams, SIL Open Font License). "
+D.p("Typefaces: MTTM Lettering is the brand’s own custom font. Michroma (© Vernon Adams, SIL Open Font License) was the original drawing reference only and is not part of the brand. "
     "Manrope (© Mikhail Sharanda) is free under the SIL Open Font License.")
+import base64 as _b64x  # noqa: E402
+
+
+def _chunked_css(weight, fn, width=76):
+    data = _b64x.b64encode(open(os.path.join(ROOT, "fonts", fn), "rb").read()).decode()
+    lines = [data[i:i + width] for i in range(0, len(data), width)]
+    body = "\\\n".join(lines)
+    return (f"@font-face {{\n  font-family: 'MTTM Lettering';\n  font-weight: {weight};\n  font-style: normal;\n"
+            f"  font-display: swap;\n  src: url('data:font/woff2;base64,\\\n{body}') format('woff2');\n}}")
+
+
+FONT_CSS = (_chunked_css(400, "mttm-lettering-regular.woff2") + "\n\n" + _chunked_css(800, "mttm-lettering-heavy.woff2")
+            + "\n\n:root { --mttm-font-display: 'MTTM Lettering', sans-serif; }\n"
+              ".mttm-display { font-family: var(--mttm-font-display); text-transform: uppercase; letter-spacing: 0; }")
+D.section("webfont", "13", "Appendix · web font code",
+          "The complete MTTM Lettering font, embedded as code. Paste it into any website’s CSS and the brand font works "
+          "with no other files. Use it whenever the font files themselves are not available.")
+D.ul(["The same code, on single lines, is in `tokens/mttm-brand.css`. Prefer that file when you have it.",
+      "As shown, this is valid CSS: each line inside the data string ends with a backslash, which CSS reads as a line continuation. "
+      "If you join the lines, delete the backslashes and line breaks so the base64 data is one unbroken string.",
+      "Then set headlines with `font-family: 'MTTM Lettering'`, capitals, `letter-spacing: 0`. Never substitute another typeface."])
+D.html.append('<div class="fontcode"><button class="copy" type="button" id="copy-font">Copy code</button>'
+              f'<pre id="font-code">{H.escape(FONT_CSS)}</pre></div>')
+D.md.append("```css\n" + FONT_CSS + "\n```\n")
 D.html.append("</section>")
 
 # ---------------------------------------------------------------- markdown
@@ -446,13 +501,13 @@ with open(os.path.join(ROOT, "guidelines.md"), "w") as f:
 # ---------------------------------------------------------------- HTML
 TOC = [("brief", "Brief"), ("concept", "Concept"), ("logo", "Logo"), ("construction", "Construction"),
        ("clearspace", "Clear space"), ("colour", "Colour"), ("type", "Type"), ("instagram", "Instagram"),
-       ("web", "Web"), ("merch", "Merch"), ("voice", "Voice"), ("dont", "Don’ts"), ("files", "Files")]
+       ("web", "Web"), ("merch", "Merch"), ("voice", "Voice"), ("dont", "Don’ts"), ("files", "Files"), ("webfont", "Font code")]
 
 STYLE = """
 /* Layout: a single long brand book on Bone paper. Ink cover band, numbered reference sections, wide figures. */
 :root{
   --ink:#0E0E0D; --bone:#EFEBE3; --paper:#F6F3EE; --stone:#8F8B83; --line:#D9D3C7; --well:#E7E1D6;
-  --f-display:"MTTM Lettering", "Michroma", "Arial Black", sans-serif;
+  --f-display:"MTTM Lettering", sans-serif;
   --f-body:"Manrope", system-ui, sans-serif;
   --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
   color-scheme: light;
@@ -538,9 +593,21 @@ def _face(weight, fn):
 
 
 STYLE = _face(400, "mttm-lettering-regular.woff2") + _face(800, "mttm-lettering-heavy.woff2") + STYLE + """
+.alpha{background:var(--paper);border:1px solid var(--line);padding:clamp(14px,3vw,28px);margin:16px 0}
+.alpha h4{font:600 10.5px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--stone);margin:0 0 8px}
+.alpha svg+h4{margin-top:24px}
+.fontcode{position:relative;background:var(--ink);color:var(--bone);padding:24px;margin-top:16px;overflow-x:auto}
+.fontcode pre{margin:0;white-space:pre;font-size:11px;line-height:1.45;color:var(--bone)}
 .spec-g{font:400 clamp(14px,2vw,20px)/2 var(--f-display);word-break:break-all;margin-top:12px}
 """
 SCRIPT = """
+document.getElementById('copy-font').addEventListener('click', async (e) => {
+  const btn = e.currentTarget, el = document.getElementById('font-code');
+  try { await navigator.clipboard.writeText(el.innerText); btn.textContent = 'Copied'; }
+  catch (err) { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection();
+    s.removeAllRanges(); s.addRange(r); btn.textContent = 'Selected, press copy'; }
+  setTimeout(() => btn.textContent = 'Copy code', 2400);
+});
 document.getElementById('copy-brief').addEventListener('click', async (e) => {
   const btn = e.currentTarget, text = document.getElementById('brief-text').innerText;
   try { await navigator.clipboard.writeText(text); btn.textContent = 'Copied'; }

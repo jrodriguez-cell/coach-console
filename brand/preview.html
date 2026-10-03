@@ -2,7 +2,7 @@
 /* Layout: a single long brand book on Bone paper. Ink cover band, numbered reference sections, wide figures. */
 :root{
   --ink:#0E0E0D; --bone:#EFEBE3; --paper:#F6F3EE; --stone:#8F8B83; --line:#D9D3C7; --well:#E7E1D6;
-  --f-display:"MTTM Lettering", "Michroma", "Arial Black", sans-serif;
+  --f-display:"MTTM Lettering", sans-serif;
   --f-body:"Manrope", system-ui, sans-serif;
   --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
   color-scheme: light;
@@ -78,6 +78,11 @@ footer{margin-top:72px;border-top:1px solid var(--line);padding-top:16px;font-si
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
 html{scroll-behavior:smooth}
 
+.alpha{background:var(--paper);border:1px solid var(--line);padding:clamp(14px,3vw,28px);margin:16px 0}
+.alpha h4{font:600 10.5px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--stone);margin:0 0 8px}
+.alpha svg+h4{margin-top:24px}
+.fontcode{position:relative;background:var(--ink);color:var(--bone);padding:24px;margin-top:16px;overflow-x:auto}
+.fontcode pre{margin:0;white-space:pre;font-size:11px;line-height:1.45;color:var(--bone)}
 .spec-g{font:400 clamp(14px,2vw,20px)/2 var(--f-display);word-break:break-all;margin-top:12px}
 
 .pcard{border:1px solid var(--line);padding:18px;margin-top:12px;background:var(--paper)}

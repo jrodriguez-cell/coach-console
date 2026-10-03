@@ -19,7 +19,7 @@
   --mttm-bg: var(--mttm-ink);
   --mttm-muted: var(--mttm-stone);
 
-  --mttm-font-display: 'MTTM Lettering', 'Michroma', 'Arial Black', sans-serif;
+  --mttm-font-display: 'MTTM Lettering', sans-serif; /* never substitute another typeface */
   --mttm-font-body: 'Manrope', system-ui, sans-serif;
   --mttm-tracking-display: 0; /* spacing is built into MTTM Lettering */
 

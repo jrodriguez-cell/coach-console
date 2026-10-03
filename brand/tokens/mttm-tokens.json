@@ -94,7 +94,7 @@
   "font": {
     "display": {
       "family": "MTTM Lettering",
-      "fallback": "Michroma, 'Arial Black', sans-serif",
+      "fallback": "sans-serif (generic keyword only; never substitute another typeface)",
       "case": "uppercase",
       "letterSpacing": "0 (brand spacing is built into the font)",
       "weights": {

@@ -44,6 +44,9 @@ tr,figure,.sw,.theme,.ig,.merch figure,.specimen,.voice,pre.code,.marks,.cs{brea
 .merch{grid-template-columns:repeat(3,1fr)}
 .swatches{grid-template-columns:repeat(5,1fr)}
 footer{break-before:avoid}
+.fontcode pre{font-size:6.3pt;line-height:1.35}
+.fontcode{padding:14px}
+.alpha{break-inside:avoid}
 """)
 
 src = open(os.path.join(ROOT, "guidelines.html")).read()
@@ -80,3 +83,36 @@ finally:
     os.remove(mjs)
     os.remove(tmp)
 print("ok", out)
+
+# ---------------------------------------------------------------- shareable brand kit
+import zipfile  # noqa: E402
+
+KIT = [
+    "mttm-brand-guidelines.pdf", "guidelines.md", "tokens/mttm-brand.css", "tokens/mttm-tokens.css",
+    "tokens/mttm-tokens.json", "fonts/mttm-lettering-regular.otf", "fonts/mttm-lettering-heavy.otf",
+    "fonts/mttm-lettering-regular.woff2", "fonts/mttm-lettering-heavy.woff2",
+    "logo/wordmark/svg/mttm-wordmark-bone-on-ink.svg", "logo/wordmark/svg/mttm-wordmark-ink-on-bone.svg",
+    "logo/wordmark/svg/mttm-wordmark-bone.svg", "logo/wordmark/svg/mttm-wordmark-ink.svg",
+    "logo/monogram/svg/mttm-monogram-bone-on-ink.svg", "logo/monogram/svg/mttm-monogram-ink-on-bone.svg",
+    "logo/single-line/svg/mttm-single-line-bone-on-ink.svg", "logo/single-line/svg/mttm-single-line-ink-on-bone.svg",
+    "logo/favicon/favicon.svg", "logo/favicon/favicon.ico", "logo/favicon/apple-touch-icon.png",
+    "logo/favicon/icon-192.png", "logo/favicon/icon-512.png",
+]
+README = """MAKE TIME TO MOVE: BRAND KIT
+
+Give this whole kit to any designer, developer or AI chat.
+
+1. mttm-brand-guidelines.pdf / guidelines.md: the rules. Start with section 00 (brand brief and rules for AI assistants).
+2. tokens/mttm-brand.css: ONE file for websites. It contains the MTTM Lettering font itself (embedded),
+   the colours, the themes and the type classes. Link it and the brand font works with no other font files.
+3. fonts/: MTTM Lettering as .otf (install for Canva, Figma, desktop) and .woff2 (websites).
+4. logo/: the logo files. Always use these; never retype or redraw the logo.
+
+MTTM Lettering is a custom font that exists only in this kit. Never substitute Michroma or any other typeface.
+"""
+kit = os.path.join(ROOT, "mttm-brand-kit.zip")
+with zipfile.ZipFile(kit, "w", zipfile.ZIP_DEFLATED) as z:
+    z.writestr("mttm-brand-kit/README.txt", README)
+    for rel in KIT:
+        z.write(os.path.join(ROOT, rel), "mttm-brand-kit/" + rel)
+print("kit", kit, round(os.path.getsize(kit) / 1024), "KB")

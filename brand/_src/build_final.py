@@ -226,7 +226,7 @@ tokens = {
     "theme": {t["id"]: {"pillar": t["pillar"], "foreground": hexc(t["fg"]), "background": hexc(t["bg"]),
                         "muted": hexc(t["grey"])} for t in THEMES},
     "font": {
-        "display": {"family": "MTTM Lettering", "fallback": "Michroma, 'Arial Black', sans-serif", "case": "uppercase",
+        "display": {"family": "MTTM Lettering", "fallback": "sans-serif (generic keyword only; never substitute another typeface)", "case": "uppercase",
                     "letterSpacing": "0 (brand spacing is built into the font)", "weights": {"Regular": 400, "Heavy": 800},
                     "files": ["fonts/mttm-lettering-regular.woff2", "fonts/mttm-lettering-heavy.woff2"]},
         "body": {"family": "Manrope", "fallback": "system-ui, sans-serif", "weights": [400, 500, 600],
@@ -242,7 +242,7 @@ for k, (v, role) in COLORS.items():
     css.append(f"  --mttm-{k}: {v}; /* {role} */")
 css += ["", "  /* Active theme (defaults to master: Bone lettering on Ink) */",
         "  --mttm-fg: var(--mttm-bone);", "  --mttm-bg: var(--mttm-ink);", "  --mttm-muted: var(--mttm-stone);", "",
-        "  --mttm-font-display: 'MTTM Lettering', 'Michroma', 'Arial Black', sans-serif;",
+        "  --mttm-font-display: 'MTTM Lettering', sans-serif; /* never substitute another typeface */",
         "  --mttm-font-body: 'Manrope', system-ui, sans-serif;",
         "  --mttm-tracking-display: 0; /* spacing is built into MTTM Lettering */", "",
         "  --mttm-space-1: 4px; --mttm-space-2: 8px; --mttm-space-3: 16px; --mttm-space-4: 24px;",
@@ -262,6 +262,27 @@ css += ["", "/* Brand display font (self-hosted; paths relative to this file) */
         ".mttm-label { font-family: var(--mttm-font-display); text-transform: uppercase; "
         "letter-spacing: 0; font-size: 0.75rem; color: var(--mttm-muted); }", ""]
 write("tokens/mttm-tokens.css", "\n".join(css))
+
+
+def _b64font(fn):
+    import base64
+    return base64.b64encode(open(os.path.join(ROOT, "fonts", fn), "rb").read()).decode()
+
+
+embedded = [
+    "/* Make Time To Move: self-contained brand stylesheet.",
+    "   Includes the MTTM Lettering font itself (embedded), colour tokens, themes and type classes.",
+    "   Drop this one file into any website. No other font files are needed for MTTM Lettering.",
+    "   Body font Manrope loads from Google Fonts (see @import below). */",
+    "@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&display=swap');",
+    f"@font-face {{ font-family: 'MTTM Lettering'; font-weight: 400; font-style: normal; font-display: swap; "
+    f"src: url('data:font/woff2;base64,{_b64font('mttm-lettering-regular.woff2')}') format('woff2'); }}",
+    f"@font-face {{ font-family: 'MTTM Lettering'; font-weight: 800; font-style: normal; font-display: swap; "
+    f"src: url('data:font/woff2;base64,{_b64font('mttm-lettering-heavy.woff2')}') format('woff2'); }}",
+    "",
+] + [l for l in css if "@font-face" not in l and "Brand display font" not in l and "fonts.googleapis" not in l
+     and "Body font from Google" not in l]
+write("tokens/mttm-brand.css", "\n".join(embedded))
 
 # ================================================================ RENDER
 jf = os.path.join(ROOT, "_jobs.json")
