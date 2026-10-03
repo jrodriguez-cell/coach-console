@@ -13,9 +13,8 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-manrope)", "system-ui", "sans-serif"],
-        // MTTM Lettering is the brand display face; Michroma is the guide's
-        // documented stand-in until the font files are added.
-        display: ["MTTM Lettering", "var(--font-michroma)", "Arial Black", "sans-serif"],
+        // MTTM Lettering: capitals, spacing built in (letter-spacing 0).
+        display: ["var(--font-mttm)", "sans-serif"],
       },
       borderRadius: {
         none: "0",
