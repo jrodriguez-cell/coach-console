@@ -203,11 +203,21 @@ COLOUR (two colours per layout, plus one grey for secondary text):
   Utility: pure Black #000000 and White #FFFFFF for one-colour reproduction.
   No gradients, effects, shadows, outlines or extra colours.
 
-TYPE: Michroma for display and labels (uppercase, letter-spacing 0.3em). Manrope for body text (400/500/600). Both on Google Fonts.
+TYPE: MTTM Lettering (the brand's own font, built from the logo letters; files in fonts/) for headlines, labels, title cards and slogans. Capitals only, spacing built in (leave letter-spacing at 0). Regular for general use, Heavy only for small sizes and embroidery. Manrope (Google Fonts) for body text and anything read as sentences (400/500/600). Michroma is retired.
 
 VOICE: short, direct, imperative, calm. No hype, no fitness clichés, no exclamation marks. Examples: "Make time to move." "Start where you are." "Why do you make time to move?"
 
-IMAGERY: natural light, real people, honest movement, muted or black-and-white colour, generous negative space. No stock gym imagery, no neon, no flexing for the camera."""
+IMAGERY: natural light, real people, honest movement, muted or black-and-white colour, generous negative space. No stock gym imagery, no neon, no flexing for the camera.
+
+RULES FOR AI ASSISTANTS AND DESIGNERS
+  1. Use the supplied logo files (SVG or PNG). Never draw, retype or approximate the logo.
+  2. Headlines and labels: MTTM Lettering, capitals, letter-spacing 0. If the font is not available, use Michroma in capitals with letter-spacing 0.3em as a stand-in and say so.
+  3. Body text: Manrope. Never use any other typeface.
+  4. One theme per layout. Default to Ink & Bone unless the content belongs to a pillar.
+  5. Keep on-image text to 8 words or fewer, in the brand voice.
+  6. Instagram stories and reels (1080 x 1920): keep text out of the top 250 px and bottom 340 px; keep reel cover text inside the centre 1080 x 1080.
+  7. Keep 1 letter height of clear space around every logo. No gradients, shadows, outlines, effects or extra colours.
+  8. When unsure, choose less: more space, fewer elements, one message."""
 
 D.raw_md("# Make Time To Move · Brand Guidelines\n\n"
          "Version 1.0 · October 2026 · @maketimetomove\n\n"
@@ -302,24 +312,28 @@ D.ul(["**Ink & Bone is the master.** Use it for the profile, the website, genera
 D.section("type", "06", "Typography")
 D.table(["Role", "Typeface", "Setting", "Use"], [
     ["Logo", "MTTM custom lettering", "Supplied artwork only", "Logos. Never typed."],
-    ["Display & labels", "Michroma (Google Fonts)", "Uppercase · letter-spacing 0.3em · regular",
-     "Headlines, story titles, section labels, merch slogans"],
+    ["Display & labels", "MTTM Lettering (brand font, `fonts/`)", "Capitals · letter-spacing 0 (built in) · Regular; Heavy for small sizes",
+     "Headlines, story titles, section labels, highlight text, merch slogans"],
     ["Body", "Manrope (Google Fonts)", "Sentence case · 400 / 500 / 600 · line-height 1.6",
      "Captions, website copy, emails, documents"],
 ])
 D.visual(f"""<div class="specimen">
  <div class="spec-d">WHY DO YOU MAKE TIME TO MOVE?</div>
  <div class="spec-l">STRENGTH · MOBILITY · MINDSET</div>
+ <div class="spec-g">ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789 .,:!?'&quot;-–—/·@+#()&amp;</div>
  <p class="spec-b">Start where you are. Ten minutes counts. Training is a habit you keep, not a phase you survive. Manrope carries everything you read at length, quietly.</p>
 </div>""")
-D.ul(["Michroma is wide. Keep display lines short (2 to 4 words), centred or left-aligned, and never justified.",
-      "Never set Michroma in lowercase, bold or italic, and never use it for paragraphs.",
-      "Write labels in Michroma at small sizes with wider tracking (0.24em or more), in the theme’s grey.",
-      "Web fallbacks: Michroma → Eurostile, Arial Black, sans-serif. Manrope → system-ui, sans-serif."])
+D.ul(["MTTM Lettering is the logo’s alphabet: every character in a square box, a circular O, and 1 U gaps between characters and 3 U between words. The spacing is built into the font, so always leave letter-spacing at 0.",
+      "Install `fonts/mttm-lettering-regular.otf` and `-heavy.otf` for Canva, Figma and desktop apps. Use the `.woff2` files on websites.",
+      "Capitals only (lowercase keys type capitals). Keep lines short: 2 to 4 words, centred or left-aligned, never justified, never for paragraphs.",
+      "Characters: A–Z, 0–9 and . , : ! ? ' \" - – — / · @ + # ( ) &. The zero is a rounded square so it is never confused with the circular O.",
+      "Use Heavy only for labels smaller than about 14 px tall on screen and for embroidery.",
+      "The logo stays fixed artwork. Never type it, even though the font has the letters.",
+      "Web fallbacks: MTTM Lettering → Michroma, Arial Black, sans-serif. Manrope → system-ui, sans-serif."])
 
 D.section("instagram", "07", "Instagram",
           "Templates live in `instagram/`. Every PNG has a matching SVG; files ending in `-template.svg` keep "
-          "editable text (install Michroma and Manrope).")
+          "editable text (install MTTM Lettering and Manrope).")
 D.visual(f"""<div class="ig-row">
  {ig_tile('instagram/avatar/mttm-ig-avatar.svg', 'Profile avatar · 1080 × 1080', 'square circle')}
  {''.join(ig_tile(f"instagram/highlights/mttm-ig-highlight-{t['id']}.svg", f"Highlight · {t['pillar']}") for t in THEMES)}
@@ -335,13 +349,13 @@ D.table(["Asset", "Size", "Notes"], [
     ["Avatar", "1080 × 1080", "Monogram, Bone on Ink. Its diagonal stays inside the circular crop."],
     ["Highlight covers", "1080 × 1920", "Pillar colour plus monogram. Instagram shows the pillar name underneath, so the cover carries no words."],
     ["Interview title card", "1080 × 1920", "Moss theme. Change the episode number in the template file."],
-    ["Lower third", "1080 × 1920, transparent", "Name in Michroma, caption in Manrope. Sits above the story UI."],
+    ["Lower third", "1080 × 1920, transparent", "Name in MTTM Lettering, caption in Manrope. Sits above the story UI."],
     ["Reel covers", "1080 × 1920", "One per pillar. Keep text inside the centre 1080 × 1080 so it survives the 3:4 grid and square crops."],
 ])
 D.sub("Feed aesthetic")
 D.ul(["The grid reads as calm blocks of the five theme colours, interleaved with photography. Don’t chase every trend.",
       "Each post uses one theme, and the theme follows the pillar.",
-      "Use typography posts for questions and principles: Michroma, centred, generous space, at most 8 words.",
+      "Use typography posts for questions and principles: MTTM Lettering, centred, generous space, at most 8 words.",
       "Captions follow the voice: short, plain, no emoji clusters, few hashtags (3 to 5, at the end).",
       "Interview videos open on the title card, use the lower third for the person’s name, and close on the monogram."])
 D.sub("Imagery")
@@ -356,7 +370,7 @@ D.section("web", "08", "Website & digital",
 D.ul(["Default theme: Bone text on Ink. Use Ink on Bone for long reading pages. Pillar pages may switch theme via `data-mttm-theme`.",
       "Header: the single-line logo at 240 to 360 px wide. Footer: the monogram. Favicon set: `logo/favicon/`.",
       "Layout: generous whitespace on an 8 px spacing scale, content up to about 1200 px, centred hero with the wordmark.",
-      "UI: square corners (0 to 2 px radius), 1 px hairline rules, no shadows or gradients. Buttons are solid lettering-colour blocks with Michroma labels.",
+      "UI: square corners (0 to 2 px radius), 1 px hairline rules, no shadows or gradients. Buttons are solid lettering-colour blocks with MTTM Lettering labels.",
       "Body text: Manrope 17 to 18 px, line-height 1.6, at most about 70 characters per line."])
 D.html.append("<pre class='code'>" + H.escape(
     '<link rel="icon" href="/favicon.ico" sizes="any">\n<link rel="icon" href="/favicon.svg" type="image/svg+xml">\n'
@@ -379,7 +393,7 @@ D.table(["Garment", "Print / thread"], [
 D.ul(["One colour per garment. Use screen print or DTG for prints, and embroidery for caps, beanies and chest marks.",
       "Embroidery always uses the **heavy cut** artwork, because satin stitches need a stroke of about 1 mm or more.",
       "Match garment and ink colours to the palette by physical swatch, and approve a sample before ordering a run.",
-      "Keep slogans in Michroma, uppercase, widely spaced, set as one or two short lines, using brand-voice lines only.",
+      "Set slogans in MTTM Lettering, as one or two short lines, using brand-voice lines only.",
       "Place a small monogram woven label or neck print on garments whose front carries a slogan."])
 
 D.section("voice", "10", "Brand voice",
@@ -398,7 +412,7 @@ D.table(["Do", "Don’t"], [
 D.section("dont", "11", "What not to do")
 D.ul(["Don’t add gradients, shadows, glows, outlines, textures or any other effect to the logo.",
       "Don’t stretch, squash, rotate, skew or re-space the letters. The equal spacing is the logo.",
-      "Don’t retype the logo in Michroma or any other font. Always use the supplied artwork.",
+      "Don’t type the logo, not even in MTTM Lettering. Always use the supplied artwork.",
       "Don’t recolour outside the approved pairs, and don’t put two theme colours in one logo.",
       "Don’t add a word gap, or move TOMOVE off-centre.",
       "Don’t place the logo on busy photography without enough contrast, or inside its clear space.",
@@ -417,11 +431,12 @@ D.table(["Folder", "Contents"], [
     ["`logo/favicon/`", "favicon.ico, favicon.svg, 16 / 32 / 48 px, apple-touch-icon, 192 and 512 px icons"],
     ["`instagram/`", "Avatar, highlights, interview title card and lower third, reel covers (+ editable templates)"],
     ["`merch/`", "Print-ready transparent files in Bone, Ink, White and Black"],
+    ["`fonts/`", "MTTM Lettering font files: OTF (install for Canva, Figma, desktop) and WOFF2 (websites), Regular and Heavy, plus a specimen page"],
     ["`tokens/`", "CSS and JSON design tokens for websites and apps"],
     ["`_src/`", "Source fonts and the build scripts that generate every file"],
 ])
-D.p("Typefaces: Michroma (© Vernon Adams) and Manrope (© Mikhail Sharanda) are free under the SIL Open Font "
-    "License. The MTTM logo lettering is custom artwork derived from Michroma’s style.")
+D.p("Typefaces: MTTM Lettering is the brand’s own custom font, drawn in the style of Michroma (© Vernon Adams, SIL Open Font License). "
+    "Manrope (© Mikhail Sharanda) is free under the SIL Open Font License.")
 D.html.append("</section>")
 
 # ---------------------------------------------------------------- markdown
@@ -437,7 +452,7 @@ STYLE = """
 /* Layout: a single long brand book on Bone paper. Ink cover band, numbered reference sections, wide figures. */
 :root{
   --ink:#0E0E0D; --bone:#EFEBE3; --paper:#F6F3EE; --stone:#8F8B83; --line:#D9D3C7; --well:#E7E1D6;
-  --f-display:"Michroma", Eurostile, "Arial Black", sans-serif;
+  --f-display:"MTTM Lettering", "Michroma", "Arial Black", sans-serif;
   --f-body:"Manrope", system-ui, sans-serif;
   --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
   color-scheme: light;
@@ -450,54 +465,54 @@ code,pre{font-family:var(--f-mono);font-size:.86em}
 code{background:var(--well);padding:1px 5px}
 .cover{background:var(--ink);color:var(--bone)}
 .cover .wrap{padding-block:40px 56px}
-.cover-top{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font:11px/1.4 var(--f-display);letter-spacing:.28em;text-transform:uppercase;color:var(--stone)}
+.cover-top{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font:11px/1.4 var(--f-display);text-transform:uppercase;color:var(--stone)}
 .cover-mark{max-width:880px;margin:56px auto 40px}
-.cover-sub{text-align:center;font:12px/1.8 var(--f-display);letter-spacing:.32em;text-transform:uppercase;color:var(--stone)}
+.cover-sub{text-align:center;font:12px/1.8 var(--f-display);text-transform:uppercase;color:var(--stone)}
 nav.toc{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bone);border-bottom:1px solid var(--line)}
 nav.toc .wrap{display:flex;gap:4px 18px;flex-wrap:wrap;padding-block:12px}
-nav.toc a{font:10px/2 var(--f-display);letter-spacing:.22em;text-transform:uppercase;color:var(--ink);text-decoration:none;opacity:.7}
+nav.toc a{font:600 10.5px/2 var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--ink);text-decoration:none;opacity:.7}
 nav.toc a:hover,nav.toc a:focus-visible{opacity:1;text-decoration:underline;outline:none}
 section{padding-top:72px;scroll-margin-top:56px}
 .sec-head{display:flex;align-items:baseline;gap:18px;border-top:1px solid var(--ink);padding-top:18px;margin-bottom:12px}
-.num{font:12px var(--f-display);letter-spacing:.2em;color:var(--stone)}
-h2{font:400 clamp(20px,2.6vw,28px)/1.25 var(--f-display);letter-spacing:.18em;text-transform:uppercase;margin:0;text-wrap:balance}
-h3{font:400 13px/1.4 var(--f-display);letter-spacing:.24em;text-transform:uppercase;margin:40px 0 12px}
+.num{font:12px var(--f-display);color:var(--stone)}
+h2{font:400 clamp(15px,2vw,21px)/1.5 var(--f-display);text-transform:uppercase;margin:0;text-wrap:balance}
+h3{font:400 13px/1.4 var(--f-display);text-transform:uppercase;margin:40px 0 12px}
 p,li{max-width:68ch}
 .lede{font-size:18px;color:#3b3a37}
 ul{padding-left:20px}
 li{margin:6px 0}
 .tbl{overflow-x:auto;margin:20px 0}
 table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
-th{font:10px/1.4 var(--f-display);letter-spacing:.2em;text-transform:uppercase;text-align:left;color:var(--stone);padding:10px 12px;border-bottom:1px solid var(--ink)}
+th{font:600 10.5px/1.4 var(--f-body);letter-spacing:.08em;text-transform:uppercase;text-align:left;color:var(--stone);padding:10px 12px;border-bottom:1px solid var(--ink)}
 td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
 .brief{position:relative;background:var(--ink);color:var(--bone);padding:24px;margin-top:16px}
 .brief pre{margin:0;white-space:pre-wrap;font-size:13px;line-height:1.7;color:var(--bone);background:none}
-.copy{position:absolute;top:14px;right:14px;font:10px var(--f-display);letter-spacing:.22em;text-transform:uppercase;background:var(--bone);color:var(--ink);border:0;padding:9px 14px;cursor:pointer}
+.copy{position:absolute;top:14px;right:14px;font:600 10.5px var(--f-body);letter-spacing:.08em;text-transform:uppercase;background:var(--bone);color:var(--ink);border:0;padding:9px 14px;cursor:pointer}
 .copy:focus-visible{outline:2px solid var(--stone);outline-offset:2px}
 .logo-hero{margin:24px 0}
 .marks{display:grid;grid-template-columns:1fr 1fr 2.4fr;gap:16px;align-items:stretch;margin-top:16px}
 @media (max-width:760px){.marks{grid-template-columns:1fr 1fr}.m-single{grid-column:1/-1}}
 figure{margin:0}
-figcaption{font:10px/1.6 var(--f-display);letter-spacing:.18em;text-transform:uppercase;color:var(--stone);margin-top:8px}
+figcaption{font:600 10.5px/1.6 var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--stone);margin-top:8px}
 .marks figure{display:flex;flex-direction:column;justify-content:flex-end}
 .figure-wide{margin:20px 0}
 .cs{display:grid;grid-template-columns:2.4fr 1fr;gap:16px;margin:16px 0;align-items:center}
 @media (max-width:640px){.cs{grid-template-columns:1fr}}
 .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin:20px 0}
 .sw .chip{aspect-ratio:4/3;max-width:100%;display:flex;align-items:flex-end;padding:10px;border:1px solid var(--line)}
-.sw .chip span{font:10px var(--f-display);letter-spacing:.2em;text-transform:uppercase}
+.sw .chip span{font:10px var(--f-display);text-transform:uppercase}
 .sw dl{display:grid;grid-template-columns:auto 1fr;gap:0 10px;margin:8px 0 0;font:12px/1.6 var(--f-mono)}
 .sw dt{color:var(--stone)} .sw dd{margin:0}
 .sw p{font-size:12px;color:#55534e;margin:4px 0 0}
 .themes{display:grid;gap:12px;margin:16px 0}
 .theme{padding:18px 20px;border:1px solid var(--line)}
 .theme-top{display:flex;justify-content:space-between;gap:12px}
-.lbl{font:10px var(--f-display);letter-spacing:.24em;text-transform:uppercase}
+.lbl{font:10px var(--f-display);text-transform:uppercase}
 .theme-art{display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:16px;align-items:center;margin:8px 0}
 .theme-codes{font:11px var(--f-mono)}
 .specimen{background:var(--paper);border:1px solid var(--line);padding:clamp(20px,4vw,40px);margin:16px 0}
-.spec-d{font:clamp(18px,3vw,30px)/1.5 var(--f-display);letter-spacing:.3em;text-wrap:balance}
-.spec-l{font:11px var(--f-display);letter-spacing:.3em;color:var(--stone);margin:14px 0}
+.spec-d{font:clamp(18px,3vw,30px)/1.5 var(--f-display);text-wrap:balance}
+.spec-l{font:11px var(--f-display);color:var(--stone);margin:14px 0}
 .spec-b{font-size:17px;margin:0}
 .ig-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px;margin:18px 0;align-items:end}
 .ig svg{outline:1px solid var(--line)}
@@ -507,11 +522,23 @@ figcaption{font:10px/1.6 var(--f-display);letter-spacing:.18em;text-transform:up
 .merch{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;margin:16px 0}
 .merch figure{background:var(--paper);border:1px solid var(--line);padding:14px}
 .voice{display:flex;flex-direction:column;gap:6px;background:var(--ink);color:var(--bone);padding:clamp(24px,5vw,48px);margin:16px 0}
-.voice span{font:clamp(15px,2.2vw,22px)/1.6 var(--f-display);letter-spacing:.24em;text-transform:uppercase}
+.voice span{font:clamp(15px,2.2vw,22px)/1.6 var(--f-display);text-transform:uppercase}
 pre.code{background:var(--ink);color:var(--bone);padding:18px;overflow-x:auto;font-size:13px}
 footer{margin-top:72px;border-top:1px solid var(--line);padding-top:16px;font-size:13px;color:#55534e}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
 html{scroll-behavior:smooth}
+"""
+import base64 as _b64  # noqa: E402
+
+
+def _face(weight, fn):
+    data = _b64.b64encode(open(os.path.join(ROOT, "fonts", fn), "rb").read()).decode()
+    return (f'@font-face{{font-family:"MTTM Lettering";font-weight:{weight};font-style:normal;'
+            f'src:url(data:font/woff2;base64,{data}) format("woff2")}}')
+
+
+STYLE = _face(400, "mttm-lettering-regular.woff2") + _face(800, "mttm-lettering-heavy.woff2") + STYLE + """
+.spec-g{font:400 clamp(14px,2vw,20px)/2 var(--f-display);word-break:break-all;margin-top:12px}
 """
 SCRIPT = """
 document.getElementById('copy-brief').addEventListener('click', async (e) => {
@@ -526,7 +553,7 @@ document.getElementById('copy-brief').addEventListener('click', async (e) => {
 """
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" '
          'href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?'
-         'family=Michroma&family=Manrope:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap">')
+         'family=Manrope:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap">')
 cover = f"""<header class="cover"><div class="wrap">
 <div class="cover-top"><span>Brand guidelines · v1.0</span><span>@maketimetomove</span></div>
 <div class="cover-mark">{inline(read('logo/wordmark/svg/mttm-wordmark-bone-on-ink.svg'))}</div>

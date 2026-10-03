@@ -19,10 +19,9 @@
   --mttm-bg: var(--mttm-ink);
   --mttm-muted: var(--mttm-stone);
 
-  --mttm-font-display: 'Michroma', Eurostile, 'Arial Black', sans-serif;
+  --mttm-font-display: 'MTTM Lettering', 'Michroma', 'Arial Black', sans-serif;
   --mttm-font-body: 'Manrope', system-ui, sans-serif;
-  --mttm-tracking-display: 0.3em;
-  --mttm-tracking-label: 0.24em;
+  --mttm-tracking-display: 0; /* spacing is built into MTTM Lettering */
 
   --mttm-space-1: 4px; --mttm-space-2: 8px; --mttm-space-3: 16px; --mttm-space-4: 24px;
   --mttm-space-5: 32px; --mttm-space-6: 48px; --mttm-space-7: 64px; --mttm-space-8: 96px;
@@ -35,9 +34,12 @@
 [data-mttm-theme="mindset"] { --mttm-fg: var(--mttm-mist); --mttm-bg: var(--mttm-midnight); --mttm-muted: var(--mttm-slate); }
 [data-mttm-theme="interviews"] { --mttm-fg: var(--mttm-chalk); --mttm-bg: var(--mttm-moss); --mttm-muted: var(--mttm-lichen); }
 
-/* Google Fonts: */
-/* @import url('https://fonts.googleapis.com/css2?family=Michroma&family=Manrope:wght@400;500;600&display=swap'); */
+/* Brand display font (self-hosted; paths relative to this file) */
+@font-face { font-family: 'MTTM Lettering'; font-weight: 400; font-display: swap; src: url('../fonts/mttm-lettering-regular.woff2') format('woff2'); }
+@font-face { font-family: 'MTTM Lettering'; font-weight: 800; font-display: swap; src: url('../fonts/mttm-lettering-heavy.woff2') format('woff2'); }
+/* Body font from Google Fonts: */
+/* @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&display=swap'); */
 
 body { background: var(--mttm-bg); color: var(--mttm-fg); font-family: var(--mttm-font-body); }
 .mttm-display { font-family: var(--mttm-font-display); text-transform: uppercase; letter-spacing: var(--mttm-tracking-display); font-weight: 400; }
-.mttm-label { font-family: var(--mttm-font-display); text-transform: uppercase; letter-spacing: var(--mttm-tracking-label); font-size: 0.75rem; color: var(--mttm-muted); }
+.mttm-label { font-family: var(--mttm-font-display); text-transform: uppercase; letter-spacing: 0; font-size: 0.75rem; color: var(--mttm-muted); }

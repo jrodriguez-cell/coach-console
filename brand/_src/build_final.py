@@ -8,6 +8,7 @@ import shutil
 import subprocess
 
 from mttm import fmt
+from alphabet import BRAND
 from system import (COLORS, COLORWAYS, CORE_WAYS, DPI, HEAVY, MANROPE, MERCH, MICHROMA, REGULAR, THEMES, U, hexc,
                     logo_svg, placed)
 
@@ -102,11 +103,11 @@ def mono_at(cx, cy, side, fill, lettering=REGULAR):
     return path(d, fill)
 
 
-def text(t, x, y, cap, fill, face=MICHROMA, tracking=0.3, anchor="middle"):
+def text(t, x, y, cap, fill, face=BRAND, tracking=0.0, anchor="middle"):
     return path(face.path(t, x, y, cap, tracking, anchor), fill)
 
 
-def live(t, x, y, size, fill, family="Michroma", spacing=0.3, anchor="middle", weight=400, field=""):
+def live(t, x, y, size, fill, family="MTTM Lettering", spacing=0.0, anchor="middle", weight=400, field=""):
     """Editable text for template files (needs the font installed)."""
     return (f'<text x="{fmt(x)}" y="{fmt(y)}" font-family="{family}, sans-serif" font-size="{size}" '
             f'font-weight="{weight}" letter-spacing="{fmt(size * spacing)}" text-anchor="{anchor}" fill="{fill}"'
@@ -133,9 +134,9 @@ for t in THEMES:
 for slug, fg, bg in (("bone-on-ink", "bone", "ink"), ("ink-on-bone", "ink", "bone")):
     f, g, grey = hexc(fg), hexc(bg), hexc("stone")
     wm, _ = placed("wordmark", IW / 2, 900, width=780)
-    body = (text("@MAKETIMETOMOVE", IW / 2, 340, 16, grey, tracking=0.5) + path(wm, f)
+    body = (text("@MAKETIMETOMOVE", IW / 2, 340, 16, grey) + path(wm, f)
             + f'<rect x="{IW / 2 - 40}" y="1190" width="80" height="2" fill="{grey}"/>'
-            + text("STRENGTH · MOBILITY · MINDSET", IW / 2, 1278, 17, grey, tracking=0.5))
+            + text("STRENGTH · MOBILITY · MINDSET", IW / 2, 1278, 17, grey))
     ig(f"stories/mttm-ig-story-brand-cover-{slug}", canvas(g, body, title="Make Time To Move story cover"))
     ig(f"highlights/mttm-ig-highlight-cover-{slug}",
        canvas(g, mono_at(IW / 2, IH / 2, 0.5 * IW / 2 ** 0.5 * 1.25, f), title="MTTM highlight cover"))
@@ -147,15 +148,15 @@ Q = ("WHY DO YOU", "MAKE TIME", "TO MOVE?")
 
 def interview_card(number="NO. 01", editable=False):
     b = [mono_at(IW / 2, 330, 132, chalk),
-         text("INTERVIEW SERIES", IW / 2, 560, 17, lichen, tracking=0.6)]
+         text("INTERVIEW SERIES", IW / 2, 560, 17, lichen)]
     for i, line in enumerate(Q):
-        b.append(text(line, IW / 2, 860 + i * 132, 52, chalk, tracking=0.34))
+        b.append(text(line, IW / 2, 860 + i * 132, 44, chalk))
     b.append(f'<rect x="{IW / 2 - 40}" y="1238" width="80" height="2" fill="{lichen}"/>')
     if editable:
-        b.append(live(number, IW / 2, 1322, 26, chalk, spacing=0.4, field="episode"))
+        b.append(live(number, IW / 2, 1322, 31, chalk, field="episode"))
     else:
-        b.append(text(number, IW / 2, 1322, 22, chalk, tracking=0.4))
-    b.append(text("@MAKETIMETOMOVE", IW / 2, 1560, 15, lichen, tracking=0.5))
+        b.append(text(number, IW / 2, 1322, 22, chalk))
+    b.append(text("@MAKETIMETOMOVE", IW / 2, 1560, 15, lichen))
     return canvas(moss, "".join(b), title="Why do you make time to move? Interview title card")
 
 
@@ -169,11 +170,11 @@ def lower_third(name="NAME SURNAME", caption="Occupation · Neighbourhood", edit
     b = [f'<rect x="{x}" y="{y}" width="660" height="{h}" fill="{moss}"/>',
          f'<rect x="{x}" y="{y}" width="6" height="{h}" fill="{chalk}"/>']
     if editable:
-        b.append(live(name, x + 44, y + 74, 30, chalk, spacing=0.3, anchor="start", field="name"))
+        b.append(live(name, x + 44, y + 74, 34, chalk, anchor="start", field="name"))
         b.append(live(caption, x + 44, y + 124, 26, lichen, family="Manrope", spacing=0.02, anchor="start",
                       weight=500, field="caption"))
     else:
-        b.append(text(name, x + 44, y + 72, 24, chalk, tracking=0.3, anchor="start"))
+        b.append(text(name, x + 44, y + 72, 24, chalk, anchor="start"))
         b.append(text(caption, x + 44, y + 122, 19, lichen, face=MANROPE, tracking=0.02, anchor="start"))
     return canvas(None, "".join(b), title="Interview lower third")
 
@@ -187,18 +188,18 @@ SQ_TOP, SQ_BOT = (IH - IW) / 2, (IH + IW) / 2  # 420 .. 1500
 
 def reel(t, title=("YOUR TITLE", "GOES HERE"), editable=False, guide=False):
     fg, bg, grey = hexc(t["fg"]), hexc(t["bg"]), hexc(t["grey"])
-    b = [text(t["pillar"].upper(), IW / 2, SQ_TOP + 170, 17, grey, tracking=0.6)]
+    b = [text(t["pillar"].upper(), IW / 2, SQ_TOP + 170, 17, grey)]
     for i, line in enumerate(title):
         y = 920 + (i - (len(title) - 1) / 2) * 112
-        b.append(live(line, IW / 2, y, 54, fg, spacing=0.3, field=f"title{i + 1}") if editable
-                 else text(line, IW / 2, y, 46, fg, tracking=0.3))
+        b.append(live(line, IW / 2, y, 63, fg, field=f"title{i + 1}") if editable
+                 else text(line, IW / 2, y, 44, fg))
     b.append(mono_at(IW / 2, SQ_BOT - 190, 96, fg))
     if guide:
         g = ['<g fill="none" stroke-width="3" stroke-dasharray="16 12">',
              f'<rect x="1.5" y="{(IH - 1440) / 2}" width="{IW - 3}" height="1440" stroke="#d14"/>',
              f'<rect x="60" y="{SQ_TOP + 60}" width="{IW - 120}" height="{IW - 120}" stroke="#18f"/></g>']
-        g.append(text("3:4 PROFILE GRID CROP", 30, (IH - 1440) / 2 - 24, 16, "#d14", tracking=0.3, anchor="start"))
-        g.append(text("SAFE ZONE FOR TEXT", 90, SQ_TOP + 40, 16, "#18f", tracking=0.3, anchor="start"))
+        g.append(text("3:4 PROFILE GRID CROP", 30, (IH - 1440) / 2 - 24, 16, "#d14", anchor="start"))
+        g.append(text("SAFE ZONE FOR TEXT", 90, SQ_TOP + 40, 16, "#18f", anchor="start"))
         b.append("".join(g))
     return canvas(bg, "".join(b), title=f"Reel cover: {t['pillar']}")
 
@@ -225,8 +226,9 @@ tokens = {
     "theme": {t["id"]: {"pillar": t["pillar"], "foreground": hexc(t["fg"]), "background": hexc(t["bg"]),
                         "muted": hexc(t["grey"])} for t in THEMES},
     "font": {
-        "display": {"family": "Michroma", "fallback": "Eurostile, 'Arial Black', sans-serif", "case": "uppercase",
-                    "letterSpacing": "0.3em", "source": "https://fonts.google.com/specimen/Michroma"},
+        "display": {"family": "MTTM Lettering", "fallback": "Michroma, 'Arial Black', sans-serif", "case": "uppercase",
+                    "letterSpacing": "0 (brand spacing is built into the font)", "weights": {"Regular": 400, "Heavy": 800},
+                    "files": ["fonts/mttm-lettering-regular.woff2", "fonts/mttm-lettering-heavy.woff2"]},
         "body": {"family": "Manrope", "fallback": "system-ui, sans-serif", "weights": [400, 500, 600],
                  "source": "https://fonts.google.com/specimen/Manrope"},
     },
@@ -240,22 +242,25 @@ for k, (v, role) in COLORS.items():
     css.append(f"  --mttm-{k}: {v}; /* {role} */")
 css += ["", "  /* Active theme (defaults to master: Bone lettering on Ink) */",
         "  --mttm-fg: var(--mttm-bone);", "  --mttm-bg: var(--mttm-ink);", "  --mttm-muted: var(--mttm-stone);", "",
-        "  --mttm-font-display: 'Michroma', Eurostile, 'Arial Black', sans-serif;",
+        "  --mttm-font-display: 'MTTM Lettering', 'Michroma', 'Arial Black', sans-serif;",
         "  --mttm-font-body: 'Manrope', system-ui, sans-serif;",
-        "  --mttm-tracking-display: 0.3em;", "  --mttm-tracking-label: 0.24em;", "",
+        "  --mttm-tracking-display: 0; /* spacing is built into MTTM Lettering */", "",
         "  --mttm-space-1: 4px; --mttm-space-2: 8px; --mttm-space-3: 16px; --mttm-space-4: 24px;",
         "  --mttm-space-5: 32px; --mttm-space-6: 48px; --mttm-space-7: 64px; --mttm-space-8: 96px;",
         "  --mttm-radius: 0; --mttm-rule: 1px solid var(--mttm-muted);", "}", ""]
 for t in THEMES:
     css.append(f'[data-mttm-theme="{t["id"]}"] {{ --mttm-fg: var(--mttm-{t["fg"]}); '
                f'--mttm-bg: var(--mttm-{t["bg"]}); --mttm-muted: var(--mttm-{t["grey"]}); }}')
-css += ["", "/* Google Fonts: */",
-        "/* @import url('https://fonts.googleapis.com/css2?family=Michroma&family=Manrope:wght@400;500;600&display=swap'); */",
+css += ["", "/* Brand display font (self-hosted; paths relative to this file) */",
+        "@font-face { font-family: 'MTTM Lettering'; font-weight: 400; font-display: swap; src: url('../fonts/mttm-lettering-regular.woff2') format('woff2'); }",
+        "@font-face { font-family: 'MTTM Lettering'; font-weight: 800; font-display: swap; src: url('../fonts/mttm-lettering-heavy.woff2') format('woff2'); }",
+        "/* Body font from Google Fonts: */",
+        "/* @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&display=swap'); */",
         "", "body { background: var(--mttm-bg); color: var(--mttm-fg); font-family: var(--mttm-font-body); }",
         ".mttm-display { font-family: var(--mttm-font-display); text-transform: uppercase; "
         "letter-spacing: var(--mttm-tracking-display); font-weight: 400; }",
         ".mttm-label { font-family: var(--mttm-font-display); text-transform: uppercase; "
-        "letter-spacing: var(--mttm-tracking-label); font-size: 0.75rem; color: var(--mttm-muted); }", ""]
+        "letter-spacing: 0; font-size: 0.75rem; color: var(--mttm-muted); }", ""]
 write("tokens/mttm-tokens.css", "\n".join(css))
 
 # ================================================================ RENDER

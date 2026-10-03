@@ -19,7 +19,7 @@ def face(family, filename, weight="100 900"):
             f"font-weight:{weight};font-style:normal}}")
 
 
-PRINT_CSS = (face("Michroma", "Michroma-Regular.ttf") + face("Manrope", "Manrope-Medium.ttf")
+PRINT_CSS = (face("Manrope", "Manrope-Medium.ttf")
              + face("IBM Plex Mono", "IBMPlexMono-Regular.ttf") + """
 @page{size:A4;margin:14mm 14mm 16mm}
 html{scroll-behavior:auto}
@@ -36,7 +36,7 @@ section{break-before:page;padding-top:0}
 h3{break-after:avoid}
 p,li{max-width:none}
 .lede{font-size:12pt}
-.brief pre{font-size:8.6pt}
+.brief pre{font-size:7.6pt;line-height:1.55}
 tr,figure,.sw,.theme,.ig,.merch figure,.specimen,.voice,pre.code,.marks,.cs{break-inside:avoid}
 .themes .theme{padding:10px 14px}
 .theme-art{grid-template-columns:minmax(0,1fr) 80px}

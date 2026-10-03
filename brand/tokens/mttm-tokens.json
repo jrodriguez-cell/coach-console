@@ -93,11 +93,18 @@
   },
   "font": {
     "display": {
-      "family": "Michroma",
-      "fallback": "Eurostile, 'Arial Black', sans-serif",
+      "family": "MTTM Lettering",
+      "fallback": "Michroma, 'Arial Black', sans-serif",
       "case": "uppercase",
-      "letterSpacing": "0.3em",
-      "source": "https://fonts.google.com/specimen/Michroma"
+      "letterSpacing": "0 (brand spacing is built into the font)",
+      "weights": {
+        "Regular": 400,
+        "Heavy": 800
+      },
+      "files": [
+        "fonts/mttm-lettering-regular.woff2",
+        "fonts/mttm-lettering-heavy.woff2"
+      ]
     },
     "body": {
       "family": "Manrope",

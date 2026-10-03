@@ -26,7 +26,7 @@ UPM, K = 1000, 7.0          # 100 lettering units -> 700 font units
 SB = 50 * K                 # half a unit of side bearing
 NAMES = {".": "period", ",": "comma", ":": "colon", "!": "exclam", "?": "question", "'": "quotesingle",
          "’": "quoteright", '"': "quotedbl", "-": "hyphen", "–": "endash", "—": "emdash", "/": "slash",
-         "·": "periodcentered", "@": "at", "+": "plus", "#": "numbersign", "(": "parenleft", ")": "parenright",
+         "·": "periodcentered", "@": "at", "+": "plus", "#": "numbersign", "(": "parenleft", ")": "parenright", "&": "ampersand",
          **{d: n for d, n in zip("0123456789", ["zero", "one", "two", "three", "four", "five", "six", "seven",
                                                  "eight", "nine"])}}
 
@@ -196,7 +196,7 @@ I is a single stroke, and W is the M turned upside down.</p>
 <li>Use it for headlines, labels, title cards, highlight text and merch slogans. Keep lines short. Use Manrope for anything read as sentences.</li>
 <li>Heavy is for small sizes (labels under about 14 px high on screen) and embroidery.</li>
 <li>The logo stays fixed artwork. Never retype it, even though the font has the letters.</li>
-<li>Not included yet: &amp; and %. If you need them, I can draw them.</li>
+<li>Not included yet: %. If you need it, I can draw it.</li>
 </ul></div></section>
 </div></body></html>"""
 with open(os.path.join(OUT, "mttm-lettering-specimen.html"), "w") as f:

@@ -21,7 +21,7 @@ LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 FIGURES = "0123456789"
 # punctuation: char -> ink box width (in U/100 units)
 PUNCT = {".": 13, ",": 13, ":": 13, "!": 13, "?": 80, "'": 12, "’": 12, '"': 40, "-": 44, "–": 70, "—": 100,
-         "/": 62, "·": 13, "@": 100, "+": 64, "#": 84, "(": 34, ")": 34}
+         "/": 62, "·": 13, "@": 100, "+": 64, "#": 84, "(": 34, ")": 34, "&": 100}
 CHARSET = LETTERS + FIGURES + "".join(PUNCT)
 
 
@@ -201,6 +201,12 @@ class BrandAlphabet(EqualLettering):
         if ch == "@":
             inner = ring(26, 26, 74, 74, sv, sh)
             return _union([ring(0, 0, W, 100, sv, sh), inner, _rect(74 - sv, 34, 74, 74), _rect(62, 34, W - 2, 34 + sh)])
+        if ch == "&":
+            top = ring(14, 50, 70, 100, sv, sh)
+            low = minus(ring(0, 0, 82, 62, sv, sh), wedge(41, 31, -10, 75))
+            leg = op(_stroke((24, 62), (W - sv * 0.55, 0), sv * 1.05), _rect(0, 0, W, 64), PathOp.INTERSECTION)
+            arm = _rect(70, 30 - sh / 2, W, 30 + sh / 2)
+            return _union([minus(top, _rect(14, 50, 42, 66)), low, leg, arm])
         if ch == "(":
             return op(ring(0, -8, 120, 108, sv, sh), _rect(0, -8, 34, 108), PathOp.INTERSECTION)
         if ch == ")":
