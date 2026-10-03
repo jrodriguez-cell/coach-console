@@ -53,7 +53,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: { d
           </div>
         </Card>
         <Card title="Guardrail defaults (ISSA CPT textbook)">
-          <p className="mb-2 text-xs text-slate-400">Hard floors cannot be lowered below 1,200 kcal/day or 15% fat.</p>
+          <p className="mb-2 text-xs text-stone">Hard floors cannot be lowered below 1,200 kcal/day or 15% fat.</p>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {Object.entries(s.guardrail_limits).map(([k, v]) => <Field key={k} label={k}><input className="input" type="number" step="any" name={`g_${k}`} defaultValue={v} /></Field>)}
           </div>

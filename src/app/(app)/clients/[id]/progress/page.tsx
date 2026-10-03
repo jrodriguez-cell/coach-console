@@ -62,7 +62,7 @@ export default async function ClientProgressPage({ params }: { params: { id: str
           <Stat label="Rate (last 4 wks)" value={w?.observedLbPerWeek != null ? `${fmt.signed(w.observedLbPerWeek, 2)} lb/wk` : "—"} sub={s.meta ? `planned ${fmt.signed(s.meta.plannedLbPerWeek, 2)} (estimate)` : undefined} />
         </div>
         <WeightChart rows={weightRows(d, s)} />
-        <p className="mt-1 text-xs text-slate-400">Planned trajectory and range come from the plan&apos;s energy model (3,500 kcal/lb planning approximation) — a prediction, not a guarantee.</p>
+        <p className="mt-1 text-xs text-stone">Planned trajectory and range come from the plan&apos;s energy model (3,500 kcal/lb planning approximation) — a prediction, not a guarantee.</p>
       </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -89,7 +89,7 @@ export default async function ClientProgressPage({ params }: { params: { id: str
                 {MEASUREMENT_SITES.map((site) => {
                   const pts = bySite(site);
                   if (!pts.length) return null;
-                  return <tr key={site}><td className="capitalize">{site}</td><td>{pts[0].value} <span className="text-xs text-slate-400">{formatDate(pts[0].date)}</span></td><td>{pts.at(-1)!.value} <span className="text-xs text-slate-400">{formatDate(pts.at(-1)!.date)}</span></td><td>{fmt.signed(pts.at(-1)!.value - pts[0].value)}</td></tr>;
+                  return <tr key={site}><td className="capitalize">{site}</td><td>{pts[0].value} <span className="text-xs text-stone">{formatDate(pts[0].date)}</span></td><td>{pts.at(-1)!.value} <span className="text-xs text-stone">{formatDate(pts.at(-1)!.date)}</span></td><td>{fmt.signed(pts.at(-1)!.value - pts[0].value)}</td></tr>;
                 })}
               </tbody>
             </table></div>
@@ -124,7 +124,7 @@ export default async function ClientProgressPage({ params }: { params: { id: str
             </tbody>
           </table></div>
         )}
-        <p className="mt-1 text-xs text-slate-400">e1RM = weight × (1 + reps/30), adding reps in reserve (10 − RPE) when RPE is logged; 5RM = e1RM ÷ (1 + 5/30). Double progression: when every set hits the top of the rep range at RPE 8 or easier, add weight next session.</p>
+        <p className="mt-1 text-xs text-stone">e1RM = weight × (1 + reps/30), adding reps in reserve (10 − RPE) when RPE is logged; 5RM = e1RM ÷ (1 + 5/30). Double progression: when every set hits the top of the rep range at RPE 8 or easier, add weight next session.</p>
       </Card>
 
       {/* 4. Benchmarks */}
@@ -135,7 +135,7 @@ export default async function ClientProgressPage({ params }: { params: { id: str
             <tbody>
               {s.benchmarks.map((b) => (
                 <tr key={b.id}>
-                  <td>{b.name} <span className="text-xs text-slate-400">{b.unit} · {b.direction === "higher_better" ? "higher is better" : "lower is better"}</span></td>
+                  <td>{b.name} <span className="text-xs text-stone">{b.unit} · {b.direction === "higher_better" ? "higher is better" : "lower is better"}</span></td>
                   <td colSpan={3}>
                     <form action={updateBenchmarkAction.bind(null, client.id, b.id)} className="flex gap-1">
                       <input className="input w-20" type="number" step="any" name="baseline" defaultValue={b.baseline ?? ""} />
@@ -206,7 +206,7 @@ export default async function ClientProgressPage({ params }: { params: { id: str
             ))}
           </ul>
         )}
-        <ul className="mt-2 text-sm text-slate-400">
+        <ul className="mt-2 text-sm text-stone">
           {d.checkpoints.map((c) => <li key={c.id}>{formatDate(c.due_date)} · week {c.week} {c.kind === "review" ? "calibration" : c.kind} {c.completed_at ? "✔" : ""}</li>)}
         </ul>
       </Card>

@@ -15,9 +15,9 @@ export function GenerateForm({ clientId, fromPlanId, defaults, label = "Generate
           <label><span className="label">Days/week</span><input className="input" type="number" name="days_per_week" min={2} max={6} defaultValue={defaults?.days_per_week} placeholder="from intake" /></label>
         </div>
       )}
-      <p className="text-xs text-slate-400">Numbers come from the deterministic calculators; Claude only picks exercises from the filtered library and writes short notes. Output is validated before it is saved as a DRAFT.</p>
+      <p className="text-xs text-stone">Numbers come from the deterministic calculators; Claude only picks exercises from the filtered library and writes short notes. Output is validated before it is saved as a DRAFT.</p>
       {state.error && (
-        <div className="rounded border border-red-900 bg-red-950/40 p-2 text-sm text-red-300">
+        <div className="note-alert p-2 text-sm">
           {state.error}
           {state.details && state.details.length > 0 && <ul className="mt-1 list-disc pl-4 text-xs">{state.details.slice(0, 8).map((d, i) => <li key={i}>{d}</li>)}</ul>}
         </div>

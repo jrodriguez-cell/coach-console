@@ -24,7 +24,7 @@ function F({ label, children, hint, wide }: { label: string; children: React.Rea
     <label className={wide ? "col-span-full block" : "block"}>
       <span className="label">{label}</span>
       {children}
-      {hint && <span className="mt-1 block text-xs text-slate-400">{hint}</span>}
+      {hint && <span className="mt-1 block text-xs text-stone">{hint}</span>}
     </label>
   );
 }
@@ -82,7 +82,7 @@ export function IntakeForm({ clientId, prev, parq, refer }: { clientId: string; 
         </div>
         <div>
           <span className="label">Current exercise (baseline, per week)</span>
-          <p className="mb-2 text-xs text-slate-400">Needed for measured-mode TDEE so the program isn&apos;t double-counted.</p>
+          <p className="mb-2 text-xs text-stone">Needed for measured-mode TDEE so the program isn&apos;t double-counted.</p>
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="mb-1 grid grid-cols-3 gap-2">
               <select className="input" name={`cx_type_${i}`} defaultValue={cx[i]?.type ?? ""}>
@@ -104,7 +104,7 @@ export function IntakeForm({ clientId, prev, parq, refer }: { clientId: string; 
 
       <Section title="PAR-Q" hint="Any “yes” flags the client NEEDS PHYSICIAN CLEARANCE; the plan cannot be approved until clearance status is recorded.">
         {PARQ_QUESTIONS.map((q, i) => (
-          <div key={i} className="flex flex-col gap-2 border-b sm:flex-row sm:items-start sm:justify-between sm:gap-4 border-slate-800 pb-2 text-sm">
+          <div key={i} className="flex flex-col gap-2 border-b sm:flex-row sm:items-start sm:justify-between sm:gap-4 border-bone/15 pb-2 text-sm">
             <span>{i + 1}. {q}</span>
             <span className="flex shrink-0 gap-3">
               <label className="flex items-center gap-1"><input type="radio" name={`parq_${i}`} value="no" required defaultChecked={parq ? !parq[i] : false} /> No</label>
@@ -119,7 +119,7 @@ export function IntakeForm({ clientId, prev, parq, refer }: { clientId: string; 
           {REFER_OUT_KEYS.map((k) => (
             <label key={k} className="flex items-start gap-2 text-sm">
               <input type="checkbox" name={`refer_${k}`} defaultChecked={Boolean(refer?.[k])} className="mt-1" />
-              <span><b>{REFER_OUT_FLAGS[k].label}</b><br /><span className="text-xs text-slate-400">{REFER_OUT_FLAGS[k].hint}</span></span>
+              <span><b>{REFER_OUT_FLAGS[k].label}</b><br /><span className="text-xs text-stone">{REFER_OUT_FLAGS[k].hint}</span></span>
             </label>
           ))}
         </div>
@@ -181,7 +181,7 @@ export function IntakeForm({ clientId, prev, parq, refer }: { clientId: string; 
         </div>
       </Section>
 
-      {state.error && <p className="rounded border border-red-900 bg-red-950/40 p-2 text-sm text-red-300">{state.error}</p>}
+      {state.error && <p className="note-alert p-2 text-sm">{state.error}</p>}
       <SubmitButton className="btn-primary" pendingText="Saving…">Save intake</SubmitButton>
     </form>
   );

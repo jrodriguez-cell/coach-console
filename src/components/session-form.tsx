@@ -69,10 +69,10 @@ export function SessionForm({ clientId, planId, sessions, library }: { clientId:
       </table></div>
       <button type="button" className="btn btn-sm" onClick={() => setSets((x) => [...x, { exercise_id: "", set_number: 1, weight_lb: null, reps: null, rpe: null, is_test: false }])}>Add exercise</button>
       <label className="block"><span className="label">Notes</span><textarea className="input" name="notes" rows={2} /></label>
-      {state.error && <p className="text-sm text-red-400">{state.error}</p>}
-      {state.saved != null && !state.error && <p className="text-sm text-green-400">Session saved.</p>}
+      {state.error && <p className="text-sm text-alert">{state.error}</p>}
+      {state.saved != null && !state.error && <p className="text-sm text-ok">Session saved.</p>}
       <button className="btn btn-primary" disabled={pending}>{pending ? "Saving…" : "Save session"}</button>
-      <p className="text-xs text-slate-400">Only sets with weight or reps are saved. Mark a set as a test on retest days; tests anchor baseline vs. latest strength.</p>
+      <p className="text-xs text-stone">Only sets with weight or reps are saved. Mark a set as a test on retest days; tests anchor baseline vs. latest strength.</p>
     </form>
   );
 }

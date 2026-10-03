@@ -65,7 +65,7 @@ export function ShareWeek({ planId, week, fileBase }: { planId: string; week: nu
       <a className={canShare ? "btn" : "btn btn-primary"} href={url("pdf")}>Download week {week} PDF</a>
       <a className="btn" href={url("xlsx")}>Fillable Excel</a>
       <button type="button" className="btn" onClick={copy} disabled={busy}>Copy as text</button>
-      {msg && <span className="text-xs text-slate-400">{msg}</span>}
+      {msg && <span className="text-xs text-stone">{msg}</span>}
     </div>
   );
 }

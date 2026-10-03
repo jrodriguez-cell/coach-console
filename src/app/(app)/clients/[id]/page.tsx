@@ -123,9 +123,9 @@ export default async function ClientPage({ params }: { params: { id: string } })
                     {e && <><br />Expected change: {describePrediction(e)}</>}
                   </p>
                 ) : (
-                  <p className="text-red-400">{plan.nutrition?.blocked_reason ?? "Nutrition not generated."}</p>
+                  <p className="text-alert">{plan.nutrition?.blocked_reason ?? "Nutrition not generated."}</p>
                 )}
-                {plan.training ? <p>{plan.training.split_label}, {plan.training.lifting_days.length} days/week · cardio {plan.training.cardio.removed ? "removed" : `${plan.training.cardio.weeks[0]?.sessions}×${plan.training.cardio.weeks[0]?.minutes} min`}</p> : <p className="text-red-400">{plan.nutrition?.training_blocked_reason ?? "Training not generated."}</p>}
+                {plan.training ? <p>{plan.training.split_label}, {plan.training.lifting_days.length} days/week · cardio {plan.training.cardio.removed ? "removed" : `${plan.training.cardio.weeks[0]?.sessions}×${plan.training.cardio.weeks[0]?.minutes} min`}</p> : <p className="text-alert">{plan.nutrition?.training_blocked_reason ?? "Training not generated."}</p>}
               </div>
             ) : (
               <Empty>No plan yet.</Empty>
@@ -137,7 +137,7 @@ export default async function ClientPage({ params }: { params: { id: string } })
               </details>
             )}
             {b.plans.length > 1 && (
-              <p className="mt-2 text-xs text-slate-400">
+              <p className="mt-2 text-xs text-stone">
                 Versions: {b.plans.map((p) => <Link key={p.id} href={`/clients/${client.id}/plan/${p.id}`} className="mr-2">v{p.version} ({p.status})</Link>)}
               </p>
             )}

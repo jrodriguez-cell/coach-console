@@ -2,32 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Make Time To Move brand, Strength theme: Bone on Ink, Stone for secondary
+ * text. Two colours plus one grey; tints of Bone only for hairlines and
+ * hover. Square corners, 1px rules, no shadows or gradients.
+ * Display: MTTM Lettering (stand-in Michroma, capitals, 0.3em tracking).
+ * Body: Manrope.
+ */
+:root {
+  --ink: #0e0e0d;
+  --bone: #efebe3;
+  --stone: #8f8b83;
+  /* MTTM Lettering has its spacing built in (0); Michroma needs 0.3em. */
+  --display-tracking: 0.3em;
+}
+
 @layer base {
   :root { color-scheme: dark; }
   html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
-  body { @apply bg-slate-950 text-slate-200 antialiased; }
-  h1 { @apply text-xl font-semibold tracking-tight text-slate-50; }
-  h2 { @apply text-base font-semibold text-slate-100; }
-  a { @apply text-sky-400 hover:underline; }
+  body { @apply bg-ink font-sans text-[15px] leading-relaxed text-bone antialiased sm:text-base; }
+  h1, h2, h3, .display { @apply font-display font-normal uppercase; letter-spacing: var(--display-tracking); }
+  h1 { @apply text-base leading-snug sm:text-lg; }
+  h2 { @apply text-xs leading-snug sm:text-[13px]; }
+  a { @apply text-bone underline decoration-bone/30 underline-offset-4 hover:decoration-bone; }
   summary { @apply select-none; }
-  input[type="checkbox"], input[type="radio"] { @apply h-4 w-4 accent-sky-500; }
+  input[type="checkbox"], input[type="radio"] { @apply h-4 w-4 accent-bone; }
+  ::selection { @apply bg-bone text-ink; }
 }
 
 @layer components {
-  .card { @apply rounded-xl border border-slate-800 bg-slate-900 p-3 shadow-sm shadow-black/30 sm:p-4; }
-  .btn { @apply inline-flex min-h-[40px] items-center justify-center gap-1 rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm font-medium text-slate-100 no-underline hover:bg-slate-700 hover:no-underline active:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0; }
-  .btn-primary { @apply border-sky-600 bg-sky-600 text-white hover:bg-sky-500 active:bg-sky-700; }
-  .btn-danger { @apply border-red-600 bg-red-600 text-white hover:bg-red-500 active:bg-red-700; }
-  .btn-sm { @apply min-h-[34px] px-2 py-1 text-xs sm:min-h-0; }
+  .card { @apply border border-bone/15 bg-ink p-4 sm:p-5; }
+  .btn { @apply inline-flex min-h-[40px] items-center justify-center gap-1 border border-bone/30 bg-transparent px-3 py-1.5 font-display text-[10px] uppercase text-bone no-underline hover:border-bone hover:no-underline active:bg-bone/10 disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-0 sm:py-2; letter-spacing: 0.2em; }
+  .btn-primary { @apply border-bone bg-bone text-ink hover:bg-bone/90 active:bg-bone/80; }
+  .btn-danger { @apply border-bone bg-transparent text-bone underline decoration-bone/50 underline-offset-4; }
+  .btn-sm { @apply min-h-[34px] px-2 py-1 text-[9px] sm:min-h-0; }
   /* 16px on phones stops iOS Safari zooming into focused fields. */
-  .input { @apply w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-2 text-base text-slate-100 placeholder:text-slate-500 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 sm:py-1.5 sm:text-sm; }
-  .label { @apply mb-1 block text-xs font-medium uppercase tracking-wide text-slate-400; }
-  .table-wrap { @apply -mx-3 overflow-x-auto px-3 sm:mx-0 sm:px-0; }
+  .input { @apply w-full border border-bone/25 bg-ink px-2 py-2 font-sans text-base text-bone placeholder:text-stone focus:border-bone focus:outline-none sm:py-1.5 sm:text-sm; }
+  .label { @apply mb-1.5 block font-display text-[9px] uppercase text-stone; letter-spacing: 0.2em; }
+  .table-wrap { @apply -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0; }
   .table { @apply w-full border-collapse text-sm; }
-  .table th { @apply whitespace-nowrap border-b border-slate-700 bg-slate-800/60 px-2 py-1.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-400; }
-  .table td { @apply border-b border-slate-800 px-2 py-1.5 align-top; }
-  .table tbody tr:hover td { @apply bg-slate-800/30; }
-  .muted { @apply text-sm text-slate-400; }
+  .table th { @apply whitespace-nowrap border-b border-bone/30 px-2 py-2 text-left font-display text-[9px] font-normal uppercase text-stone; letter-spacing: 0.2em; }
+  .table td { @apply border-b border-bone/10 px-2 py-2 align-top; }
+  .table tbody tr:hover td { @apply bg-bone/[0.03]; }
+  .muted { @apply text-sm text-stone; }
+
+  /* Status without extra colours: blocking = solid Bone block, warning =
+     Bone hairline, info/ok = quiet hairline. */
+  .note-alert { @apply border border-bone bg-bone text-ink; }
+  .note-alert a { @apply text-ink decoration-ink/40; }
+  .note-warn { @apply border border-bone text-bone; }
+  .note-info { @apply border border-bone/20 text-bone; }
+  .text-alert { @apply font-semibold text-bone underline decoration-bone decoration-1 underline-offset-4; }
+  .text-ok { @apply text-stone; }
 }
 
 @layer utilities {

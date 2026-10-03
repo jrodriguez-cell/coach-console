@@ -15,9 +15,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
   return (
     <div className="min-h-screen">
-      <nav className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/90 backdrop-blur" style={{ paddingTop: "env(safe-area-inset-top)" }}>
-        <div className="mx-auto flex max-w-7xl items-center gap-4 px-3 py-2 sm:px-4">
-          <Link href="/today" className="font-semibold text-slate-50 no-underline hover:no-underline">
+      <nav className="sticky top-0 z-30 border-b border-bone/15 bg-ink" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+        <div className="mx-auto flex max-w-[1200px] items-center gap-4 px-4 py-3 sm:px-6">
+          <Link href="/today" className="display mr-2 text-[11px] text-bone no-underline hover:no-underline">
             Coach Console
           </Link>
           <TopNavLinks />
@@ -26,7 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </form>
         </div>
       </nav>
-      <main className="mx-auto max-w-7xl space-y-4 px-3 pb-24 pt-3 sm:px-4 sm:pt-4 md:pb-6">{children}</main>
+      <main className="mx-auto max-w-[1200px] space-y-6 px-4 pb-28 pt-6 sm:px-6 sm:pt-8 md:pb-12">{children}</main>
       <BottomTabBar />
     </div>
   );

@@ -41,7 +41,7 @@ export default async function FoodLibrary() {
             {all.map((f) => (
               <tr key={f.id}>
                 <td>{f.name}</td><td>{f.category}</td><td>{f.per_100g_cal}</td><td>{f.per_100g_protein}</td><td>{f.per_100g_carb}</td><td>{f.per_100g_fat}</td><td>{f.household_portion_text}</td><td>{f.allergens.join(", ") || "—"}</td>
-                <td className="whitespace-nowrap"><details><summary className="cursor-pointer text-blue-400">Edit</summary>{row(f)}<form action={deleteFoodAction.bind(null, f.id)}><button className="btn btn-sm mt-1">Delete</button></form></details></td>
+                <td className="whitespace-nowrap"><details><summary className="cursor-pointer text-bone">Edit</summary>{row(f)}<form action={deleteFoodAction.bind(null, f.id)}><button className="btn btn-sm mt-1">Delete</button></form></details></td>
               </tr>
             ))}
           </tbody>

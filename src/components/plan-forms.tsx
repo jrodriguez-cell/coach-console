@@ -7,13 +7,13 @@ function Result({ state }: { state: ActionState }) {
   return (
     <>
       {state.error && (
-        <div className="mt-2 rounded border border-red-900 bg-red-950/40 p-2 text-sm text-red-300">
+        <div className="mt-2 note-alert p-2 text-sm">
           {state.error}
           {state.details && <ul className="mt-1 list-disc pl-4">{state.details.map((d, i) => <li key={i}>{d}</li>)}</ul>}
         </div>
       )}
       {state.ok && state.changes && (
-        <div className="mt-2 rounded border border-blue-900 bg-blue-950/40 p-2 text-sm text-blue-200">
+        <div className="mt-2 note-info p-2 text-sm">
           {state.changes.length === 0 ? (
             "Saved. Energy model and targets recomputed — no key numbers changed."
           ) : (
@@ -49,13 +49,13 @@ export function PlanEditForm({ planId, op, children, submitLabel = "Save", class
 
 export function OverrideForm({ planId, ruleKey }: { planId: string; ruleKey: string }) {
   const [state, action] = useFormState<ActionState, FormData>(saveOverrideAction.bind(null, planId), { error: null });
-  if (state.ok) return <span className="text-xs text-green-400">Override recorded.</span>;
+  if (state.ok) return <span className="text-xs text-ok">Override recorded.</span>;
   return (
     <form action={action} className="mt-1 flex gap-2">
       <input type="hidden" name="rule_key" value={ruleKey} />
       <input className="input text-xs" name="reason" placeholder="Override reason (required)" required />
       <SubmitButton className="btn-sm">Record override</SubmitButton>
-      {state.error && <span className="text-xs text-red-400">{state.error}</span>}
+      {state.error && <span className="text-xs text-alert">{state.error}</span>}
     </form>
   );
 }
@@ -65,7 +65,7 @@ export function ApproveForm({ planId }: { planId: string }) {
   return (
     <form action={action}>
       <SubmitButton className="btn-primary" pendingText="Checking…" confirm="Approve this plan? There is no sending to clients in v1 — exports are for you to share manually.">Approve</SubmitButton>
-      {state.ok && <span className="ml-2 text-sm text-green-400">Approved.</span>}
+      {state.ok && <span className="ml-2 text-sm text-ok">Approved.</span>}
       <Result state={state} />
     </form>
   );

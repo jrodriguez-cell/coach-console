@@ -41,7 +41,7 @@ export default async function ExerciseLibrary({ searchParams }: { searchParams: 
             {list.map((e) => (
               <tr key={e.id}>
                 <td>{e.name}{e.is_compound ? " ·C" : ""}</td><td>{PATTERN_LABEL[e.pattern] ?? e.pattern}</td><td>{e.equipment.join(", ")}</td><td>{e.contraindications.join(", ") || "—"}</td><td>{name(e.regression_id)} → {name(e.progression_id)}</td>
-                <td><details><summary className="cursor-pointer text-blue-400">Edit</summary>{row(e)}</details></td>
+                <td><details><summary className="cursor-pointer text-bone">Edit</summary>{row(e)}</details></td>
               </tr>
             ))}
           </tbody>
