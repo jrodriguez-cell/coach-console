@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 export function Card({ title, actions, children, className }: { title?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string }) {
@@ -18,12 +19,12 @@ export function Card({ title, actions, children, className }: { title?: ReactNod
 export type Tone = "gray" | "green" | "yellow" | "red" | "blue" | "purple";
 // Brand allows Ink, Bone and Stone only: tone is carried by fill and weight.
 const TONES: Record<Tone, string> = {
-  gray: "border-bone/15 text-stone",
-  green: "border-bone/15 text-stone",
-  yellow: "border-bone text-bone",
-  red: "border-bone bg-bone text-ink",
-  blue: "border-bone/30 text-bone",
-  purple: "border-bone/30 text-bone",
+  gray: "border-fg/15 text-muted",
+  green: "border-fg/20 text-muted",
+  yellow: "border-fg text-fg",
+  red: "border-fg bg-fg text-canvas",
+  blue: "border-fg/30 text-fg",
+  purple: "border-fg/30 text-fg",
 };
 
 export function Badge({ tone = "gray", children, title }: { tone?: Tone; children: ReactNode; title?: string }) {
@@ -48,17 +49,17 @@ export function Field({ label, hint, children, className }: { label: ReactNode; 
     <label className={clsx("block", className)}>
       <span className="label">{label}</span>
       {children}
-      {hint && <span className="mt-1 block text-xs text-stone">{hint}</span>}
+      {hint && <span className="mt-1 block text-xs text-muted">{hint}</span>}
     </label>
   );
 }
 
 export function Stat({ label, value, sub }: { label: ReactNode; value: ReactNode; sub?: ReactNode }) {
   return (
-    <div className="border border-bone/15 p-3">
+    <div className="panel p-3">
       <div className="caps">{label}</div>
-      <div className="mt-1 text-lg font-semibold text-bone">{value}</div>
-      {sub && <div className="text-xs text-stone">{sub}</div>}
+      <div className="mt-1 text-lg font-semibold text-fg">{value}</div>
+      {sub && <div className="text-xs text-muted">{sub}</div>}
     </div>
   );
 }
@@ -76,3 +77,21 @@ export const fmt = {
   signed: (v: number | null | undefined, d = 1) => (v == null ? "—" : `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(d)}`),
   pct: (v: number | null | undefined, d = 0) => (v == null ? "—" : `${v.toFixed(d)}%`),
 };
+
+/** Underlined tab strip; scrolls sideways on narrow screens. */
+export function TabBar({ tabs, active, href }: { tabs: { key: string; label: string }[]; active: string; href: (key: string) => string }) {
+  return (
+    <nav className="no-scrollbar -mx-4 flex gap-1 overflow-x-auto border-b border-fg/15 px-4 sm:mx-0 sm:px-0" aria-label="Sections">
+      {tabs.map((t) => (
+        <Link
+          key={t.key}
+          href={href(t.key)}
+          aria-current={t.key === active ? "page" : undefined}
+          className={clsx("-mb-px shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium no-underline hover:no-underline", t.key === active ? "border-fg text-fg" : "border-transparent text-muted hover:text-fg")}
+        >
+          {t.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}

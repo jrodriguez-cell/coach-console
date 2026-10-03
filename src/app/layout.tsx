@@ -19,20 +19,20 @@ const mttm = localFont({
 export const metadata: Metadata = {
   title: "Coach Console",
   robots: { index: false, follow: false },
-  appleWebApp: { capable: true, title: "Coach Console", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "Coach Console", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#0E0E0D",
-  colorScheme: "dark",
+  themeColor: "#B7C0AE",
+  colorScheme: "light",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`dark ${manrope.variable} ${mttm.variable}`}>
+    <html lang="en" className={`${manrope.variable} ${mttm.variable}`}>
       <body>{children}</body>
     </html>
   );

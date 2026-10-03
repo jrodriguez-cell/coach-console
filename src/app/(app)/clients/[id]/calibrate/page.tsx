@@ -20,7 +20,7 @@ export default async function CalibratePage({ params, searchParams }: { params: 
   const settings = await getSettings(db);
   const pv = await calibrationPreview(db, client.id, searchParams.checkpoint ?? null, settings, todayIn(), null);
   return (
-    <div className="max-w-4xl space-y-4">
+    <div className="max-w-4xl space-y-8">
       <PageHeader back={{ href: `/clients/${client.id}`, label: client.name }} eyebrow="Calibration" title={pv?.checkpoint ? `Week ${pv.checkpoint.week} checkpoint` : "On-demand check"} />
       {!pv ? (
         <Banner tone="yellow" title="Needs an approved plan with nutrition targets." />
@@ -43,7 +43,7 @@ export default async function CalibratePage({ params, searchParams }: { params: 
           <Card title="Recommendation">
             <p className="text-sm"><Badge tone={DECISION_TONE[pv.result.decision]}>{pv.result.decision.replace("_", " ")}</Badge> {pv.result.explanation}</p>
             {pv.result.decision === "adjust" && <p className="mt-1 text-sm">Recommended: <b>{fmt.signed(pv.result.recommended_adjustment_kcal, 0)} kcal/day</b> → {fmt.n(pv.result.recommended_target_kcal)} kcal. Macros are recomputed with the same rules and every guardrail is re-checked on save.</p>}
-            <p className="mt-1 text-xs text-stone">You approve or edit every adjustment. Keep/adjust also refreshes the energy model with the current weight and this week&apos;s program, and after a successful calibration the uncertainty narrows to ±{(settings.uncertainty.calibrated * 100).toFixed(0)}%.</p>
+            <p className="mt-1 text-xs text-muted">You approve or edit every adjustment. Keep/adjust also refreshes the energy model with the current weight and this week&apos;s program, and after a successful calibration the uncertainty narrows to ±{(settings.uncertainty.calibrated * 100).toFixed(0)}%.</p>
           </Card>
           <Card title="Your decision">
             <CalibrationForm clientId={client.id} checkpointId={pv.checkpoint?.id ?? null} recommended={{ decision: pv.result.decision, adjustment: pv.result.recommended_adjustment_kcal }} adherence={pv.input.adherencePct} />

@@ -1,15 +1,16 @@
 import type { Config } from "tailwindcss";
 
-// Make Time To Move brand (guidelines v1.0): Strength theme — Bone on Ink,
-// Stone for secondary text. Square corners, hairline rules, no shadows.
+// Make Time To Move brand (guidelines v1.0), Mobility theme. Square corners,
+// hairline rules, no shadows.
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        ink: "#0E0E0D",
-        bone: "#EFEBE3",
-        stone: "#8F8B83",
+        // Theme roles, set as CSS variables in globals.css (Mobility: Ink on Sage).
+        canvas: "rgb(var(--canvas) / <alpha-value>)",
+        fg: "rgb(var(--fg) / <alpha-value>)",
+        muted: "rgb(var(--muted) / <alpha-value>)",
       },
       fontFamily: {
         sans: ["var(--font-manrope)", "system-ui", "sans-serif"],

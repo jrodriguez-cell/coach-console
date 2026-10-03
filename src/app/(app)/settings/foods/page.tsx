@@ -30,7 +30,7 @@ export default async function FoodLibrary() {
     </form>
   );
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       <Link href="/settings" className="text-sm">← Settings</Link>
       <PageHeader back={{ href: "/settings", label: "Settings" }} title="Food library" display meta={`${all.length} foods`} />
       <p className="muted">Values per 100 g. Example days are built only from these foods and checked against every tolerance band.</p>
@@ -42,7 +42,7 @@ export default async function FoodLibrary() {
             {all.map((f) => (
               <tr key={f.id}>
                 <td data-primary>{f.name}</td><td data-label="Category">{f.category}</td><td data-label="kcal / 100 g">{f.per_100g_cal}</td><td data-label="Protein">{f.per_100g_protein}</td><td data-label="Carbs">{f.per_100g_carb}</td><td data-label="Fat">{f.per_100g_fat}</td><td data-label="Household">{f.household_portion_text}</td><td data-label="Allergens">{f.allergens.join(", ") || "—"}</td>
-                <td className="whitespace-nowrap"><details><summary className="cursor-pointer text-bone">Edit</summary>{row(f)}<form action={deleteFoodAction.bind(null, f.id)}><button className="btn btn-sm mt-1">Delete</button></form></details></td>
+                <td className="whitespace-nowrap"><details><summary className="cursor-pointer text-fg">Edit</summary>{row(f)}<form action={deleteFoodAction.bind(null, f.id)}><button className="btn btn-sm mt-1">Delete</button></form></details></td>
               </tr>
             ))}
           </tbody>

@@ -23,7 +23,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: { st
   const filter = searchParams.status ?? "all";
   const rows = ((clients ?? []) as ClientRow[]).filter((c) => filter === "all" || c.status === filter);
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       <div className="flex items-end justify-between gap-3">
         <PageHeader title="Clients" display />
         <Link href="/clients/new" className="btn btn-primary shrink-0">New client</Link>

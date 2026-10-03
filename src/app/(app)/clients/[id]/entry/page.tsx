@@ -31,11 +31,11 @@ export default async function EntryGridPage({ params, searchParams }: { params: 
     if (key) initial[`${key}|${e.date}`] = e.value_text ?? (e.value_num != null ? String(e.value_num) : "");
   }
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       <PageHeader back={{ href: `/clients/${client.id}`, label: client.name }} eyebrow="Enter data" title={client.name} />
-      <div className="grid grid-cols-2 border border-bone/30 sm:inline-grid" role="tablist" aria-label="Metric frequency">
-        <Link role="tab" aria-selected={mode === "weekly"} className={`display flex min-h-[40px] items-center justify-center px-4 text-[11px] no-underline hover:no-underline ${mode === "weekly" ? "bg-bone text-ink" : "text-stone"}`} href={`?mode=weekly`}>Weekly</Link>
-        <Link role="tab" aria-selected={mode === "daily"} className={`display flex min-h-[40px] items-center justify-center px-4 text-[11px] no-underline hover:no-underline ${mode === "daily" ? "bg-bone text-ink" : "text-stone"}`} href={`?mode=daily`}>Daily</Link>
+      <div className="grid grid-cols-2 border border-fg/30 sm:inline-grid" role="tablist" aria-label="Metric frequency">
+        <Link role="tab" aria-selected={mode === "weekly"} className={`flex min-h-[44px] items-center justify-center px-4 text-sm font-semibold no-underline hover:no-underline ${mode === "weekly" ? "bg-fg text-canvas" : "text-muted"}`} href={`?mode=weekly`}>Weekly</Link>
+        <Link role="tab" aria-selected={mode === "daily"} className={`flex min-h-[44px] items-center justify-center px-4 text-sm font-semibold no-underline hover:no-underline ${mode === "daily" ? "bg-fg text-canvas" : "text-muted"}`} href={`?mode=daily`}>Daily</Link>
       </div>
       <Card>
         {cols.length === 0 ? <p className="muted">No active {mode} metrics. Configure them in Settings → Metrics.</p> : <EntryGrid clientId={client.id} rows={rows} columns={cols.map((c) => ({ key: c.key, label: c.label, unit: c.unit, type: c.type }))} initial={initial} />}

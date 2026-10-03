@@ -8,12 +8,12 @@ export function TaskList({ tasks, showClient = true, clientNames }: { tasks: Tas
   const today = todayIn();
   if (tasks.length === 0) return <Empty>Nothing open.</Empty>;
   return (
-    <ul className="divide-y divide-bone/15">
+    <ul className="divide-y divide-fg/15">
       {tasks.map((t) => (
         <li key={t.id} className="space-y-2.5 py-3">
           <div className="min-w-0 space-y-1.5">
             <p className="text-[15px] leading-snug">{t.title}</p>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-stone">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
               {t.status === "snoozed" ? <span>Snoozed until {formatDate(t.snoozed_until)}</span> : t.due_date < today ? <Badge tone="red">Overdue · {formatDate(t.due_date).replace(/, \d{4}$/, "")}</Badge> : <span>Due {formatDate(t.due_date)}</span>}
               {showClient && t.client_id && clientNames?.[t.client_id] ? <span>{clientNames[t.client_id]}</span> : null}
             </div>

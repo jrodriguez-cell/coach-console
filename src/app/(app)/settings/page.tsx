@@ -36,7 +36,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: { d
   const s = await getSettings(db);
   const { data: clients } = await db.from("clients").select("id, name").order("name");
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       <PageHeader title="Settings" display />
       {searchParams.deleted && <Banner tone="green" title="Client data deleted." />}
       <div className="actions">
@@ -83,7 +83,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: { d
 
       <Card title="Client data">
         <p className="mb-2 text-sm">Export downloads everything stored for one client as JSON. Deleting removes the client and all linked records permanently.</p>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
           <div className="space-y-1 text-sm">
             {(clients ?? []).map((c) => <div key={c.id}><a href={`/api/clients/${c.id}/export`}>Export {c.name}</a></div>)}
           </div>

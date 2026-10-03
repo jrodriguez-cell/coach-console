@@ -30,9 +30,9 @@ export default async function TodayPage() {
   const order = Array.from(groups.keys()).sort((a, b) => (a === "_general" ? 1 : b === "_general" ? -1 : (names[a] ?? "").localeCompare(names[b] ?? "")));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       <PageHeader eyebrow="Today" title={formatDate(today)} meta={`${tasks.length} open ${tasks.length === 1 ? "task" : "tasks"}`} />
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           {order.length === 0 && <Card><Empty>Nothing needs your attention right now.</Empty></Card>}
           {order.map((k) => (
@@ -46,7 +46,7 @@ export default async function TodayPage() {
             {keyDates.length === 0 ? <Empty>No key dates.</Empty> : (
               <ul className="space-y-2 text-sm">
                 {keyDates.map((k, i) => (
-                  <li key={i} className="border-b border-bone/10 pb-2 last:border-0"><div className="label mb-1">{DAY_NAMES[dayOfWeek(k.date)]} {formatDate(k.date).replace(/, \d{4}$/, "")}</div><Link href={`/clients/${k.client_id}`}>{k.client_name}</Link> · {k.label}</li>
+                  <li key={i} className="border-b border-fg/10 pb-2 last:border-0"><div className="label mb-1">{DAY_NAMES[dayOfWeek(k.date)]} {formatDate(k.date).replace(/, \d{4}$/, "")}</div><Link href={`/clients/${k.client_id}`}>{k.client_name}</Link> · {k.label}</li>
                 ))}
               </ul>
             )}

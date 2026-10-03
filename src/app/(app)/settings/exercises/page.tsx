@@ -30,7 +30,7 @@ export default async function ExerciseLibrary({ searchParams }: { searchParams: 
     </form>
   );
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       <Link href="/settings" className="text-sm">← Settings</Link>
       <PageHeader back={{ href: "/settings", label: "Settings" }} title="Exercise library" display meta={`${all.length} exercises`} />
       <form className="flex gap-2"><input className="input max-w-xs" name="q" defaultValue={searchParams.q} placeholder="Search" /><button className="btn">Search</button></form>
@@ -42,7 +42,7 @@ export default async function ExerciseLibrary({ searchParams }: { searchParams: 
             {list.map((e) => (
               <tr key={e.id}>
                 <td data-primary>{e.name}{e.is_compound ? " ·C" : ""}</td><td data-label="Pattern">{PATTERN_LABEL[e.pattern] ?? e.pattern}</td><td data-label="Equipment">{e.equipment.join(", ")}</td><td data-label="Contraindications" data-block>{e.contraindications.join(", ") || "—"}</td><td data-label="Regression → progression" data-block>{name(e.regression_id)} → {name(e.progression_id)}</td>
-                <td><details><summary className="cursor-pointer text-bone">Edit</summary>{row(e)}</details></td>
+                <td><details><summary className="cursor-pointer text-fg">Edit</summary>{row(e)}</details></td>
               </tr>
             ))}
           </tbody>

@@ -40,7 +40,7 @@ export default async function ClientProgressPage({ params }: { params: { id: str
   const bySite = (site: string) => d.measurements.filter((m) => m.site === site).map((m) => ({ date: m.date, value: m.value }));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       <PageHeader
         back={{ href: `/clients/${client.id}`, label: client.name }}
         eyebrow="Progress"
@@ -64,10 +64,10 @@ export default async function ClientProgressPage({ params }: { params: { id: str
           <Stat label="Rate (last 4 wks)" value={w?.observedLbPerWeek != null ? `${fmt.signed(w.observedLbPerWeek, 2)} lb/wk` : "—"} sub={s.meta ? `planned ${fmt.signed(s.meta.plannedLbPerWeek, 2)} (estimate)` : undefined} />
         </div>
         <WeightChart rows={weightRows(d, s)} />
-        <p className="mt-1 text-xs text-stone">Planned trajectory and range come from the plan&apos;s energy model (3,500 kcal/lb planning approximation) — a prediction, not a guarantee.</p>
+        <p className="mt-1 text-xs text-muted">Planned trajectory and range come from the plan&apos;s energy model (3,500 kcal/lb planning approximation) — a prediction, not a guarantee.</p>
       </Card>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         {/* 5. Adherence */}
         <Card title={`Adherence (last ${settings.task_thresholds.adherenceWindowDays} days)`}>
           <div className="grid grid-cols-2 gap-2">
@@ -91,7 +91,7 @@ export default async function ClientProgressPage({ params }: { params: { id: str
                 {MEASUREMENT_SITES.map((site) => {
                   const pts = bySite(site);
                   if (!pts.length) return null;
-                  return <tr key={site}><td data-primary className="capitalize">{site}</td><td data-label="Baseline">{pts[0].value} <span className="text-xs text-stone">{formatDate(pts[0].date)}</span></td><td data-label="Latest">{pts.at(-1)!.value} <span className="text-xs text-stone">{formatDate(pts.at(-1)!.date)}</span></td><td data-label="Change">{fmt.signed(pts.at(-1)!.value - pts[0].value)}</td></tr>;
+                  return <tr key={site}><td data-primary className="capitalize">{site}</td><td data-label="Baseline">{pts[0].value} <span className="text-xs text-muted">{formatDate(pts[0].date)}</span></td><td data-label="Latest">{pts.at(-1)!.value} <span className="text-xs text-muted">{formatDate(pts.at(-1)!.date)}</span></td><td data-label="Change">{fmt.signed(pts.at(-1)!.value - pts[0].value)}</td></tr>;
                 })}
               </tbody>
             </table></div>
@@ -127,7 +127,7 @@ export default async function ClientProgressPage({ params }: { params: { id: str
             </tbody>
           </table></div>
         )}
-        <p className="mt-1 text-xs text-stone">e1RM = weight × (1 + reps/30), adding reps in reserve (10 − RPE) when RPE is logged; 5RM = e1RM ÷ (1 + 5/30). Double progression: when every set hits the top of the rep range at RPE 8 or easier, add weight next session.</p>
+        <p className="mt-1 text-xs text-muted">e1RM = weight × (1 + reps/30), adding reps in reserve (10 − RPE) when RPE is logged; 5RM = e1RM ÷ (1 + 5/30). Double progression: when every set hits the top of the rep range at RPE 8 or easier, add weight next session.</p>
       </Card>
 
       {/* 4. Benchmarks */}
@@ -138,7 +138,7 @@ export default async function ClientProgressPage({ params }: { params: { id: str
             <tbody>
               {s.benchmarks.map((b) => (
                 <tr key={b.id}>
-                  <td data-primary>{b.name} <span className="text-xs text-stone">{b.unit} · {b.direction === "higher_better" ? "higher is better" : "lower is better"}</span></td>
+                  <td data-primary>{b.name} <span className="text-xs text-muted">{b.unit} · {b.direction === "higher_better" ? "higher is better" : "lower is better"}</span></td>
                   <td colSpan={3}>
                     <form action={updateBenchmarkAction.bind(null, client.id, b.id)} className="grid w-full grid-cols-2 items-end gap-2 sm:flex sm:gap-1">
                       <label><span className="label sm:sr-only">Baseline</span><input className="input sm:w-20" type="number" inputMode="decimal" step="any" name="baseline" defaultValue={b.baseline ?? ""} /></label>
@@ -173,7 +173,7 @@ export default async function ClientProgressPage({ params }: { params: { id: str
       </Card>
 
       {/* 6. Volume and log */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <Card title="Training volume">
           <p className="muted mb-3">Weekly total, lb × reps.</p><BarSeries points={volumeRows(d)} unit="lb·reps" /></Card>
         <Card title="Training log">
@@ -195,7 +195,7 @@ export default async function ClientProgressPage({ params }: { params: { id: str
 
       {customDefs.length > 0 && (
         <Card title="Custom metrics">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
             {customDefs.map((m) => <div key={m.id}><h3 className="text-sm font-semibold">{m.label}</h3><SeriesChart points={d.metrics[m.key] ?? []} unit={m.unit} height={140} /></div>)}
           </div>
         </Card>
@@ -210,7 +210,7 @@ export default async function ClientProgressPage({ params }: { params: { id: str
             ))}
           </ul>
         )}
-        <ul className="mt-2 text-sm text-stone">
+        <ul className="mt-2 text-sm text-muted">
           {d.checkpoints.map((c) => <li key={c.id}>{formatDate(c.due_date)} · week {c.week} {c.kind === "review" ? "calibration" : c.kind} {c.completed_at ? "✔" : ""}</li>)}
         </ul>
       </Card>

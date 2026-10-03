@@ -3,72 +3,82 @@
 @tailwind utilities;
 
 /*
- * Make Time To Move brand, Strength theme: Bone on Ink, Stone for secondary
- * text. Two colours plus one grey; tints of Bone only for hairlines and
- * hover. Square corners, 1px rules, no shadows or gradients.
- * Display: MTTM Lettering Regular, capitals, letter-spacing 0 (spacing is
- * built in) for headings, section titles, buttons, tabs and navigation.
- * Small labels, table headers and badges: Manrope in spaced capitals (as in
- * the guide's own tables). Body: Manrope.
+ * Make Time To Move brand, Mobility theme: Ink on Sage, Fern for secondary
+ * text. Colours are roles so the theme lives in one place:
+ *   canvas = background, fg = text and marks, muted = secondary text.
+ * Tints of fg only for hairlines, fills and hover. Square corners, 1px
+ * rules, no shadows or gradients.
+ * Type: MTTM Lettering only for static page titles (and the logo); Manrope
+ * for everything you read or tap. Small labels in Manrope spaced capitals.
  */
 :root {
-  --ink: #0e0e0d;
-  --bone: #efebe3;
-  --stone: #8f8b83;
+  --canvas: 183 192 174; /* Sage #B7C0AE */
+  --fg: 14 14 13; /* Ink #0E0E0D */
+  --muted: 79 85 73; /* Fern #5F665A, deepened slightly for small-text contrast */
+  color-scheme: light;
 }
 
 @layer base {
-  :root { color-scheme: dark; }
   html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
-  body { @apply bg-ink font-sans text-[15px] leading-relaxed text-bone antialiased sm:text-base; }
-  h1, h2, h3, .display { @apply font-display font-normal uppercase tracking-normal; }
-  h1 { @apply text-lg leading-snug sm:text-xl; }
-  h2 { @apply text-[13px] leading-snug; }
-  h3 { @apply text-xs leading-snug; }
-  a { @apply text-bone underline decoration-bone/30 underline-offset-4 hover:decoration-bone; }
+  body { @apply bg-canvas font-sans text-[15px] leading-relaxed text-fg antialiased sm:text-base; }
+  h1 { @apply font-sans text-2xl font-semibold leading-tight tracking-tight; }
+  h2 { @apply font-sans text-base font-semibold leading-snug; }
+  h3 { @apply font-sans text-[15px] font-semibold leading-snug; }
+  a { @apply text-fg underline decoration-fg/30 underline-offset-4 hover:decoration-fg; }
   summary { @apply select-none; }
-  input[type="checkbox"], input[type="radio"] { @apply h-4 w-4 accent-bone; }
-  ::selection { @apply bg-bone text-ink; }
+  input[type="checkbox"], input[type="radio"] { @apply h-4 w-4 accent-fg; }
+  ::selection { @apply bg-fg text-canvas; }
 }
 
 @layer components {
-  .card { @apply border border-bone/15 bg-ink p-4 sm:p-5; }
-  /* Small spaced capitals in Manrope: eyebrows, table headers, badges. */
-  .caps { @apply font-sans text-[11px] font-medium uppercase leading-none tracking-[0.12em] text-stone; }
-  /* Dynamic titles (names, dates) in Manrope; MTTM stays for short labels. */
-  .title { @apply font-sans text-[22px] font-semibold normal-case leading-tight tracking-tight sm:text-[26px]; }
+  /* Brand lettering, used sparingly: static page titles and the sign-in. */
+  .display { @apply font-display font-normal uppercase tracking-normal; }
+  .display-title { @apply font-display text-lg font-normal uppercase leading-snug tracking-normal sm:text-xl; }
+
+  /* Sections are separated by a hairline and space rather than boxed. */
+  .card { @apply border-t border-fg/20 pt-5; }
+  .panel { @apply bg-fg/[0.05] p-4; }
+
+  /* Small spaced capitals: eyebrows, table headers, badges, stat labels. */
+  .caps { @apply font-sans text-[11px] font-medium uppercase leading-none tracking-[0.12em] text-muted; }
+  .title { @apply font-sans text-2xl font-semibold normal-case leading-tight tracking-tight sm:text-[28px]; }
   .title-sm { @apply font-sans text-base font-semibold normal-case leading-snug tracking-normal; }
+
   /* Action groups: two-column grid on phones (primary and odd-last span
      both), a wrapping row from sm up. */
   .actions { @apply grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center; }
   .actions > *, .actions > form > .btn { @apply w-full sm:w-auto; }
-  .actions > .btn-primary, .actions > form:has(.btn-primary), .actions > :last-child:nth-child(odd) { @apply col-span-2; }
-  .btn { @apply inline-flex min-h-[40px] items-center justify-center gap-1 border border-bone/30 bg-transparent px-3 py-1.5 text-center font-display text-[10px] font-normal uppercase leading-snug tracking-normal text-bone no-underline sm:text-[11px] hover:border-bone hover:no-underline active:bg-bone/10 disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-0 sm:py-2; }
-  .btn-primary { @apply border-bone bg-bone text-ink hover:bg-bone/90 active:bg-bone/80; }
-  .btn-danger { @apply border-bone bg-transparent text-bone underline decoration-bone/50 underline-offset-4; }
-  .btn-sm { @apply min-h-[34px] px-2 py-1 text-[10px] sm:min-h-0 sm:text-[10px]; }
+  .actions > .btn-primary, .actions > form:has(.btn-primary) { @apply col-span-2; }
+  /* An odd one out fills the row, counting only the non-primary buttons. */
+  .actions:not(:has(> .btn-primary, > form:has(.btn-primary))) > :last-child:nth-child(odd) { @apply col-span-2; }
+  .actions:has(> .btn-primary:first-child, > form:first-child:has(.btn-primary)) > :last-child:nth-child(even) { @apply col-span-2; }
+
+  .btn { @apply inline-flex min-h-[44px] items-center justify-center gap-1.5 border border-fg/35 bg-transparent px-4 py-2 text-center font-sans text-sm font-semibold leading-snug text-fg no-underline hover:border-fg hover:no-underline active:bg-fg/10 disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-[38px]; }
+  .btn-primary { @apply border-fg bg-fg text-canvas hover:bg-fg/90 active:bg-fg/80; }
+  .btn-danger { @apply border-fg/35 bg-transparent text-fg underline decoration-fg/40 underline-offset-4; }
+  .btn-sm { @apply min-h-[36px] px-3 py-1 text-[13px] sm:min-h-[32px]; }
+
   /* 16px on phones stops iOS Safari zooming into focused fields. */
-  .input { @apply w-full border border-bone/25 bg-ink px-2 py-2 font-sans text-base text-bone placeholder:text-stone focus:border-bone focus:outline-none sm:py-1.5 sm:text-sm; }
-  /* Field labels are read as sentences: Manrope. MTTM stays on headings,
-     buttons, tabs, badges and table headers. */
-  .label { @apply mb-1.5 block break-words font-sans text-[13px] font-medium normal-case leading-snug tracking-normal text-stone; }
+  .input { @apply w-full border border-fg/30 bg-canvas px-3 py-2 font-sans text-base text-fg placeholder:text-muted/80 focus:border-fg focus:outline-none focus:ring-1 focus:ring-fg sm:text-sm; }
+  .label { @apply mb-1.5 block break-words font-sans text-[13px] font-medium normal-case leading-snug tracking-normal text-muted; }
+
   .table-wrap { @apply -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0; }
   .table { @apply w-full border-collapse text-sm; }
-  .table th { @apply whitespace-nowrap border-b border-bone/30 px-2 py-2 text-left font-sans text-[11px] font-medium uppercase tracking-[0.12em] text-stone; }
-  .table td { @apply border-b border-bone/10 px-2 py-2 align-top; }
-  .table tbody tr:hover td { @apply bg-bone/[0.03]; }
-  .muted { @apply text-sm text-stone; }
+  .table th { @apply whitespace-nowrap border-b border-fg/40 px-2 py-2 text-left font-sans text-[11px] font-medium uppercase tracking-[0.12em] text-muted; }
+  .table td { @apply border-b border-fg/10 px-2 py-2.5 align-top; }
+  .table tbody tr:hover td { @apply bg-fg/[0.03]; }
+  .muted { @apply text-sm text-muted; }
 
   /* Phones: tables marked .table-stack become stacked cards; each cell shows
      its column name from data-label. */
   @media (max-width: 639px) {
     .table-stack thead { display: none; }
     .table-stack, .table-stack tbody, .table-stack tr, .table-stack td { display: block; width: 100%; }
-    .table-stack tr { @apply border-b border-bone/15 py-3; }
+    .table-stack tr { @apply border-b border-fg/15 py-3; }
     .table-stack tbody tr:hover td { background: transparent; }
     .table-stack td { @apply flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-0 px-0 py-1 text-right; }
     .table-stack td:empty { display: none; }
-    .table-stack td::before { content: attr(data-label); @apply shrink-0 text-left font-sans text-[11px] font-medium uppercase tracking-[0.12em] text-stone; }
+    .table-stack td::before { content: attr(data-label); @apply shrink-0 text-left font-sans text-[11px] font-medium uppercase tracking-[0.12em] text-muted; }
     .table-stack td[data-primary] { @apply block pb-1.5 text-left text-base font-semibold; }
     .table-stack td[data-block] { @apply block text-left; }
     .table-stack td[data-block]::before { @apply mb-1 block; }
@@ -77,14 +87,14 @@
     .table-wrap:has(> .table-stack) { @apply mx-0 overflow-visible px-0; }
   }
 
-  /* Status without extra colours: blocking = solid Bone block, warning =
-     Bone hairline, info/ok = quiet hairline. */
-  .note-alert { @apply border border-bone bg-bone text-ink; }
-  .note-alert a { @apply text-ink decoration-ink/40; }
-  .note-warn { @apply border border-bone text-bone; }
-  .note-info { @apply border border-bone/20 text-bone; }
-  .text-alert { @apply font-semibold text-bone underline decoration-bone decoration-1 underline-offset-4; }
-  .text-ok { @apply text-stone; }
+  /* Status without extra colours: blocking = solid Ink block, warning =
+     Ink outline, info/ok = quiet fill. */
+  .note-alert { @apply border border-fg bg-fg text-canvas; }
+  .note-alert a { @apply text-canvas decoration-canvas/50; }
+  .note-warn { @apply border border-fg text-fg; }
+  .note-info { @apply bg-fg/[0.05] text-fg; }
+  .text-alert { @apply font-semibold text-fg underline decoration-fg decoration-1 underline-offset-4; }
+  .text-ok { @apply text-muted; }
 }
 
 /* iOS Safari zooms into any field under 16px; keep every field at 16px on
@@ -101,7 +111,6 @@
 }
 
 @media print {
-  :root { color-scheme: light; }
   body { background: #fff; color: #000; }
   nav, .no-print { display: none !important; }
 }

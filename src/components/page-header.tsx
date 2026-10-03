@@ -9,14 +9,14 @@ export function PageHeader({ back, eyebrow, title, display, badge, meta, actions
   return (
     <header className="space-y-3">
       {back && (
-        <Link href={back.href} className="inline-flex min-h-[32px] items-center text-sm text-stone no-underline hover:text-bone">
+        <Link href={back.href} className="inline-flex min-h-[32px] items-center text-sm text-muted no-underline hover:text-fg">
           ← {back.label}
         </Link>
       )}
       <div className="space-y-2">
         {eyebrow && <p className="caps">{eyebrow}</p>}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <h1 className={display ? undefined : "title"}>{title}</h1>
+          <h1 className={display ? "display-title" : "title"}>{title}</h1>
           {badge}
         </div>
         {meta && <div className="muted">{meta}</div>}

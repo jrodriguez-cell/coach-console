@@ -1,21 +1,21 @@
 "use client";
 import { Area, Bar, BarChart, CartesianGrid, ComposedChart, Legend, Line, LineChart, ResponsiveContainer, Scatter, Tooltip, XAxis, YAxis } from "recharts";
 
-// MTTM Strength theme: Bone for actuals, Stone for plan, Bone tints for the
+// MTTM Mobility theme: Ink for actuals, Fern for plan, Ink tints for the
 // band and grid. No extra colours.
 const C = {
-  actual: "#EFEBE3",
-  planned: "#8F8B83",
-  band: "#EFEBE3",
-  grid: "rgba(239,235,227,0.08)",
-  axis: "#8F8B83",
-  cursor: "rgba(239,235,227,0.06)",
+  actual: "#0E0E0D",
+  planned: "#5F665A",
+  band: "#0E0E0D",
+  grid: "rgba(14,14,13,0.10)",
+  axis: "#4F5549",
+  cursor: "rgba(14,14,13,0.06)",
 };
 const axis = { stroke: C.axis, fontSize: 11, tickLine: false, fontFamily: "var(--font-manrope)" };
 const tip = {
-  contentStyle: { background: "#0E0E0D", border: "1px solid rgba(239,235,227,0.3)", borderRadius: 0, color: "#EFEBE3", fontSize: 12, fontFamily: "var(--font-manrope)" },
-  labelStyle: { color: "#8F8B83" },
-  itemStyle: { color: "#EFEBE3" },
+  contentStyle: { background: "#B7C0AE", border: "1px solid rgba(14,14,13,0.35)", borderRadius: 0, color: "#EFEBE3", fontSize: 12, fontFamily: "var(--font-manrope)" },
+  labelStyle: { color: "#4F5549" },
+  itemStyle: { color: "#0E0E0D" },
 };
 const short = (d: string) => {
   const [, m, day] = d.split("-");

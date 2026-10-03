@@ -10,8 +10,8 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center p-4">
       <form action={action} className="w-full max-w-sm space-y-5">
         <div className="flex flex-col items-center gap-6 pb-6 text-center">
-          <Logo mark="wordmark" className="h-auto w-[260px] text-bone" />
-          <h1 className="text-[13px] text-stone">Coach Console</h1>
+          <Logo mark="wordmark" className="h-auto w-[260px] text-fg" />
+          <h1 className="display text-[13px] text-muted">Coach Console</h1>
         </div>
         <label className="block">
           <span className="label">Email</span>

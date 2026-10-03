@@ -41,7 +41,7 @@ export default async function PlanPage({ params, searchParams }: { params: { id:
   const base = `/clients/${client.id}/plan/${plan.id}`;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       <PageHeader
         back={{ href: `/clients/${client.id}`, label: client.name }}
         eyebrow="Plan"
@@ -67,23 +67,27 @@ export default async function PlanPage({ params, searchParams }: { params: { id:
         </Banner>
       )}
 
-      {plan.training?.clearance_notes && (
-        <Banner tone="red" title="Physician clearance notes">
-          <pre className="whitespace-pre-wrap font-sans">{plan.training.clearance_notes}</pre>
-        </Banner>
-      )}
 
-      <GuardrailPanel plan={plan} overrides={overrides} editable={editable} />
-
-      <div className="no-scrollbar -mx-3 flex gap-1 overflow-x-auto border-b border-bone/15 px-3 sm:mx-0 sm:px-0">
+      <div className="no-scrollbar -mx-3 flex gap-1 overflow-x-auto border-b border-fg/15 px-3 sm:mx-0 sm:px-0">
         {TABS.map((t) => (
-          <Link key={t} href={`${base}?tab=${t}`} className={clsx("display -mb-px shrink-0 whitespace-nowrap border-b px-3 py-2.5 text-[11px] no-underline hover:no-underline", t === tab ? "border-bone text-bone" : "border-transparent text-stone hover:text-bone")}>
-            {t === "nutrition" ? "Nutrition guidance" : t}
+          <Link key={t} href={`${base}?tab=${t}`} className={clsx("-mb-px shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium capitalize no-underline hover:no-underline", t === tab ? "border-fg text-fg" : "border-transparent text-muted hover:text-fg")}>
+            {t}
           </Link>
         ))}
       </div>
 
-      {tab === "overview" && <Overview plan={plan} editable={editable} clientId={client.id} purpose={client.purpose_text} intakeGoal={intake?.answers.primary_goal} />}
+      {tab === "overview" && (
+        <>
+          {plan.training?.clearance_notes && (
+            <Banner tone="red" title="Physician clearance notes">
+              <pre className="whitespace-pre-wrap font-sans">{plan.training.clearance_notes}</pre>
+            </Banner>
+          )}
+
+          <GuardrailPanel plan={plan} overrides={overrides} editable={editable} />
+          <Overview plan={plan} editable={editable} clientId={client.id} purpose={client.purpose_text} intakeGoal={intake?.answers.primary_goal} />
+        </>
+      )}
       {tab === "training" && <Training plan={plan} editable={editable} week={Number(searchParams.week) || currentPlanWeek(plan.parameters, todayIn())} fileBase={client.name.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "")} base={base} candidates={await swapCandidates(db, plan, intake?.answers)} />}
       {tab === "nutrition" && <Nutrition plan={plan} editable={editable} disclaimer={settings.disclaimer} hasGoalWeight={Boolean(intake?.answers.goal_weight_lb)} />}
       {tab === "calendar" && <Calendar plan={plan} />}
@@ -107,14 +111,14 @@ function GuardrailPanel({ plan, overrides, editable }: { plan: PlanRow; override
   if (!flags.length) return null;
   const notOk = flags.filter((f) => f.status !== "ok");
   return (
-    <Card title="Guardrails" actions={<span className="text-xs text-stone">{flags.length - notOk.length} ok · {notOk.filter((f) => f.status === "warn").length} warn · {notOk.filter((f) => f.status === "blocked").length} blocked</span>}>
+    <Card title="Guardrails" actions={<span className="text-xs text-muted">{flags.length - notOk.length} ok · {notOk.filter((f) => f.status === "warn").length} warn · {notOk.filter((f) => f.status === "blocked").length} blocked</span>}>
       <ul className="space-y-3 text-sm">
         {notOk.map((f) => {
           const ov = overrides.filter((o) => o.rule_key === f.rule_key);
           return (
-            <li key={f.rule_key} className="space-y-1.5 border-b border-bone/10 pb-3 last:border-0 last:pb-0">
-              <div className="flex flex-wrap items-center gap-2"><Badge tone={statusTone(f.status)}>{f.status}</Badge><span className="font-semibold">{f.label}</span>{f.value ? <span className="text-stone">{f.value}</span> : null}</div>
-              <p className="text-stone">{f.message}</p>
+            <li key={f.rule_key} className="space-y-1.5 border-b border-fg/10 pb-3 last:border-0 last:pb-0">
+              <div className="flex flex-wrap items-center gap-2"><Badge tone={statusTone(f.status)}>{f.status}</Badge><span className="font-semibold">{f.label}</span>{f.value ? <span className="text-muted">{f.value}</span> : null}</div>
+              <p className="text-muted">{f.message}</p>
               {f.status === "warn" && (ov.length ? <div className="text-xs text-ok">Override: {ov.map((o) => o.reason).join("; ")}</div> : editable && <OverrideForm planId={plan.id} ruleKey={f.rule_key} />)}
               {f.status === "blocked" && <div className="text-xs text-alert">Cannot be overridden. Change the plan inputs.</div>}
             </li>
@@ -122,9 +126,9 @@ function GuardrailPanel({ plan, overrides, editable }: { plan: PlanRow; override
         })}
       </ul>
       <details className="mt-2 text-sm">
-        <summary className="cursor-pointer text-stone">Show passing checks</summary>
+        <summary className="cursor-pointer text-muted">Show passing checks</summary>
         <ul className="mt-2 space-y-1.5">
-          {flags.filter((f) => f.status === "ok").map((f) => <li key={f.rule_key} className="flex flex-wrap items-baseline gap-x-2"><span className="font-semibold">{f.label}</span>{f.value ? <span className="text-stone">{f.value}</span> : null}</li>)}
+          {flags.filter((f) => f.status === "ok").map((f) => <li key={f.rule_key} className="flex flex-wrap items-baseline gap-x-2"><span className="font-semibold">{f.label}</span>{f.value ? <span className="text-muted">{f.value}</span> : null}</li>)}
         </ul>
       </details>
     </Card>
@@ -135,7 +139,7 @@ function Overview({ plan, editable, clientId, purpose, intakeGoal }: { plan: Pla
   const p = plan.parameters;
   const tpl = GOAL_TEMPLATES[plan.goal_category];
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
       <Card title="Programming guidelines">
         {(purpose || intakeGoal) && <p className="mb-2 text-sm">Purpose: {purpose || intakeGoal}</p>}
         <ol className="list-decimal space-y-1 pl-5 text-sm">{tpl.guidelines.map((g) => <li key={g}>{g}</li>)}</ol>
@@ -158,7 +162,7 @@ function Overview({ plan, editable, clientId, purpose, intakeGoal }: { plan: Pla
           <details className="mt-3">
             <summary className="cursor-pointer text-sm font-medium">Change structure (regenerates a new draft)</summary>
             <div className="mt-2"><GenerateForm clientId={clientId} fromPlanId={plan.id} defaults={{ start_date: p.start_date, weeks: p.weeks, days_per_week: p.days_per_week }} label="Regenerate draft" /></div>
-            <p className="mt-1 text-xs text-stone">The current draft is archived and kept as a version.</p>
+            <p className="mt-1 text-xs text-muted">The current draft is archived and kept as a version.</p>
           </details>
         )}
       </Card>
@@ -187,9 +191,9 @@ function Training({ plan, editable, week, base, candidates, fileBase }: { plan: 
       <p className="text-sm">
         <b>Week {wk.week}</b> · {PHASES[wk.phase].label}{wk.deload ? " · DELOAD (≈40% fewer sets, stop at RPE 5–6)" : ""}{wk.retest ? " · retest at the last session" : ""} · {t.split_label}, lifting on {t.lifting_days.map((d) => DAY_NAMES[d]).join(", ")}
       </p>
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
         {t.sessions.map((s) => (
-          <Card key={s.key} title={`${s.name}`} actions={<span className="text-xs text-stone">≈{wk.session_minutes[s.key]} min of work + warm-up</span>}>
+          <Card key={s.key} title={`${s.name}`} actions={<span className="text-xs text-muted">≈{wk.session_minutes[s.key]} min of work + warm-up</span>}>
             <div className="table-wrap"><table className="table table-stack">
               <thead><tr><th>Exercise</th><th>Sets × reps</th><th>Rest</th><th>RPE</th></tr></thead>
               <tbody>
@@ -199,14 +203,14 @@ function Training({ plan, editable, week, base, candidates, fileBase }: { plan: 
                   return (
                     <tr key={sl.id} className={clsx(!rx && "opacity-50")}>
                       <td data-primary>
-                        <div className="font-medium">{sl.exercise.name} <span className="text-xs font-normal text-stone">{PATTERN_LABEL[sl.pattern]} · {sl.role}</span></div>
-                        {sl.regression && <div className="text-xs text-stone">↓ Regression: {sl.regression.name}</div>}
-                        {sl.progression && <div className="text-xs text-stone">↑ Progression: {sl.progression.name}</div>}
-                        {sl.note && <div className="text-xs italic text-stone">{sl.note}</div>}
-                        {!rx && <div className="text-xs text-stone">Not in this block (session-length limit)</div>}
+                        <div className="font-medium">{sl.exercise.name} <span className="text-xs font-normal text-muted">{PATTERN_LABEL[sl.pattern]} · {sl.role}</span></div>
+                        {sl.regression && <div className="text-xs text-muted">↓ Regression: {sl.regression.name}</div>}
+                        {sl.progression && <div className="text-xs text-muted">↑ Progression: {sl.progression.name}</div>}
+                        {sl.note && <div className="text-xs italic text-muted">{sl.note}</div>}
+                        {!rx && <div className="text-xs text-muted">Not in this block (session-length limit)</div>}
                         {editable && (
                           <details className="mt-1">
-                            <summary className="cursor-pointer text-xs text-bone">Edit</summary>
+                            <summary className="cursor-pointer text-xs text-fg">Edit</summary>
                             <PlanEditForm planId={plan.id} op="swap" className="mt-1 flex gap-1">
                               <input type="hidden" name="slot_id" value={sl.id} />
                               <select className="input text-xs" name="exercise_id" defaultValue={sl.exercise.id}>
@@ -248,7 +252,7 @@ function Training({ plan, editable, week, base, candidates, fileBase }: { plan: 
           </Card>
         ))}
       </div>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <Card title="Cardio prescription">
           {t.cardio.removed ? (
             <p className="text-sm text-alert">Cardio removed{t.cardio.removed_reason ? ` — ${t.cardio.removed_reason}` : ""}.</p>
@@ -291,7 +295,7 @@ function Training({ plan, editable, week, base, candidates, fileBase }: { plan: 
 function Nutrition({ plan, editable, disclaimer, hasGoalWeight }: { plan: PlanRow; editable: boolean; disclaimer: string; hasGoalWeight: boolean }) {
   const n = plan.nutrition;
   const p = plan.parameters;
-  const disc = <p className="note-info p-2 text-xs text-stone">{disclaimer}</p>;
+  const disc = <p className="note-info p-2 text-xs text-muted">{disclaimer}</p>;
   if (!n || n.blocked || !n.targets) return <div className="space-y-3"><Banner tone="red" title="Nutrition guidance not generated">{n?.blocked_reason}</Banner>{disc}</div>;
   const t = n.targets;
   const e = n.energy!;
@@ -299,7 +303,7 @@ function Nutrition({ plan, editable, disclaimer, hasGoalWeight }: { plan: PlanRo
   return (
     <div className="space-y-4">
       {disc}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <Card title="Daily targets (estimates)">
           <div className="table-wrap"><table className="table">
             <thead><tr><th></th><th>Target</th><th>Tolerance</th><th></th></tr></thead>
@@ -310,11 +314,11 @@ function Nutrition({ plan, editable, disclaimer, hasGoalWeight }: { plan: PlanRo
               {row("Fat", t.fat_g, t.fat_pct, t.tolerance.fat_g)}
             </tbody>
           </table></div>
-          <p className="mt-2 text-xs text-stone">Protein {t.protein_g_per_lb.toFixed(2)} g/lb of {t.reference_weight_lb} lb reference weight. 4P + 4C + 9F = {fmt.n(4 * t.protein_g + 4 * t.carbs_g + 9 * t.fat_g)} kcal.</p>
+          <p className="mt-2 text-xs text-muted">Protein {t.protein_g_per_lb.toFixed(2)} g/lb of {t.reference_weight_lb} lb reference weight. 4P + 4C + 9F = {fmt.n(4 * t.protein_g + 4 * t.carbs_g + 9 * t.fat_g)} kcal.</p>
           <p className="mt-2 text-sm">{n.fiber_text}</p>
           <p className="mt-1 text-sm">{n.hydration_text}</p>
           <p className="mt-1 text-sm">{n.meals_guidance}</p>
-          {n.notes.map((x, i) => <p key={i} className="mt-1 text-xs text-stone">{x}</p>)}
+          {n.notes.map((x, i) => <p key={i} className="mt-1 text-xs text-muted">{x}</p>)}
           {editable && (
             <details className="mt-3">
               <summary className="cursor-pointer text-sm font-medium">Adjust targets (within guardrails)</summary>
@@ -337,16 +341,16 @@ function Nutrition({ plan, editable, disclaimer, hasGoalWeight }: { plan: PlanRo
         <Card title="Energy balance (estimates)">
           <EnergyTable plan={plan} />
           <p className="mt-2 text-sm"><b>Expected change:</b> {describePrediction(e)}.</p>
-          <p className="mt-1 text-xs text-stone">Uses 3,500 kcal per lb as a planning approximation only; ±{(e.uncertainty_pct * 100).toFixed(0)}% TDEE uncertainty ({e.uncertainty_pct <= 0.05 ? "calibrated" : e.mode}). Recalibrated from real weigh-ins at checkpoints. Post-exercise afterburn is ignored (conservative).</p>
+          <p className="mt-1 text-xs text-muted">Uses 3,500 kcal per lb as a planning approximation only; ±{(e.uncertainty_pct * 100).toFixed(0)}% TDEE uncertainty ({e.uncertainty_pct <= 0.05 ? "calibrated" : e.mode}). Recalibrated from real weigh-ins at checkpoints. Post-exercise afterburn is ignored (conservative).</p>
         </Card>
       </div>
       <Card title="Example days">
             <p className="muted mb-3">Examples only. Swap foods freely.</p>
         {n.example_days.length === 0 ? <Empty>No example days fit inside every band with the allowed foods.</Empty> : (
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
             {n.example_days.map((d) => (
-              <div key={d.label} className="rounded border border-bone/15 p-3">
-                <div className="mb-1 flex justify-between text-sm font-semibold"><span>{d.label}</span><span className="font-normal text-stone">{d.totals.calories} kcal · P {d.totals.protein_g} · C {d.totals.carbs_g} · F {d.totals.fat_g} {Object.values(d.within_band).every(Boolean) && <Badge tone="green">in band</Badge>}</span></div>
+              <div key={d.label} className="rounded border border-fg/15 p-3">
+                <div className="mb-1 flex justify-between text-sm font-semibold"><span>{d.label}</span><span className="font-normal text-muted">{d.totals.calories} kcal · P {d.totals.protein_g} · C {d.totals.carbs_g} · F {d.totals.fat_g} {Object.values(d.within_band).every(Boolean) && <Badge tone="green">in band</Badge>}</span></div>
                 {d.meals.map((m, i) => (
                   <div key={i} className="mt-1 text-sm"><b>{m.name}:</b> {m.items.map((it) => `${it.name}: ${it.household} (~${Math.round(it.grams)} g)`).join("; ")}</div>
                 ))}
@@ -355,7 +359,7 @@ function Nutrition({ plan, editable, disclaimer, hasGoalWeight }: { plan: PlanRo
           </div>
         )}
       </Card>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <Card title="Food lists">
           {Object.entries(n.food_lists).map(([cat, foods]) => <p key={cat} className="mb-1 text-sm"><b className="capitalize">{cat}:</b> {foods.map((f) => f.name).join(", ")}</p>)}
         </Card>
@@ -394,7 +398,7 @@ function EnergyTable({ plan }: { plan: PlanRow }) {
             <tr><td>Food effect (TEF)</td><td>{r(e.tef_kcal)}</td></tr>
           </>
         )}
-        <tr className="font-semibold"><td>Estimated TDEE</td><td>{r(e.tdee)} <span className="text-xs font-normal text-stone">±{(e.uncertainty_pct * 100).toFixed(0)}%</span></td></tr>
+        <tr className="font-semibold"><td>Estimated TDEE</td><td>{r(e.tdee)} <span className="text-xs font-normal text-muted">±{(e.uncertainty_pct * 100).toFixed(0)}%</span></td></tr>
         <tr><td>Target intake</td><td>{r(e.target_kcal)}</td></tr>
         <tr><td>Daily balance</td><td>{fmt.signed(e.daily_balance, 0)}</td></tr>
       </tbody>
@@ -409,15 +413,15 @@ function Calendar({ plan }: { plan: PlanRow }) {
       {/* Phones: one block per week, listing only days with something on. */}
       <ol className="space-y-5 sm:hidden">
         {cal.map((w) => (
-          <li key={w.week} className={clsx("border-t border-bone/15 pt-3", w.deload && "border-bone/40")}>
+          <li key={w.week} className={clsx("border-t border-fg/15 pt-3", w.deload && "border-fg/40")}>
             <div className="mb-2 flex items-baseline justify-between gap-3">
               <h3>Week {w.week}</h3>
-              <span className="text-xs text-stone">{w.phase ? PHASES[w.phase as keyof typeof PHASES].label : ""}{w.deload ? " · deload" : ""}</span>
+              <span className="text-xs text-muted">{w.phase ? PHASES[w.phase as keyof typeof PHASES].label : ""}{w.deload ? " · deload" : ""}</span>
             </div>
             <ul className="space-y-2 text-sm">
               {w.days.filter((d) => d.items.length).map((d) => (
                 <li key={d.date} className="grid grid-cols-[5.5rem_1fr] gap-2">
-                  <span className="text-stone">{DAY_NAMES[d.weekday]} {formatDate(d.date).replace(/, \d{4}$/, "")}</span>
+                  <span className="text-muted">{DAY_NAMES[d.weekday]} {formatDate(d.date).replace(/, \d{4}$/, "")}</span>
                   <span>{d.items.join(" · ")}</span>
                 </li>
               ))}
@@ -430,10 +434,10 @@ function Calendar({ plan }: { plan: PlanRow }) {
           <thead><tr><th>Week</th>{cal[0]?.days.map((d) => <th key={d.date}>{DAY_NAMES[d.weekday]}</th>)}</tr></thead>
           <tbody>
             {cal.map((w) => (
-              <tr key={w.week} className={clsx(w.deload && "bg-bone/5")}>
-                <td className="whitespace-nowrap font-semibold">W{w.week}<div className="font-normal text-stone">{w.phase ? PHASES[w.phase as keyof typeof PHASES].label : ""}{w.deload ? " · deload" : ""}</div></td>
+              <tr key={w.week} className={clsx(w.deload && "bg-fg/5")}>
+                <td className="whitespace-nowrap font-semibold">W{w.week}<div className="font-normal text-muted">{w.phase ? PHASES[w.phase as keyof typeof PHASES].label : ""}{w.deload ? " · deload" : ""}</div></td>
                 {w.days.map((d) => (
-                  <td key={d.date} className="min-w-[8rem]"><div className="text-stone">{formatDate(d.date)}</div>{d.items.map((it, i) => <div key={i}>{it}</div>)}</td>
+                  <td key={d.date} className="min-w-[8rem]"><div className="text-muted">{formatDate(d.date)}</div>{d.items.map((it, i) => <div key={i}>{it}</div>)}</td>
                 ))}
               </tr>
             ))}
@@ -449,7 +453,7 @@ function Checkpoints({ plan, clientId }: { plan: PlanRow; clientId: string }) {
   return (
     <Card title="Checkpoints">
       <p className="text-sm">Calibration checkpoints at weeks {p.checkpoint_weeks.join(", ") || "—"} (weeks 1–2 are never used for calibration because of water/glycogen shifts). Retests at the end of each deload week. Measurements every 4 weeks.</p>
-      {plan.status === "approved" ? <p className="mt-2 text-sm"><Link href={`/clients/${clientId}`}>See the checkpoint timeline and run calibrations on the client page →</Link></p> : <p className="mt-2 text-sm text-stone">Checkpoints are scheduled when the plan is approved.</p>}
+      {plan.status === "approved" ? <p className="mt-2 text-sm"><Link href={`/clients/${clientId}`}>See the checkpoint timeline and run calibrations on the client page →</Link></p> : <p className="mt-2 text-sm text-muted">Checkpoints are scheduled when the plan is approved.</p>}
       {plan.status === "draft" && (
         <PlanEditForm planId={plan.id} op="params" submitLabel="Save checkpoint weeks" className="mt-3 flex flex-wrap items-end gap-2 text-sm">
           {(["start_date", "calorie_mode", "deficit", "target_override", "bmr_method", "neat_level", "energy_mode", "reference_weight", "protein_g_per_lb", "fat_pct"] as const).map((k) => (

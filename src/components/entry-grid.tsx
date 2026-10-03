@@ -74,14 +74,14 @@ export function EntryGrid({ clientId, rows, columns, initial }: { clientId: stri
         <table className="table">
           <thead>
             <tr>
-              <th className="sticky left-0 z-10 bg-ink">Date</th>
+              <th className="sticky left-0 z-10 bg-canvas">Date</th>
               {columns.map((c) => <th key={c.key}>{c.label}{c.unit ? ` (${c.unit})` : ""}</th>)}
             </tr>
           </thead>
           <tbody>
             {rows.map((row, r) => (
               <tr key={row.date}>
-                <td className="sticky left-0 z-10 whitespace-nowrap bg-ink pr-3 align-middle text-sm">{row.label}</td>
+                <td className="sticky left-0 z-10 whitespace-nowrap bg-canvas pr-3 align-middle text-sm">{row.label}</td>
                 {columns.map((col, c) => {
                   const key = k(r, c);
                   const err = state.cellErrors?.[key];
@@ -92,7 +92,7 @@ export function EntryGrid({ clientId, rows, columns, initial }: { clientId: stri
                       <input
                         ref={(el) => { refs.current[key] = el; }}
                         inputMode={col.type === "text" || col.type === "time" ? "text" : col.type === "boolean" ? "numeric" : "decimal"}
-                        className={clsx("input min-w-[5.5rem] py-1.5", dirty && "bg-bone/10", err && "border-bone", warn && "border-stone")}
+                        className={clsx("input min-w-[5.5rem] py-1.5", dirty && "bg-fg/10", err && "border-fg", warn && "border-muted")}
                         value={values[key] ?? ""}
                         title={err ?? warn ?? ""}
                         onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
@@ -119,7 +119,7 @@ export function EntryGrid({ clientId, rows, columns, initial }: { clientId: stri
       <button type="button" className="btn btn-primary" disabled={pending || changed.length === 0} onClick={() => save(false)}>
         {pending ? "Saving…" : `Save ${changed.length} change${changed.length === 1 ? "" : "s"}`}
       </button>
-      <p className="text-xs text-stone">Tip: copy a block from a spreadsheet and paste into the first cell. Blank cells are ignored (existing values are never cleared).</p>
+      <p className="text-xs text-muted">Tip: copy a block from a spreadsheet and paste into the first cell. Blank cells are ignored (existing values are never cleared).</p>
     </div>
   );
 }

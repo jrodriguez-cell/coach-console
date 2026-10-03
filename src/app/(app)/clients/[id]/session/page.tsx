@@ -24,7 +24,7 @@ export default async function SessionPage({ params }: { params: { id: string } }
     exercises: s.slots.filter((sl) => wk?.prescriptions[sl.id] && sl.unit === "reps").map((sl) => ({ id: sl.exercise.id, name: sl.exercise.name, sets: wk!.prescriptions[sl.id].sets })),
   }));
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       <PageHeader back={{ href: `/clients/${client.id}`, label: client.name }} eyebrow="Log session" title={client.name} />
       <Card><SessionForm clientId={client.id} planId={plan?.id ?? null} sessions={sessions} library={lib.map((e) => ({ id: e.id, name: e.name }))} /></Card>
     </div>

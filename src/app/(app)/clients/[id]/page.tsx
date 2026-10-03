@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getClientBundle } from "@/lib/data/clients";
-import { Badge, Banner, Card, Empty, Field, fmt } from "@/components/ui";
+import { Badge, Banner, Card, Empty, Field, TabBar, fmt } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
 import { PageHeader } from "@/components/page-header";
 import { GenerateForm } from "@/components/generate-form";
@@ -17,7 +17,7 @@ import { describePrediction } from "@/lib/energy";
 
 export const dynamic = "force-dynamic";
 
-export default async function ClientPage({ params }: { params: { id: string } }) {
+export default async function ClientPage({ params, searchParams }: { params: { id: string }; searchParams: { tab?: string } }) {
   const db = createClient();
   const b = await getClientBundle(db, params.id);
   if (!b) notFound();
@@ -29,9 +29,10 @@ export default async function ClientPage({ params }: { params: { id: string } })
   const t = plan?.nutrition?.targets;
   const e = plan?.nutrition?.energy;
   const today = todayIn();
+  const tab = (["overview", "log", "history", "details"] as const).find((t) => t === searchParams.tab) ?? "overview";
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       <PageHeader
         back={{ href: "/clients", label: "Clients" }}
         eyebrow={goalLabel(client.goal_category)}
@@ -40,20 +41,26 @@ export default async function ClientPage({ params }: { params: { id: string } })
         meta={
           <>
             {[client.email, client.phone, client.start_date ? `Starts ${formatDate(client.start_date)}` : null].filter(Boolean).join(" · ")}
-            {client.purpose_text && <p className="mt-1 text-bone">“{client.purpose_text}”</p>}
+            {client.purpose_text && <p className="mt-1 text-fg">“{client.purpose_text}”</p>}
           </>
         }
         actions={
           <>
-            <Link className="btn" href={`/clients/${client.id}/intake`}>{intake ? "Intake" : "Start intake"}</Link>
+            {plan && <Link className="btn btn-primary" href={`/clients/${client.id}/plan/${plan.id}`}>Open plan</Link>}
             <Link className="btn" href={`/clients/${client.id}/progress`}>Progress</Link>
-            <Link className="btn" href={`/clients/${client.id}/entry`}>Enter data</Link>
-            <Link className="btn" href={`/clients/${client.id}/session`}>Log sets</Link>
-            <Link className="btn" href={`/clients/${client.id}/calibrate`}>Calibrate</Link>
+            <Link className="btn" href={`/clients/${client.id}?tab=log`}>Log data</Link>
           </>
         }
       />
 
+      <TabBar
+        tabs={[{ key: "overview", label: "Overview" }, { key: "log", label: "Log" }, { key: "history", label: "History" }, { key: "details", label: "Details" }]}
+        active={tab}
+        href={(k) => `/clients/${client.id}${k === "overview" ? "" : `?tab=${k}`}`}
+      />
+
+      {tab === "overview" && (
+        <>
       {/* Refer-out banners */}
       {flags.map((f) => {
         const handled = b.referrals.filter((r) => r.flag === f);
@@ -74,7 +81,7 @@ export default async function ClientPage({ params }: { params: { id: string } })
       })}
 
       {/* PAR-Q / clearance */}
-      {intake?.parq_flagged && (
+      {intake?.parq_flagged && clrIssue && (
         <Banner tone={clrIssue ? "red" : "green"} title={clrIssue ? "NEEDS PHYSICIAN CLEARANCE" : `Physician clearance: ${clearance?.status.replace("_", " ")}`}>
           {clrIssue && <p>{clrIssue} The plan cannot be approved until this is recorded.</p>}
           {clearance && (
@@ -115,10 +122,9 @@ export default async function ClientPage({ params }: { params: { id: string } })
       )}
 
       {!intake && <Banner tone="blue" title="Intake needed">Complete the intake (including PAR-Q) before generating a plan. <Link href={`/clients/${client.id}/intake`}>Start intake →</Link></Banner>}
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
-          <Card title="Current plan" actions={plan && <Link className="btn btn-sm" href={`/clients/${client.id}/plan/${plan.id}`}>Open plan</Link>}>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+          <Card title="Current plan">
             {plan ? (
               <div className="space-y-2 text-sm">
                 <p>
@@ -144,14 +150,23 @@ export default async function ClientPage({ params }: { params: { id: string } })
               </details>
             )}
             {b.plans.length > 1 && (
-              <p className="mt-2 text-xs text-stone">
+              <p className="mt-2 text-xs text-muted">
                 Versions: {b.plans.map((p) => <Link key={p.id} href={`/clients/${client.id}/plan/${p.id}`} className="mr-2">v{p.version} ({p.status})</Link>)}
               </p>
             )}
           </Card>
 
+            </div>
+            <Card title="Tasks"><TaskList tasks={b.tasks} showClient={false} /></Card>
+          </div>
+        </>
+      )}
+
+      {tab === "log" && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
           <Card title="Quick add">
-            <div className="divide-y divide-bone/15 border-y border-bone/15">
+            <div className="divide-y divide-fg/15 border-y border-fg/15">
               {[
                 { key: "weigh", title: "Weigh-in", open: true, body: <WeighInForm clientId={client.id} /> },
                 { key: "check", title: "Check-in", open: false, body: <CheckinForm clientId={client.id} /> },
@@ -161,15 +176,41 @@ export default async function ClientPage({ params }: { params: { id: string } })
                 <details key={q.key} open={q.open} className="group">
                   <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
                     <h3>{q.title}</h3>
-                    <span aria-hidden className="text-stone transition-transform group-open:rotate-45">+</span>
+                    <span aria-hidden className="text-muted transition-transform group-open:rotate-45">+</span>
                   </summary>
                   <div className="pb-4">{q.body}</div>
                 </details>
               ))}
             </div>
-            <p className="mt-3 text-sm"><Link href={`/clients/${client.id}/session`}>Log a session with sets →</Link></p>
+            <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+              <Link href={`/clients/${client.id}/session`}>Log a workout with sets →</Link>
+              <Link href={`/clients/${client.id}/entry`}>Open the data grid →</Link>
+            </div>
           </Card>
 
+          </div>
+          <Card title="Contact log">
+            <form action={logContactAction.bind(null, client.id)} className="mb-3 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <input className="input" type="date" name="date" defaultValue={today} />
+                <select className="input" name="channel" defaultValue="text">
+                  <option value="text">Text</option><option value="email">Email</option><option value="call">Call</option><option value="in_person">In person</option>
+                </select>
+              </div>
+              <input className="input" name="summary" placeholder="Summary" />
+              <SubmitButton className="btn-sm btn-primary">Log contact</SubmitButton>
+            </form>
+            {b.contacts.length === 0 ? <Empty>No contact logged.</Empty> : (
+              <ul className="space-y-1 text-sm">
+                {b.contacts.map((c) => <li key={c.id}><b>{formatDate(c.date)}</b> · {c.channel.replace("_", " ")}{c.summary ? ` — ${c.summary}` : ""}</li>)}
+              </ul>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {tab === "history" && (
+        <div className="space-y-6">
           <Card title="Checkpoint timeline">
             {b.checkpoints.length === 0 ? (
               <Empty>Checkpoints are created when a plan is approved.</Empty>
@@ -220,47 +261,77 @@ export default async function ClientPage({ params }: { params: { id: string } })
             )}
           </Card>
         </div>
+      )}
 
-        <div className="space-y-4">
-          <Card title="Tasks"><TaskList tasks={b.tasks} showClient={false} /></Card>
-          <Card title="Contact log">
-            <form action={logContactAction.bind(null, client.id)} className="mb-3 space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                <input className="input" type="date" name="date" defaultValue={today} />
-                <select className="input" name="channel" defaultValue="text">
-                  <option value="text">Text</option><option value="email">Email</option><option value="call">Call</option><option value="in_person">In person</option>
-                </select>
-              </div>
-              <input className="input" name="summary" placeholder="Summary" />
-              <SubmitButton className="btn-sm btn-primary">Log contact</SubmitButton>
-            </form>
-            {b.contacts.length === 0 ? <Empty>No contact logged.</Empty> : (
-              <ul className="space-y-1 text-sm">
-                {b.contacts.map((c) => <li key={c.id}><b>{formatDate(c.date)}</b> · {c.channel.replace("_", " ")}{c.summary ? ` — ${c.summary}` : ""}</li>)}
-              </ul>
-            )}
-          </Card>
+      {tab === "details" && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card title="Client details">
-            <details>
-              <summary className="cursor-pointer text-sm">Edit</summary>
-              <form action={updateClientAction.bind(null, client.id)} className="mt-2 space-y-2">
-                <input className="input" name="name" defaultValue={client.name} required />
-                <input className="input" name="email" defaultValue={client.email ?? ""} placeholder="Email" />
-                <input className="input" name="phone" defaultValue={client.phone ?? ""} placeholder="Phone" />
-                <select className="input" name="status" defaultValue={client.status}>
+            <div>
+              <form action={updateClientAction.bind(null, client.id)} className="space-y-3">
+                <Field label="Name"><input className="input" name="name" defaultValue={client.name} required /></Field>
+                <Field label="Email"><input className="input" name="email" type="email" defaultValue={client.email ?? ""} /></Field>
+                <Field label="Phone"><input className="input" name="phone" type="tel" defaultValue={client.phone ?? ""} /></Field>
+                <Field label="Status"><select className="input" name="status" defaultValue={client.status}>
                   {["prospect", "active", "paused", "completed"].map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-                <select className="input" name="goal_category" defaultValue={client.goal_category}>
+                </select></Field>
+                <Field label="Goal"><select className="input" name="goal_category" defaultValue={client.goal_category}>
                   {GOAL_CATEGORIES.map((g) => <option key={g} value={g}>{goalLabel(g)}</option>)}
-                </select>
-                <input className="input" type="date" name="start_date" defaultValue={client.start_date ?? ""} />
-                <textarea className="input" name="purpose_text" defaultValue={client.purpose_text ?? ""} rows={2} />
-                <SubmitButton className="btn-sm">Save</SubmitButton>
+                </select></Field>
+                <Field label="Start date"><input className="input" type="date" name="start_date" defaultValue={client.start_date ?? ""} /></Field>
+                <Field label="Purpose (client’s words)"><textarea className="input" name="purpose_text" defaultValue={client.purpose_text ?? ""} rows={2} /></Field>
+                <SubmitButton className="btn-primary w-full sm:w-auto">Save details</SubmitButton>
               </form>
-            </details>
+            </div>
           </Card>
+          <div className="space-y-6">
+      {/* PAR-Q / clearance */}
+      {intake?.parq_flagged && !clrIssue && (
+        <Banner tone={clrIssue ? "red" : "green"} title={clrIssue ? "NEEDS PHYSICIAN CLEARANCE" : `Physician clearance: ${clearance?.status.replace("_", " ")}`}>
+          {clrIssue && <p>{clrIssue} The plan cannot be approved until this is recorded.</p>}
+          {clearance && (
+            <p className="mt-1">
+              Latest: {clearance.status.replace("_", " ")}
+              {clearance.requested_at ? ` · requested ${formatDate(clearance.requested_at)}` : ""}
+              {clearance.received_at ? ` · received ${formatDate(clearance.received_at)}` : ""}
+              {clearance.exercise_limits ? ` · limits: ${clearance.exercise_limits}` : ""}
+              {clearance.hr_ceiling ? ` · HR ≤ ${clearance.hr_ceiling}` : ""}
+              {clearance.rpe_ceiling ? ` · RPE ≤ ${clearance.rpe_ceiling}` : ""}
+              {clearance.activities_to_avoid ? ` · avoid: ${clearance.activities_to_avoid}` : ""}
+              {clearance.notes ? ` · ${clearance.notes}` : ""}
+              {clearance.reason ? ` · reason: ${clearance.reason}` : ""}
+            </p>
+          )}
+          <details className="mt-2">
+            <summary className="cursor-pointer text-sm font-medium">Record clearance status</summary>
+            <form action={recordClearanceAction.bind(null, client.id)} className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-3">
+              <Field label="Status">
+                <select className="input" name="status" defaultValue="received">
+                  <option value="pending">Pending (requested)</option>
+                  <option value="received">Received (with notes)</option>
+                  <option value="not_required">Not required (with reason)</option>
+                </select>
+              </Field>
+              <Field label="Requested"><input className="input" type="date" name="requested_at" defaultValue={clearance?.requested_at ?? today} /></Field>
+              <Field label="Received"><input className="input" type="date" name="received_at" defaultValue={today} /></Field>
+              <Field label="Exercise limits"><input className="input" name="exercise_limits" /></Field>
+              <Field label="HR ceiling (bpm)"><input className="input" type="number" name="hr_ceiling" /></Field>
+              <Field label="RPE ceiling"><input className="input" type="number" step="0.5" name="rpe_ceiling" /></Field>
+              <Field label="Activities to avoid" className="md:col-span-3"><input className="input" name="activities_to_avoid" /></Field>
+              <Field label="Notes" className="md:col-span-3"><input className="input" name="notes" /></Field>
+              <Field label="Reason (if not required)" className="md:col-span-3"><input className="input" name="reason" /></Field>
+              <div><SubmitButton className="btn-sm btn-primary">Save clearance</SubmitButton></div>
+            </form>
+          </details>
+        </Banner>
+      )}
+
+            <Card title="Intake">
+              <p className="muted mb-3">{intake ? `Last updated ${formatDate(intake.submitted_at.slice(0, 10))}.` : "No intake yet."}</p>
+              <Link className="btn" href={`/clients/${client.id}/intake`}>{intake ? "Update intake" : "Start intake"}</Link>
+            </Card>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

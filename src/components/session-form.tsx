@@ -62,7 +62,7 @@ export function SessionForm({ clientId, planId, sessions, library }: { clientId:
                 </tr>
               )}
               <tr>
-                <td className="px-1 align-middle text-stone">{s.set_number}</td>
+                <td className="px-1 align-middle text-muted">{s.set_number}</td>
                 <td className="px-1"><input className="input w-full min-w-0 px-1.5" type="number" inputMode="decimal" step="0.5" aria-label={`Set ${s.set_number} weight`} value={s.weight_lb ?? ""} onChange={(e) => update(i, { weight_lb: num(e.target.value) })} /></td>
                 <td className="px-1"><input className="input w-full min-w-0 px-1.5" type="number" inputMode="numeric" aria-label={`Set ${s.set_number} reps`} value={s.reps ?? ""} onChange={(e) => update(i, { reps: num(e.target.value) })} /></td>
                 <td className="px-1"><input className="input w-full min-w-0 px-1.5" type="number" inputMode="decimal" step="0.5" aria-label={`Set ${s.set_number} RPE`} value={s.rpe ?? ""} onChange={(e) => update(i, { rpe: num(e.target.value) })} /></td>
@@ -81,7 +81,7 @@ export function SessionForm({ clientId, planId, sessions, library }: { clientId:
       {state.error && <p className="text-sm text-alert">{state.error}</p>}
       {state.saved != null && !state.error && <p className="text-sm text-ok">Session saved.</p>}
       <button className="btn btn-primary w-full sm:w-auto" disabled={pending}>{pending ? "Saving…" : "Save session"}</button>
-      <p className="text-xs text-stone">Only sets with weight or reps are saved. Mark a set as a test on retest days; tests anchor baseline vs. latest strength.</p>
+      <p className="text-xs text-muted">Only sets with weight or reps are saved. Mark a set as a test on retest days; tests anchor baseline vs. latest strength.</p>
     </form>
   );
 }

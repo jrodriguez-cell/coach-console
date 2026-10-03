@@ -15,7 +15,7 @@ export function GenerateForm({ clientId, fromPlanId, defaults, label = "Generate
           <label><span className="label">Days/week</span><input className="input" type="number" name="days_per_week" min={2} max={6} defaultValue={defaults?.days_per_week} placeholder="from intake" /></label>
         </div>
       )}
-      <p className="text-xs text-stone">Numbers come from the deterministic calculators; Claude only picks exercises from the filtered library and writes short notes. Output is validated before it is saved as a DRAFT.</p>
+      <p className="text-xs text-muted">Numbers come from the deterministic calculators; Claude only picks exercises from the filtered library and writes short notes. Output is validated before it is saved as a DRAFT.</p>
       {state.error && (
         <div className="note-alert p-2 text-sm">
           {state.error}

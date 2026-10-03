@@ -24,7 +24,7 @@ export default async function WeeklyRoundPage() {
   const inWeek = (d: string) => d >= addDays(weekStart, -1) && d <= weekEnd;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       <PageHeader eyebrow="Weekly round" title={`Week of ${formatDate(weekStart)}`} />
       <Card>
         {clients.length === 0 ? <Empty>No active clients.</Empty> : (

@@ -16,9 +16,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
   return (
     <div className="min-h-screen">
-      <nav className="sticky top-0 z-30 border-b border-bone/15 bg-ink" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+      <nav className="sticky top-0 z-30 border-b border-fg/15 bg-canvas" style={{ paddingTop: "env(safe-area-inset-top)" }}>
         <div className="mx-auto flex max-w-[1200px] items-center gap-4 px-4 py-3 sm:px-6">
-          <Link href="/today" aria-label="Coach Console home" className="mr-4 flex items-center text-bone no-underline hover:no-underline">
+          <Link href="/today" aria-label="Coach Console home" className="mr-4 flex items-center text-fg no-underline hover:no-underline">
             <Logo mark="monogram" className="h-8 w-8" title="Make Time To Move · Coach Console" />
           </Link>
           <TopNavLinks />

@@ -23,8 +23,8 @@ export function TopNavLinks() {
           key={n.href}
           href={n.href}
           className={clsx(
-            "display border-b px-2.5 py-1.5 text-[11px] no-underline hover:no-underline",
-            isActive(path, n.href) ? "border-bone text-bone" : "border-transparent text-stone hover:text-bone",
+            "border-b-2 px-3 py-2 text-sm font-medium no-underline hover:no-underline",
+            isActive(path, n.href) ? "border-fg text-fg" : "border-transparent text-muted hover:text-fg",
           )}
         >
           {n.label}
@@ -38,7 +38,7 @@ export function TopNavLinks() {
 export function BottomTabBar() {
   const path = usePathname();
   return (
-    <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-bone/15 bg-ink lg:hidden">
+    <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-fg/15 bg-canvas lg:hidden">
       <div className="grid grid-cols-5">
         {NAV.map((n) => {
           const on = isActive(path, n.href);
@@ -46,7 +46,7 @@ export function BottomTabBar() {
             <Link
               key={n.href}
               href={n.href}
-              className={clsx("-mt-px flex flex-col items-center gap-1 border-t py-2 text-[11px] no-underline hover:no-underline", on ? "border-bone text-bone" : "border-transparent text-stone")}
+              className={clsx("-mt-px flex flex-col items-center gap-1 border-t py-2 text-[11px] no-underline hover:no-underline", on ? "border-fg text-fg" : "border-transparent text-muted")}
             >
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.25} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d={n.icon} />

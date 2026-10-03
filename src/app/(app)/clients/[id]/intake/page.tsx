@@ -13,7 +13,7 @@ export default async function IntakePage({ params }: { params: { id: string } })
   if (!client) notFound();
   const intake = await latestIntake(db, params.id);
   return (
-    <div className="max-w-4xl space-y-4">
+    <div className="max-w-4xl space-y-8">
       <PageHeader back={{ href: `/clients/${client.id}`, label: client.name }} eyebrow="Intake" title={client.name} meta="Saving creates a new intake version; earlier versions are kept." />
       <IntakeForm clientId={client.id} prev={intake?.answers ?? null} parq={intake?.parq_answers ?? null} refer={intake?.refer_out_flags ?? null} />
     </div>
