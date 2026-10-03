@@ -118,6 +118,9 @@ function Table({ cols, rows, widths }: { cols: string[]; rows: (string | number)
   );
 }
 
+// No "page X / Y" numbers: react-pdf (4.9) re-resolves a page's styles for
+// every dynamic `render` node, multiplying the inherited line height by the
+// font size each time, which crashes long plans with "unsupported number".
 function Chrome({ x }: { x: Pick<ExportInput, "clientName" | "status"> & { version?: number } }) {
   const draft = x.status !== "approved";
   return (
@@ -129,7 +132,6 @@ function Chrome({ x }: { x: Pick<ExportInput, "clientName" | "status"> & { versi
       {draft && <Text style={s.watermark} fixed>DRAFT</Text>}
       <View style={s.footer} fixed>
         <Text>Estimates for educational purposes; not medical advice.</Text>
-        <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
       </View>
     </>
   );
@@ -379,7 +381,6 @@ export function ClientWeekDocument({ w }: { w: ClientWeek }) {
         {w.draft && <Text style={s.watermark} fixed>DRAFT</Text>}
         <View style={s.footer} fixed>
           <Text>Stop any exercise that causes sharp pain and tell your coach.</Text>
-          <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
         </View>
         <Text style={s.h1}>{displayText(`Week ${w.week}`)}</Text>
         <T style={s.muted}>{`${w.range} · ${w.phase}${w.deload ? " · Deload week: lighter on purpose, fewer sets, stop well short of failure" : ""}`}</T>

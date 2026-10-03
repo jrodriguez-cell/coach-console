@@ -12,7 +12,13 @@ export async function GET(_req: Request, { params }: { params: { planId: string 
   const db = createClient();
   const x = await exportInput(db, params.planId);
   if (!x) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const buf = await renderPlanPdf(x.input);
+  let buf: Buffer;
+  try {
+    buf = await renderPlanPdf(x.input);
+  } catch (e) {
+    console.error("plan pdf", params.planId, e);
+    return NextResponse.json({ error: `Couldn't build the PDF (${(e as Error).message.slice(0, 120)}). The Excel export has the same content.` }, { status: 500 });
+  }
   return new NextResponse(new Uint8Array(buf), {
     headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${x.filename}.pdf"`, "Cache-Control": "private, no-store" },
   });
