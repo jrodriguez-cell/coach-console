@@ -17,7 +17,7 @@ const isActive = (path: string, href: string) => path === href || path.startsWit
 export function TopNavLinks() {
   const path = usePathname();
   return (
-    <div className="hidden items-center gap-1 md:flex">
+    <div className="hidden items-center gap-1 lg:flex">
       {NAV.map((n) => (
         <Link
           key={n.href}
@@ -38,7 +38,7 @@ export function TopNavLinks() {
 export function BottomTabBar() {
   const path = usePathname();
   return (
-    <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-bone/15 bg-ink md:hidden">
+    <nav className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-bone/15 bg-ink lg:hidden">
       <div className="grid grid-cols-5">
         {NAV.map((n) => {
           const on = isActive(path, n.href);
