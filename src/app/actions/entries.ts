@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { saveEntries, type EntryInput, type EntryState } from "@/lib/data/entries";
 import { todayIn } from "@/lib/dates";
 import { MEASUREMENT_SITES } from "@/config/metrics";
+import { plannedItemsForWeek, planWeekOf } from "@/lib/schedule";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 
@@ -224,4 +225,38 @@ export async function importWeekSheetAction(clientId: string, _prev: ImportState
   }
   revalidateClient(clientId);
   return { error: null, summary: { sessions, sets, skipped, week: parsed.meta.week } };
+}
+
+export type CheckoffResult = { ok: true; done: boolean } | { ok: false; error: string };
+
+/**
+ * Check a planned workout off (or un-check it). Saved as a completed workout
+ * session (source "checkoff") so it counts toward adherence. Workouts logged
+ * with sets (imported sheet or session form) stay done; edit them in the
+ * training log instead.
+ */
+export async function toggleWorkoutAction(clientId: string, planId: string, date: string, key: string): Promise<CheckoffResult> {
+  const db = createClient();
+  const { data: plan } = await db.from("plans").select("id, client_id, status, parameters, training").eq("id", planId).maybeSingle();
+  if (!plan || plan.client_id !== clientId || !plan.training) return { ok: false, error: "Plan not found." };
+  if (plan.status !== "approved") return { ok: false, error: "Approve the plan before checking off workouts." };
+  if (date > todayIn()) return { ok: false, error: "That day hasn't happened yet." };
+  const item = plannedItemsForWeek(plan.parameters, plan.training, planWeekOf(plan.parameters.start_date, date)).find((i) => i.date === date && i.key === key);
+  if (!item) return { ok: false, error: "That workout isn't scheduled on that day." };
+
+  const { data: existing } = await db.from("workout_sessions").select("id, source, status").eq("client_id", clientId).eq("date", date).eq("planned_session_key", key);
+  const rows = (existing ?? []) as { id: string; source: string | null; status: string }[];
+  const logged = rows.find((r) => r.source !== "checkoff" && (r.status === "completed" || r.status === "partial"));
+  if (logged) return { ok: false, error: "Logged with sets. Edit it in the training log." };
+  const checks = rows.filter((r) => r.source === "checkoff");
+  if (checks.length) {
+    const { error } = await db.from("workout_sessions").delete().in("id", checks.map((r) => r.id));
+    if (error) return { ok: false, error: error.message };
+    revalidateClient(clientId);
+    return { ok: true, done: false };
+  }
+  const { error } = await db.from("workout_sessions").insert({ client_id: clientId, plan_id: planId, date, planned_session_key: key, status: "completed", duration_min: item.minutes, source: "checkoff" });
+  if (error) return { ok: false, error: error.message };
+  revalidateClient(clientId);
+  return { ok: true, done: true };
 }

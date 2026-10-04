@@ -2,10 +2,11 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { addDays, daysBetween } from "@/lib/dates";
 import {
-  adherenceWindow, benchmarkProgress, consecutiveOffTrajectory, liftSummary, sessionCompletion, twoInARowBelow, weightStatus,
-  type BenchmarkStatus, type LiftSummary, type Point, type SessionLog, type SetLog, type WeightSummary,
+  adherenceWindow, benchmarkProgress, consecutiveOffTrajectory, liftSummary, twoInARowBelow, weightStatus,
+  type AdherenceSource, type BenchmarkStatus, type LiftSummary, type Point, type SessionLog, type SetLog, type WeightSummary,
 } from "@/lib/progress";
 import type { ClientSnapshot } from "@/lib/tasks";
+import { CARDIO_KEY, MOBILITY_KEY, plannedItems, workoutAdherence, type WorkoutAdherence } from "@/lib/schedule";
 import type { TaskThresholds } from "@/config/tasks";
 import type { CalibrationRow, CheckpointRow, ClientRow, IntakeRow, MetricDefRow, PlanRow } from "./types";
 
@@ -33,7 +34,7 @@ export interface ClientProgressData {
   /** metric key → metric id */
   metricIds?: Record<string, string>;
   notes: { date: string; text: string }[];
-  sessions: (SessionLog & { id: string; planned_session_key: string | null; duration_min: number | null; avg_rpe: number | null; notes: string | null })[];
+  sessions: (SessionLog & { id: string; planned_session_key: string | null; duration_min: number | null; avg_rpe: number | null; notes: string | null; source: string | null })[];
   sets: (SetLog & { session_id: string })[];
   measurements: { date: string; site: string; value: number }[];
   benchmarks: BenchmarkWithResults[];
@@ -150,7 +151,9 @@ export interface ProgressSummary {
   lastWeighIn: string | null;
   lastCheckin: string | null;
   adherence14: number | null;
-  adherenceSource: string;
+  adherenceSource: AdherenceSource;
+  adherenceWorkouts: WorkoutAdherence;
+  adherenceNutrition: number | null;
   sessions14: { completed: number; scheduled: number; pct: number | null };
   cardio14: { actual: number | null; planned: number | null };
   lifts: LiftSummary[];
@@ -168,14 +171,14 @@ export function summarize(d: ClientProgressData, today: string, T: TaskThreshold
   const since14 = addDays(today, -(T.adherenceWindowDays - 1));
   const within = (pts: Point[] | undefined) => (pts ?? []).filter((p) => p.date >= since14 && p.date <= today);
   const weight = meta ? weightStatus({ weighIns, startDate: meta.startDate, startWeight: meta.startWeight, plannedLbPerWeek: meta.plannedLbPerWeek, bandHalfWidthLbPerWeek: meta.bandHalfWidthLbPerWeek, goalWeight: d.intake?.answers.goal_weight_lb ?? null }) : null;
-  const scheduled = meta && d.plan?.status === "approved" && meta.startDate <= today ? Math.round((meta.liftingDaysPerWeek * Math.min(T.adherenceWindowDays, daysBetween(meta.startDate, today) + 1)) / 7) : 0;
-  const sess14 = d.sessions.filter((s) => s.date >= since14 && s.date <= today);
+  // Workouts the approved plan scheduled in the window vs what was checked off or logged.
+  const planned = d.plan?.status === "approved" && d.plan.training ? plannedItems(d.plan.parameters, d.plan.training, since14, today) : [];
+  const workouts = workoutAdherence(planned, d.sessions, since14, today, { cardioMinutesLogged: within(d.metrics.cardio_min).reduce((a, p) => a + p.value, 0) });
   const daily = within(d.metrics.calories).map((c) => ({ date: c.date, calories: c.value, protein_g: (d.metrics.protein_g ?? []).find((p) => p.date === c.date)?.value ?? null }));
   const adh = adherenceWindow({
     daily,
     weeklyAdherence: within(d.metrics.adherence_pct),
-    sessions: sess14,
-    scheduledSessions: scheduled,
+    workouts,
     target: meta?.calorieTarget != null && meta.calorieTol != null && meta.proteinMin != null ? { calories: meta.calorieTarget, calorieTol: meta.calorieTol, proteinMin: meta.proteinMin } : null,
   });
   const isWL = (d.plan?.goal_category ?? d.client.goal_category) === "weight_loss";
@@ -203,7 +206,10 @@ export function summarize(d: ClientProgressData, today: string, T: TaskThreshold
     const bp = benchmarkProgress({ direction: b.direction, baseline: b.baseline, target: b.target, target_date: b.target_date, created_at: b.created_at.slice(0, 10) }, current, today);
     return { ...b, current, ...bp };
   });
-  const cardioActual = within(d.metrics.cardio_min);
+  // Cardio minutes: logged minutes, plus checked-off cardio on days with no minutes logged.
+  const cardioLogged = within(d.metrics.cardio_min);
+  const cardioChecked = d.sessions.filter((x) => x.planned_session_key === CARDIO_KEY && x.date >= since14 && x.date <= today && x.status !== "missed" && x.status !== "rest_swap" && !cardioLogged.some((c) => c.date === x.date));
+  const cardioTotal = cardioLogged.reduce((a, p) => a + p.value, 0) + cardioChecked.reduce((a, x) => a + (x.duration_min ?? 0), 0);
   return {
     meta,
     week: meta ? Math.max(0, Math.min(meta.weeks, Math.floor(daysBetween(meta.startDate, today) / 7) + 1)) : null,
@@ -212,8 +218,10 @@ export function summarize(d: ClientProgressData, today: string, T: TaskThreshold
     lastCheckin,
     adherence14: adh.pct,
     adherenceSource: adh.source,
-    sessions14: sessionCompletion(sess14, scheduled),
-    cardio14: { actual: cardioActual.length ? cardioActual.reduce((a, p) => a + p.value, 0) : null, planned: meta?.plannedCardioMinPerWeek != null ? (meta.plannedCardioMinPerWeek * T.adherenceWindowDays) / 7 : null },
+    adherenceWorkouts: workouts,
+    adherenceNutrition: adh.nutritionPct,
+    sessions14: { completed: workouts.strength.done, scheduled: workouts.strength.due, pct: workouts.strength.due ? (workouts.strength.done / workouts.strength.due) * 100 : null },
+    cardio14: { actual: cardioLogged.length || cardioChecked.length ? cardioTotal : null, planned: meta?.plannedCardioMinPerWeek != null ? (meta.plannedCardioMinPerWeek * T.adherenceWindowDays) / 7 : null },
     lifts,
     strengthFlag: lifts.some((l) => l.flagLow),
     offTrajectory: meta ? consecutiveOffTrajectory({ weighIns, startDate: meta.startDate, startWeight: meta.startWeight, plannedLbPerWeek: meta.plannedLbPerWeek, bandHalfWidthLbPerWeek: meta.bandHalfWidthLbPerWeek }) : { count: 0, latestDate: null },
@@ -246,7 +254,7 @@ export function toSnapshot(d: ClientProgressData, s: ProgressSummary): ClientSna
     clearance: d.clearance,
     weighIns: (d.metrics.weight_lb ?? []).map((p) => p.date),
     lastContact: d.lastContact,
-    lastSession: d.sessions.filter((x) => x.status === "completed" || x.status === "partial").at(-1)?.date ?? null,
+    lastSession: d.sessions.filter((x) => (x.status === "completed" || x.status === "partial") && x.planned_session_key !== CARDIO_KEY && x.planned_session_key !== MOBILITY_KEY).at(-1)?.date ?? null,
     lastActivity,
     adherence14: s.adherence14,
     offTrajectory: s.offTrajectory,

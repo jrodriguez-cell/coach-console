@@ -33,7 +33,7 @@ export function CheckinForm({ clientId }: { clientId: string }) {
         <L label="Date" className="col-span-2"><input className="input" type="date" name="date" defaultValue={today()} /></L>
         <L label="Energy (1–10)"><input className="input" type="number" inputMode="numeric" name="energy_1_10" min={1} max={10} /></L>
         <L label="Sleep (avg hrs)"><input className="input" type="number" inputMode="decimal" step="0.1" name="sleep_hrs" /></L>
-        <L label="Adherence %"><input className="input" type="number" inputMode="numeric" name="adherence_pct" min={0} max={100} /></L>
+        <L label="Adherence % (optional)"><input className="input" type="number" inputMode="numeric" name="adherence_pct" min={0} max={100} placeholder="auto" /></L>
         <L label="Stress (1–10)"><input className="input" type="number" inputMode="numeric" name="stress_1_10" min={1} max={10} /></L>
         <L label="Cardio (min/week)"><input className="input" type="number" inputMode="numeric" name="cardio_min" /></L>
         <L label="Steps (avg/day)"><input className="input" type="number" inputMode="numeric" name="steps" /></L>

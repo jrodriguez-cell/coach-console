@@ -92,11 +92,15 @@ describe("adherence", () => {
   it("sessions completed vs scheduled (partial counts half)", () => {
     expect(sessionCompletion([{ date: "a", status: "completed" }, { date: "b", status: "partial" }, { date: "c", status: "missed" }], 4).pct).toBeCloseTo(37.5, 6);
   });
-  it("prefers daily nutrition, then weekly entries, then sessions", () => {
+  it("combines workouts and food logs; weekly entries only as a fallback", () => {
     const target = { calories: 2000, calorieTol: 100, proteinMin: 140 };
-    expect(adherenceWindow({ daily: [{ date: "a", calories: 2000, protein_g: 150 }], weeklyAdherence: [{ date: "a", value: 50 }], sessions: [], scheduledSessions: 0, target }).source).toBe("nutrition_daily");
-    expect(adherenceWindow({ daily: [], weeklyAdherence: [{ date: "a", value: 60 }, { date: "b", value: 80 }], sessions: [], scheduledSessions: 0, target }).pct).toBe(70);
-    expect(adherenceWindow({ daily: [], weeklyAdherence: [], sessions: [{ date: "a", status: "completed" }], scheduledSessions: 2, target }).source).toBe("sessions");
+    const daily = [{ date: "a", calories: 2000, protein_g: 150 }, { date: "b", calories: 2600, protein_g: 150 }];
+    const both = adherenceWindow({ daily, weeklyAdherence: [{ date: "a", value: 10 }], workouts: { pct: 80 }, target });
+    expect(both).toMatchObject({ source: "workouts_nutrition", pct: 65, workoutsPct: 80, nutritionPct: 50 });
+    expect(adherenceWindow({ daily: [], weeklyAdherence: [{ date: "a", value: 10 }], workouts: { pct: 75 }, target })).toMatchObject({ source: "workouts", pct: 75 });
+    expect(adherenceWindow({ daily, weeklyAdherence: [], workouts: { pct: null }, target }).source).toBe("nutrition_daily");
+    expect(adherenceWindow({ daily: [], weeklyAdherence: [{ date: "a", value: 60 }, { date: "b", value: 80 }], workouts: { pct: null }, target }).pct).toBe(70);
+    expect(adherenceWindow({ daily: [], weeklyAdherence: [], workouts: { pct: null }, target }).source).toBe("none");
   });
   it("two low energy entries in a row", () => {
     expect(twoInARowBelow([{ date: "2026-01-01", value: 4 }, { date: "2026-01-08", value: 3 }], 5)).toBe("2026-01-08");

@@ -1,6 +1,7 @@
 /** Plan calendar derived from the plan (dates from the start date). Pure. */
 import { addDays, dayOfWeek, weekStart } from "./dates";
 import { sessionsForWeek } from "./training";
+import { cardioDaysForWeek } from "./schedule";
 import { checkpointDate, retestDate } from "./tasks";
 import { METS } from "@/config/energy";
 import type { PlanParameters, TrainingPlan } from "./plan-types";
@@ -25,11 +26,7 @@ export function planCalendar(params: Pick<PlanParameters, "start_date" | "weeks"
     const wp = training?.weeks[w - 1];
     const lifts = training ? sessionsForWeek(training, w) : [];
     const cw = training?.cardio.weeks[w - 1];
-    const cardioDays = training && !training.cardio.removed && cw ? training.cardio.days.slice(0, cw.sessions) : [];
-    // If more sessions than listed days (progression), add after lifting days.
-    if (training && cw && cardioDays.length < cw.sessions) {
-      for (const d of [...training.lifting_days, 0, 1, 2, 3, 4, 5, 6]) if (cardioDays.length < cw.sessions && !cardioDays.includes(d)) cardioDays.push(d);
-    }
+    const cardioDays = training ? cardioDaysForWeek(training, w) : [];
     const days: CalendarDay[] = [];
     for (let i = 0; i < 7; i++) {
       const date = addDays(ws, i);

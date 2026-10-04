@@ -290,26 +290,35 @@ export function sessionCompletion(sessions: SessionLog[], scheduled: number): { 
   return { completed, scheduled, pct: scheduled > 0 ? Math.min(100, (completed / scheduled) * 100) : null };
 }
 
+export type AdherenceSource = "workouts_nutrition" | "workouts" | "nutrition_daily" | "weekly_entry" | "none";
+
+export const ADHERENCE_SOURCE_LABEL: Record<AdherenceSource, string> = {
+  workouts_nutrition: "workouts and food logs",
+  workouts: "workouts checked off",
+  nutrition_daily: "food logs",
+  weekly_entry: "weekly check-in entries",
+  none: "nothing logged yet",
+};
+
 /**
- * 14-day adherence used by the task rules: nutrition days on target when
- * daily data exist, else the weekly adherence % entries, else training
- * session completion.
+ * Adherence over the window (14 days by default), calculated automatically:
+ * workouts done ÷ due (from check-offs and logged sessions), averaged with
+ * nutrition days on target when daily food logs exist. Weekly adherence %
+ * typed into check-ins is used only when neither exists.
  */
 export function adherenceWindow(p: {
   daily: { date: string; calories: number | null; protein_g: number | null }[];
   weeklyAdherence: Point[];
-  sessions: SessionLog[];
-  scheduledSessions: number;
+  workouts: { pct: number | null };
   target: { calories: number; calorieTol: number; proteinMin: number } | null;
-}): { pct: number | null; source: "nutrition_daily" | "weekly_entry" | "sessions" | "none" } {
-  if (p.target) {
-    const d = adherenceFromDaily(p.daily, p.target);
-    if (d != null) return { pct: d, source: "nutrition_daily" };
-  }
-  if (p.weeklyAdherence.length) return { pct: p.weeklyAdherence.reduce((a, x) => a + x.value, 0) / p.weeklyAdherence.length, source: "weekly_entry" };
-  const s = sessionCompletion(p.sessions, p.scheduledSessions);
-  if (s.pct != null) return { pct: s.pct, source: "sessions" };
-  return { pct: null, source: "none" };
+}): { pct: number | null; source: AdherenceSource; workoutsPct: number | null; nutritionPct: number | null } {
+  const nutritionPct = p.target ? adherenceFromDaily(p.daily, p.target) : null;
+  const workoutsPct = p.workouts.pct;
+  if (workoutsPct != null && nutritionPct != null) return { pct: (workoutsPct + nutritionPct) / 2, source: "workouts_nutrition", workoutsPct, nutritionPct };
+  if (workoutsPct != null) return { pct: workoutsPct, source: "workouts", workoutsPct, nutritionPct };
+  if (nutritionPct != null) return { pct: nutritionPct, source: "nutrition_daily", workoutsPct, nutritionPct };
+  if (p.weeklyAdherence.length) return { pct: p.weeklyAdherence.reduce((a, x) => a + x.value, 0) / p.weeklyAdherence.length, source: "weekly_entry", workoutsPct, nutritionPct };
+  return { pct: null, source: "none", workoutsPct, nutritionPct };
 }
 
 /** Weekly training volume (Σ weight × reps), keyed by Monday. */

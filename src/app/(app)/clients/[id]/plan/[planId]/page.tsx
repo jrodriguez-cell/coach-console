@@ -27,6 +27,7 @@ import { planCalendar } from "@/lib/calendar";
 import type { PlanRow } from "@/lib/data/types";
 import { currentPlanWeek } from "@/lib/client-week";
 import { ShareWeek } from "@/components/share-week";
+import { plannedItems, recordFor, type ItemKind, type SessionRecord } from "@/lib/schedule";
 import { ExportFileButton } from "@/components/export-file-button";
 
 export const dynamic = "force-dynamic";
@@ -93,7 +94,7 @@ export default async function PlanPage({ params, searchParams }: { params: { id:
       )}
       {tab === "training" && <Training plan={plan} editable={editable} week={Number(searchParams.week) || currentPlanWeek(plan.parameters, todayIn())} fileBase={client.name.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "")} base={base} candidates={await swapCandidates(db, plan, intake?.answers)} />}
       {tab === "nutrition" && <Nutrition plan={plan} editable={editable} disclaimer={settings.disclaimer} hasGoalWeight={Boolean(intake?.answers.goal_weight_lb)} />}
-      {tab === "calendar" && <Calendar plan={plan} />}
+      {tab === "calendar" && <Calendar plan={plan} done={await doneByDate(db, plan)} />}
       {tab === "checkpoints" && <Checkpoints plan={plan} clientId={client.id} />}
     </div>
   );
@@ -416,10 +417,27 @@ function EnergyTable({ plan }: { plan: PlanRow }) {
   );
 }
 
-function Calendar({ plan }: { plan: PlanRow }) {
+/** Which kinds of workout were done on each date (for greying out calendar items). */
+async function doneByDate(db: ReturnType<typeof createClient>, plan: PlanRow): Promise<Record<string, ItemKind[]>> {
+  if (plan.status !== "approved" || !plan.training) return {};
+  const { data } = await db.from("workout_sessions").select("date, planned_session_key, status, source").eq("client_id", plan.client_id).gte("date", plan.parameters.start_date);
+  const recs = (data ?? []) as SessionRecord[];
+  const out: Record<string, ItemKind[]> = {};
+  for (const it of plannedItems(plan.parameters, plan.training, plan.parameters.start_date, todayIn())) if (recordFor(it, recs)) (out[it.date] ??= []).push(it.kind);
+  return out;
+}
+
+const itemKind = (label: string): ItemKind | null => (label.startsWith("Strength:") ? "strength" : label.startsWith("Cardio:") ? "cardio" : label.startsWith("Mobility") ? "mobility" : null);
+
+function CalItem({ label, done }: { label: string; done: boolean }) {
+  return <span className={clsx(done && "text-muted line-through decoration-fg/30")}>{done ? "✓ " : ""}{label}</span>;
+}
+
+function Calendar({ plan, done }: { plan: PlanRow; done: Record<string, ItemKind[]> }) {
   const cal = planCalendar(plan.parameters, plan.training);
+  const isDone = (date: string, label: string) => { const k = itemKind(label); return Boolean(k && done[date]?.includes(k)); };
   return (
-    <Card title="Calendar">
+    <Card title="Calendar" actions={plan.status === "approved" ? <span className="text-xs text-muted">✓ = done. Check workouts off on the client page.</span> : undefined}>
       {/* Phones: one block per week, listing only days with something on. */}
       <ol className="space-y-5 sm:hidden">
         {cal.map((w) => (
@@ -432,7 +450,7 @@ function Calendar({ plan }: { plan: PlanRow }) {
               {w.days.filter((d) => d.items.length).map((d) => (
                 <li key={d.date} className="grid grid-cols-[5.5rem_1fr] gap-2">
                   <span className="text-muted">{DAY_NAMES[d.weekday]} {formatDate(d.date).replace(/, \d{4}$/, "")}</span>
-                  <span>{d.items.join(" · ")}</span>
+                  <span>{d.items.map((it, i) => <span key={i}>{i > 0 && " · "}<CalItem label={it} done={isDone(d.date, it)} /></span>)}</span>
                 </li>
               ))}
             </ul>
@@ -447,7 +465,7 @@ function Calendar({ plan }: { plan: PlanRow }) {
               <tr key={w.week} className={clsx(w.deload && "bg-fg/5")}>
                 <td className="whitespace-nowrap font-semibold">W{w.week}<div className="font-normal text-muted">{w.phase ? PHASES[w.phase as keyof typeof PHASES].label : ""}{w.deload ? " · deload" : ""}</div></td>
                 {w.days.map((d) => (
-                  <td key={d.date} className="min-w-[8rem]"><div className="text-muted">{formatDate(d.date)}</div>{d.items.map((it, i) => <div key={i}>{it}</div>)}</td>
+                  <td key={d.date} className="min-w-[8rem]"><div className="text-muted">{formatDate(d.date)}</div>{d.items.map((it, i) => <div key={i}><CalItem label={it} done={isDone(d.date, it)} /></div>)}</td>
                 ))}
               </tr>
             ))}

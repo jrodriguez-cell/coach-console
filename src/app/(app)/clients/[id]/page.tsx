@@ -13,13 +13,16 @@ import { logContactAction, recordClearanceAction, recordReferralAction, updateCl
 import { activeReferOutFlags, blockedSections, clearanceIssue, REFER_OUT_FLAGS } from "@/lib/intake";
 import { GOAL_CATEGORIES } from "@/config/goal-templates";
 import { goalLabel, STATUS_TONE } from "@/lib/labels";
-import { formatDate, todayIn } from "@/lib/dates";
+import { addDays, formatDate, todayIn, weekStart } from "@/lib/dates";
 import { describePrediction } from "@/lib/energy";
+import clsx from "clsx";
+import { WeekChecklist } from "@/components/week-checklist";
+import { planWeekOf, weekChecklist, type ChecklistDay, type SessionRecord } from "@/lib/schedule";
 import { programDefaults } from "@/lib/generator";
 
 export const dynamic = "force-dynamic";
 
-export default async function ClientPage({ params, searchParams }: { params: { id: string }; searchParams: { tab?: string } }) {
+export default async function ClientPage({ params, searchParams }: { params: { id: string }; searchParams: { tab?: string; wk?: string } }) {
   const db = createClient();
   const b = await getClientBundle(db, params.id);
   if (!b) notFound();
@@ -32,6 +35,18 @@ export default async function ClientPage({ params, searchParams }: { params: { i
   const e = plan?.nutrition?.energy;
   const today = todayIn();
   const tab = (["overview", "log", "history", "details"] as const).find((t) => t === searchParams.tab) ?? "overview";
+  // This week's workouts to check off (approved plans only).
+  const live = plan?.status === "approved" && plan.training ? { plan, training: plan.training } : null;
+  const thisWeek = live ? Math.min(Math.max(planWeekOf(live.plan.parameters.start_date, today), 1), live.plan.parameters.weeks) : 0;
+  const shownWeek = live ? Math.min(Math.max(Number(searchParams.wk) || thisWeek, 1), live.plan.parameters.weeks) : 0;
+  let checklist: ChecklistDay[] = [];
+  if (live && tab === "overview") {
+    const ws = weekStart(live.plan.parameters.start_date, shownWeek);
+    const { data: recs } = await db.from("workout_sessions").select("date, planned_session_key, status, source").eq("client_id", client.id).gte("date", ws).lte("date", addDays(ws, 6));
+    checklist = weekChecklist(live.plan.parameters, live.training, shownWeek, (recs ?? []) as SessionRecord[]);
+  }
+  const doneCount = checklist.flatMap((d) => d.items).filter((i) => i.state).length;
+  const dueCount = checklist.flatMap((d) => d.items).length;
 
   return (
     <div className="space-y-8">
@@ -125,7 +140,23 @@ export default async function ClientPage({ params, searchParams }: { params: { i
 
       {!intake && <Banner tone="blue" title="Intake needed">Complete the intake (including PAR-Q) before generating a plan. <Link href={`/clients/${client.id}/intake`}>Start intake →</Link></Banner>}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2">
+            <div className="space-y-8 lg:col-span-2">
+          {live && (
+            <Card
+              title={shownWeek === thisWeek ? "This week" : `Week ${shownWeek}`}
+              actions={
+                <span className="flex items-center gap-1 text-sm">
+                  <span className="mr-1 text-muted">{doneCount}/{dueCount} done</span>
+                  <Link aria-label="Previous week" className={clsx("btn btn-sm", shownWeek <= 1 && "pointer-events-none opacity-40")} href={`/clients/${client.id}?wk=${shownWeek - 1}`}>‹</Link>
+                  {shownWeek !== thisWeek && <Link className="btn btn-sm" href={`/clients/${client.id}`}>Now</Link>}
+                  <Link aria-label="Next week" className={clsx("btn btn-sm", shownWeek >= live.plan.parameters.weeks && "pointer-events-none opacity-40")} href={`/clients/${client.id}?wk=${shownWeek + 1}`}>›</Link>
+                </span>
+              }
+            >
+              <p className="muted mb-1">Week {shownWeek} of {live.plan.parameters.weeks}. Tap a workout when it&apos;s done; it greys out and counts toward adherence. Imported sheets tick themselves.</p>
+              <WeekChecklist key={shownWeek} clientId={client.id} planId={live.plan.id} days={checklist} today={today} clientName={client.name} />
+            </Card>
+          )}
           <Card title="Current plan">
             {plan ? (
               <div className="space-y-2 text-sm">

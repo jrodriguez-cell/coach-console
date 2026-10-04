@@ -7,6 +7,7 @@ import { Badge, Card, Empty } from "@/components/ui";
 import { markReviewedAction } from "@/app/actions/entries";
 import { addDays, formatDate, sundayOnOrBefore, todayIn } from "@/lib/dates";
 import type { ClientRow } from "@/lib/data/types";
+import { kindOfKey } from "@/lib/schedule";
 
 export const dynamic = "force-dynamic";
 
@@ -34,8 +35,10 @@ export default async function WeeklyRoundPage() {
               {clients.map((c) => {
                 const d = pd.get(c.id)!;
                 const applies = required.filter((m) => m.applies_to.includes("all") || m.applies_to.includes(c.goal_category));
-                const missing = applies.filter((m) => !(d.metrics[m.key] ?? []).some((p) => inWeek(p.date)));
-                const sessions = d.sessions.filter((s) => inWeek(s.date)).length;
+                // Adherence is calculated from checked-off workouts once a plan is approved.
+                const auto = d.plan?.status === "approved" && d.plan.training ? ["adherence_pct"] : [];
+                const missing = applies.filter((m) => !auto.includes(m.key) && !(d.metrics[m.key] ?? []).some((p) => inWeek(p.date)));
+                const sessions = d.sessions.filter((s) => inWeek(s.date) && kindOfKey(s.planned_session_key) === "strength" && (s.status === "completed" || s.status === "partial")).length;
                 const scheduled = d.plan?.training?.lifting_days.length ?? 0;
                 const reviewed = (reviews ?? []).some((r) => r.client_id === c.id);
                 return (

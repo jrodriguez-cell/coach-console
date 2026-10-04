@@ -11,7 +11,8 @@ import { Badge, Collapsible, Card, Empty, Field, fmt, Stat, type Tone } from "@/
 import { BarSeries, SeriesChart, WeightChart } from "@/components/charts";
 import { SubmitButton } from "@/components/submit-button";
 import { createBenchmarkAction, deleteBenchmarkAction, updateBenchmarkAction } from "@/app/actions/entries";
-import { WEIGHT_STATUS_LABEL, progressionReadiness, type WeightStatus } from "@/lib/progress";
+import { ADHERENCE_SOURCE_LABEL, WEIGHT_STATUS_LABEL, progressionReadiness, type WeightStatus } from "@/lib/progress";
+import { sessionLabel } from "@/lib/schedule";
 import { MEASUREMENT_SITES } from "@/config/metrics";
 import { formatDate, todayIn } from "@/lib/dates";
 
@@ -72,8 +73,9 @@ export default async function ClientProgressPage({ params }: { params: { id: str
         {/* 5. Adherence */}
         <Card title={`Adherence (last ${settings.task_thresholds.adherenceWindowDays} days)`}>
           <div className="grid grid-cols-2 gap-2">
-            <Stat label="Overall adherence" value={fmt.pct(s.adherence14)} sub={s.adherenceSource.replace(/_/g, " ")} />
-            <Stat label="Sessions" value={`${s.sessions14.completed} / ${s.sessions14.scheduled}`} sub={fmt.pct(s.sessions14.pct)} />
+            <Stat label="Overall adherence" value={fmt.pct(s.adherence14)} sub={`from ${ADHERENCE_SOURCE_LABEL[s.adherenceSource]}`} />
+            <Stat label="Workouts done" value={s.adherenceWorkouts.due ? `${fmt.n(s.adherenceWorkouts.done)} / ${s.adherenceWorkouts.due}` : "—"} sub={s.adherenceWorkouts.due ? `strength ${fmt.n(s.adherenceWorkouts.strength.done)}/${s.adherenceWorkouts.strength.due} · cardio ${fmt.n(s.adherenceWorkouts.cardio.done)}/${s.adherenceWorkouts.cardio.due}` : "none due yet"} />
+            {s.adherenceNutrition != null && <Stat label="Food logs on target" value={fmt.pct(s.adherenceNutrition)} />}
             <Stat label="Cardio minutes" value={fmt.n(s.cardio14.actual)} sub={s.cardio14.planned != null ? `planned ${fmt.n(s.cardio14.planned)}` : undefined} />
             <Stat label="Last check-in" value={s.lastCheckin ? formatDate(s.lastCheckin) : "—"} />
           </div>
@@ -184,7 +186,7 @@ export default async function ClientProgressPage({ params }: { params: { id: str
               <tbody>
                 {[...d.sessions].reverse().slice(0, 15).map((ss) => (
                   <tr key={ss.id}>
-                    <td data-primary>{formatDate(ss.date)}</td><td data-label="Session">{ss.planned_session_key ?? "—"}</td><td data-label="Status">{ss.status}</td>
+                    <td data-primary>{formatDate(ss.date)}</td><td data-label="Session">{sessionLabel(ss.planned_session_key, d.plan?.training)}{ss.source === "checkoff" ? " ✓" : ""}</td><td data-label="Status">{ss.status}</td>
                     <td data-label="Sets" data-block>{d.sets.filter((x) => x.session_id === ss.id).map((x) => `${x.exercise_name} ${x.weight_lb ?? "bw"}×${x.reps ?? "?"}${x.rpe ? `@${x.rpe}` : ""}${x.is_test ? " (test)" : ""}`).join("; ") || "—"}{(ss as { notes?: string | null }).notes && <div className="mt-1 text-xs text-muted">{(ss as { notes?: string | null }).notes}</div>}</td>
                   </tr>
                 ))}

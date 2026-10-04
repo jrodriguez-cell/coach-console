@@ -8,7 +8,9 @@ import { TaskList } from "@/components/task-list";
 import { SubmitButton } from "@/components/submit-button";
 import { createTaskAction } from "@/app/actions/tasks";
 import { formatDate, hourIn, todayIn, DAY_NAMES, dayOfWeek } from "@/lib/dates";
-import type { TaskRow } from "@/lib/data/types";
+import type { PlanRow, TaskRow } from "@/lib/data/types";
+import { WeekChecklist } from "@/components/week-checklist";
+import { planWeekOf, weekChecklist, type ChecklistDay, type SessionRecord } from "@/lib/schedule";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +29,22 @@ export default async function TodayPage() {
     const k = t.client_id ?? "_general";
     groups.set(k, [...(groups.get(k) ?? []), t]);
   }
+  // Today's scheduled workouts across clients with an approved plan, to check off.
+  const activeIds = new Set(clients.map((c) => c.id));
+  const [{ data: livePlans }, { data: todayRecs }] = await Promise.all([
+    db.from("plans").select("id, client_id, status, parameters, training").eq("status", "approved"),
+    db.from("workout_sessions").select("client_id, date, planned_session_key, status, source").eq("date", today),
+  ]);
+  const workoutsToday = ((livePlans ?? []) as Pick<PlanRow, "id" | "client_id" | "parameters" | "training">[])
+    .filter((p) => p.training && (activeIds.size === 0 || activeIds.has(p.client_id)))
+    .map((p) => {
+      const week = planWeekOf(p.parameters.start_date, today);
+      const recs = ((todayRecs ?? []) as (SessionRecord & { client_id: string })[]).filter((r) => r.client_id === p.client_id);
+      const day = weekChecklist(p.parameters, p.training!, week, recs).find((d) => d.date === today);
+      return { plan: p, day };
+    })
+    .filter((x): x is { plan: (typeof x)["plan"]; day: ChecklistDay } => Boolean(x.day && x.day.items.length))
+    .sort((a, b) => (names[a.plan.client_id] ?? "").localeCompare(names[b.plan.client_id] ?? ""));
   const order = Array.from(groups.keys()).sort((a, b) => (a === "_general" ? 1 : b === "_general" ? -1 : (names[a] ?? "").localeCompare(names[b] ?? "")));
 
   return (
@@ -34,6 +52,18 @@ export default async function TodayPage() {
       <PageHeader eyebrow="Today" title={formatDate(today)} meta={`${tasks.length} open ${tasks.length === 1 ? "task" : "tasks"}`} />
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
+          {workoutsToday.length > 0 && (
+            <Card title="Today's workouts" actions={<span className="text-sm text-muted">{workoutsToday.reduce((a, w) => a + w.day.items.filter((i) => i.state).length, 0)}/{workoutsToday.reduce((a, w) => a + w.day.items.length, 0)} done</span>}>
+              <div className="divide-y divide-fg/10">
+                {workoutsToday.map(({ plan, day }) => (
+                  <div key={plan.id} className="py-2 first:pt-0">
+                    <Link className="text-sm font-semibold" href={`/clients/${plan.client_id}`}>{names[plan.client_id] ?? "Client"}</Link>
+                    <WeekChecklist clientId={plan.client_id} planId={plan.id} days={[day]} today={today} clientName={names[plan.client_id]} hideDayLabel />
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
           {order.length === 0 && <Card><Empty>Nothing needs your attention right now. New tasks appear here as weigh-ins, check-ins and checkpoints come due.</Empty></Card>}
           {order.map((k) => (
             <Card key={k} title={k === "_general" ? "General" : <Link className="title-sm" href={`/clients/${k}`}>{names[k] ?? "Client"}</Link>}>
