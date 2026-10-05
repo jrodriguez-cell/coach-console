@@ -12,5 +12,5 @@ export const PATTERN_LABEL: Record<string, string> = {
   squat: "Squat", hinge: "Hinge", lunge: "Lunge / single leg", horizontal_push: "Horizontal push", vertical_push: "Vertical push",
   horizontal_pull: "Horizontal pull", vertical_pull: "Vertical pull", core_anti_extension: "Core (anti-extension)",
   core_anti_rotation: "Core (anti-rotation)", core_flexion: "Core (flexion)", carry: "Carry", isolation_arms: "Arms",
-  isolation_shoulders: "Shoulders", isolation_legs: "Legs (isolation)", isolation_chest: "Chest (isolation)", power: "Power", mobility: "Mobility",
+  isolation_shoulders: "Shoulders", isolation_legs: "Legs (isolation)", isolation_chest: "Chest (isolation)", power: "Power", mobility: "Mobility", skill: "Skill",
 };

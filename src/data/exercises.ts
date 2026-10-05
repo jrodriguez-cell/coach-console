@@ -8,7 +8,9 @@
 export type Pattern =
   | "squat" | "hinge" | "lunge" | "horizontal_push" | "vertical_push" | "horizontal_pull" | "vertical_pull"
   | "core_anti_extension" | "core_anti_rotation" | "core_flexion" | "carry"
-  | "isolation_arms" | "isolation_shoulders" | "isolation_legs" | "isolation_chest" | "power" | "mobility";
+  | "isolation_arms" | "isolation_shoulders" | "isolation_legs" | "isolation_chest" | "power" | "mobility"
+  /** steps of a skill progression (L-sit, handstand…); only used by skill programs */
+  | "skill";
 
 export interface ExerciseSeed {
   slug: string;
@@ -197,6 +199,28 @@ const rows: Row[] = [
   ["supine_hamstring_stretch", "Supine Hamstring Stretch", "mobility", ["hamstrings"], ["bodyweight"], [], null, null, false],
   ["figure_four_stretch", "Figure-4 Glute Stretch", "mobility", ["glutes"], ["bodyweight"], ["hip"], null, null, false],
   ["neck_cars", "Neck Controlled Rotations", "mobility", ["neck"], ["bodyweight"], ["neck"], null, null, false],
+  ["seated_pike_stretch", "Seated Pike Stretch", "mobility", ["hamstrings", "low back"], ["bodyweight"], [], "standing_forward_fold", null, false],
+  ["standing_forward_fold", "Standing Forward Fold (soft knees)", "mobility", ["hamstrings", "low back"], ["bodyweight"], ["low_back"], "supine_hamstring_stretch", "seated_pike_stretch", false],
+  ["wrist_prep", "Wrist Prep (kneeling wrist rocks)", "mobility", ["wrists", "forearms"], ["bodyweight"], [], null, null, false],
+
+  // ---- Skill progressions (src/config/skills.ts) ----------------------------
+  // L-sit
+  ["support_hold", "Support Hold (parallel bars, parallettes or two sturdy chairs)", "skill", ["triceps", "shoulders", "core"], ["box"], ["shoulder", "wrist"], null, "tuck_l_sit", false],
+  ["scap_depression", "Scapular Depressions in Support (shrug down)", "skill", ["lower traps", "lats"], ["box"], ["shoulder", "wrist"], null, "support_hold", false],
+  ["tuck_l_sit", "Tuck L-Sit Hold", "skill", ["abs", "hip flexors", "triceps"], ["box"], ["shoulder", "wrist"], "support_hold", "one_leg_l_sit", false],
+  ["one_leg_l_sit", "Single-Leg L-Sit Hold (one leg straight)", "skill", ["abs", "hip flexors", "triceps"], ["box"], ["shoulder", "wrist"], "tuck_l_sit", "l_sit", false],
+  ["l_sit", "L-Sit Hold", "skill", ["abs", "hip flexors", "triceps"], ["box"], ["shoulder", "wrist"], "one_leg_l_sit", null, false],
+  ["seated_pike_leg_lift", "Seated Pike Leg Lifts (compression)", "core_flexion", ["hip flexors", "abs"], ["bodyweight"], [], "reverse_crunch", null, false],
+  // Pull-up
+  ["dead_hang", "Dead Hang", "skill", ["grip", "lats"], ["pullup_bar"], ["shoulder"], null, "scap_pull_up", false],
+  ["scap_pull_up", "Scapular Pull-Up", "skill", ["lower traps", "lats"], ["pullup_bar"], ["shoulder"], "dead_hang", "band_assisted_pull_up", false],
+  // Handstand
+  ["box_pike_hold", "Box Pike Hold (hips over hands, feet on box)", "skill", ["shoulders", "triceps"], ["box"], ["shoulder", "wrist"], null, "chest_to_wall_handstand", false],
+  ["chest_to_wall_handstand", "Chest-to-Wall Handstand Hold", "skill", ["shoulders", "triceps", "core"], ["bodyweight"], ["shoulder", "wrist", "neck"], "box_pike_hold", "handstand_practice", false],
+  ["handstand_practice", "Freestanding Handstand Practice (kick-ups)", "skill", ["shoulders", "core"], ["bodyweight"], ["shoulder", "wrist", "neck"], "chest_to_wall_handstand", null, false],
+  // Pistol squat
+  ["assisted_pistol_squat", "Assisted Pistol Squat (holding a support)", "skill", ["quads", "glutes"], ["box"], ["knee"], "single_leg_box_squat", "pistol_squat", true],
+  ["pistol_squat", "Pistol Squat", "skill", ["quads", "glutes"], ["bodyweight"], ["knee"], "assisted_pistol_squat", null, true],
 ];
 
 export const EXERCISES: ExerciseSeed[] = rows.map(([slug, name, pattern, primary_muscles, equipment, contraindications, regression, progression, is_compound]) => ({

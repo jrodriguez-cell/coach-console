@@ -16,6 +16,7 @@ import type { GeneratedPlan, LibExercise, LibFood, NutritionPlan, PlanParameters
 import { assembleTraining, buildSkeleton, defaultPhaseSequence, defaultSelection, exerciseLoadsForWeek, recomputeWeekMinutes, SPLIT_LABELS, type CandidateFilter } from "./training";
 import { chooseProgram, phaseHint, suggestFocus, type ProgramChoice } from "./program-design";
 import { FOCUS_LABELS, type Focus } from "@/config/program-styles";
+import { detectSkill, SKILLS, type SkillKey } from "@/config/skills";
 import type { Selector } from "./selection";
 
 export interface ClearanceContext {
@@ -31,6 +32,8 @@ export interface GeneratorContext {
   goal: GoalCategory;
   intake: IntakeAnswers;
   referOut: Partial<ReferOutFlags> | null;
+  /** PAR-Q answered yes to anything: physician clearance needed before hard training */
+  parqFlagged?: boolean;
   referralsHandled: ReferralHandling[];
   clearance: ClearanceContext | null;
   exercises: LibExercise[];
@@ -44,6 +47,22 @@ export interface GeneratorContext {
 /** The client's own words the program designer reads for focus and style. */
 export function intakeText(a: IntakeAnswers): string {
   return [a.primary_goal, a.success_90_days, a.sport_activity, a.exercise_likes, a.timeline_event].filter(Boolean).join(" \n ");
+}
+
+/** The client's goal statements only (not likes), used to spot a skill goal. */
+export function goalText(a: IntakeAnswers): string {
+  return [a.primary_goal, a.success_90_days, a.timeline_event].filter(Boolean).join(" \n ");
+}
+
+/** Skill goal for these parameters: the trainer's choice, else detected from the client's goals. */
+export function skillFor(a: IntakeAnswers, p: Pick<PlanParameters, "skill">): { skill: SkillKey | null; reason: string } {
+  const skill = p.skill === "none" ? null : p.skill ?? detectSkill(goalText(a));
+  if (!skill) return { skill: null, reason: "" };
+  const def = SKILLS[skill];
+  return {
+    skill,
+    reason: `Skill goal: ${def.label} (${p.skill ? "chosen by you" : "from the client's goals"}). Every session starts with the ${def.label.toLowerCase()} progression while fresh, plus its supporting work; the step moves up each 4-week block. ${def.progressCue}`,
+  };
 }
 
 /** Program style and focus for these parameters (trainer's choice, else automatic). */
@@ -83,6 +102,7 @@ export function defaultParameters(ctx: Pick<GeneratorContext, "goal" | "intake" 
     split: overrides.split ?? null,
     focus: overrides.focus ?? null,
     rotate_accessories: overrides.rotate_accessories ?? true,
+    skill: overrides.skill ?? null,
   };
 }
 
@@ -109,6 +129,23 @@ export function applyRpeCeiling(t: TrainingPlan, ceiling: number | null | undefi
         Object.entries(w.prescriptions).map(([k, p]) => [k, { ...p, rpe_min: Math.min(p.rpe_min, ceiling), rpe_max: Math.min(p.rpe_max, ceiling) }]),
       ),
     })),
+  };
+}
+
+/** PAR-Q flagged and no physician clearance received yet (pending or not recorded). */
+export function clearanceAwaited(ctx: Pick<GeneratorContext, "parqFlagged" | "clearance">): boolean {
+  return Boolean(ctx.parqFlagged) && (!ctx.clearance || ctx.clearance.status === "pending");
+}
+
+export const CLEARANCE_HOLD_REASON = "Physician clearance not received yet: cardio is held and all training is capped at RPE 6 (easy, conversational effort). Record the clearance and regenerate to lift this.";
+const CLEARANCE_RPE = 6;
+
+/** Before clearance: no cardio prescription, strength capped at an easy effort. */
+export function holdForClearance(t: TrainingPlan): TrainingPlan {
+  const capped = applyRpeCeiling(t, CLEARANCE_RPE);
+  return {
+    ...capped,
+    cardio: { ...capped.cardio, removed: true, removed_reason: "Held until physician clearance is received.", weeks: capped.cardio.weeks.map((w) => ({ ...w, sessions: 0, minutes: 0 })) },
   };
 }
 
@@ -181,7 +218,7 @@ export function deriveNutrition(ctx: GeneratorContext, params: PlanParameters, t
     const cw = training.cardio.weeks[0];
     const rule = GOAL_TEMPLATES[ctx.goal].cardio;
     if (training.cardio.removed) {
-      trainingFlags.push({ rule_key: "cardio_removed", label: "Cardio removed", status: "warn", message: `The ${GOAL_TEMPLATES[ctx.goal].label.toLowerCase()} template calls for cardio (${rule.freqMin}–${rule.freqMax} sessions/week). Record why it was removed.` });
+      trainingFlags.push({ rule_key: "cardio_removed", label: "Cardio removed", status: "warn", message: training.cardio.removed_reason ? `${training.cardio.removed_reason} The ${GOAL_TEMPLATES[ctx.goal].label.toLowerCase()} template calls for ${rule.freqMin}–${rule.freqMax} sessions/week once it's safe.` : `The ${GOAL_TEMPLATES[ctx.goal].label.toLowerCase()} template calls for cardio (${rule.freqMin}–${rule.freqMax} sessions/week). Record why it was removed.` });
     } else if (cw) {
       const okF = cw.sessions >= rule.freqMin && cw.sessions <= rule.freqMax;
       const okM = cw.minutes >= rule.minMin && cw.minutes <= rule.minMax;
@@ -284,11 +321,20 @@ export async function generatePlan(ctx: GeneratorContext, overrides: Partial<Pla
   } else {
     const filter = candidateFilter(a);
     const program = programFor(ctx.goal, a, params);
+    const skill = skillFor(a, params);
+    const awaitingClearance = clearanceAwaited(ctx);
     const sk = buildSkeleton(
       {
         goal: ctx.goal,
         split: program.split,
-        splitReasons: [...program.reasons, ...(program.focusReason ? [program.focusReason] : []), ...(program.overrideIgnored ? [program.overrideIgnored] : [])],
+        skill: skill.skill,
+        splitReasons: [
+          ...(skill.reason ? [skill.reason] : []),
+          ...program.reasons,
+          ...(program.focusReason ? [program.focusReason] : []),
+          ...(program.overrideIgnored ? [program.overrideIgnored] : []),
+          ...(awaitingClearance ? [CLEARANCE_HOLD_REASON] : []),
+        ],
         focus: program.focus,
         daysPerWeek: params.days_per_week,
         sessionLengthMin: params.session_length_min,
@@ -315,6 +361,7 @@ export async function generatePlan(ctx: GeneratorContext, overrides: Partial<Pla
       split_label: SPLIT_LABELS[sk.split],
       split_reasons: sk.split_reasons,
       focus: sk.focus.map((f) => FOCUS_LABELS[f]),
+      ...(sk.skill ? { skill_goal: SKILLS[sk.skill].label } : {}),
       phases: params.phase_sequence.map((p) => PHASES[p].label),
     });
     training = assembleTraining(sk, sel.choices, ctx.exercises, {
@@ -331,6 +378,7 @@ export async function generatePlan(ctx: GeneratorContext, overrides: Partial<Pla
       rotateAccessories: params.rotate_accessories ?? true,
     });
     training = applyRpeCeiling(training, ctx.clearance?.rpe_ceiling);
+    if (awaitingClearance) training = holdForClearance(training);
   }
 
   const d = deriveNutrition(ctx, params, training);
@@ -382,12 +430,12 @@ export function diffDerived(before: { energy: EnergyOutputs | null; nutrition: N
 export { recomputeWeekMinutes };
 
 /** What the generate form shows for program style and focus. */
-export function programDefaults(goal: GoalCategory, answers: unknown, p?: Partial<PlanParameters>): { split: PlanParameters["split"]; auto: { split: ProgramChoice["split"]; reason: string }; focus: Focus[]; rotate: boolean; session_length_min: number } | undefined {
+export function programDefaults(goal: GoalCategory, answers: unknown, p?: Partial<PlanParameters>): { split: PlanParameters["split"]; auto: { split: ProgramChoice["split"]; reason: string }; focus: Focus[]; rotate: boolean; session_length_min: number; skill: PlanParameters["skill"]; autoSkill: SkillKey | null } | undefined {
   const parsed = IntakeAnswersSchema.safeParse(answers);
   if (!parsed.success) return undefined;
   const a = parsed.data;
   const days = p?.days_per_week ?? a.training_days_per_week;
   const length = p?.session_length_min ?? a.session_length_min;
   const auto = programFor(goal, a, { days_per_week: days, session_length_min: length, split: null, focus: p?.focus ?? null });
-  return { split: p?.split ?? null, auto: { split: auto.split, reason: auto.reasons[0] ?? "" }, focus: auto.focus, rotate: p?.rotate_accessories ?? true, session_length_min: length };
+  return { split: p?.split ?? null, auto: { split: auto.split, reason: auto.reasons[0] ?? "" }, focus: auto.focus, rotate: p?.rotate_accessories ?? true, session_length_min: length, skill: p?.skill ?? null, autoSkill: detectSkill(goalText(a)) };
 }

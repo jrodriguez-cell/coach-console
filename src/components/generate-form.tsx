@@ -2,6 +2,7 @@
 import { useFormState } from "react-dom";
 import { generatePlanAction, type ActionState } from "@/app/actions/plans";
 import { FOCUS_AREAS, FOCUS_LABELS, PROGRAM_STYLES, SPLITS, splitDaysLabel, type Focus, type Split } from "@/config/program-styles";
+import { SKILL_KEYS, SKILLS, type SkillKey } from "@/config/skills";
 import { SubmitButton } from "./submit-button";
 
 export interface ProgramDefaults {
@@ -12,6 +13,8 @@ export interface ProgramDefaults {
   focus: Focus[];
   rotate: boolean;
   session_length_min: number;
+  skill: SkillKey | "none" | null | undefined;
+  autoSkill: SkillKey | null;
 }
 
 export function GenerateForm({ clientId, fromPlanId, defaults, program, label = "Generate draft plan", compact = false }: { clientId: string; fromPlanId?: string; defaults?: { start_date?: string; weeks?: number; days_per_week?: number }; program?: ProgramDefaults; label?: string; compact?: boolean }) {
@@ -27,7 +30,7 @@ export function GenerateForm({ clientId, fromPlanId, defaults, program, label = 
         </div>
       )}
       {!compact && program && (
-        <details className="border-t border-fg/15 pt-3" open={program.split != null}>
+        <details className="border-t border-fg/15 pt-3" open={program.split != null || program.skill != null}>
           <summary className="cursor-pointer text-sm font-semibold">Program style and focus</summary>
           <p className="mt-1 text-xs text-muted">Leave on Auto to let the client&apos;s goal, experience, age, days and time decide.</p>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -38,6 +41,15 @@ export function GenerateForm({ clientId, fromPlanId, defaults, program, label = 
                 {SPLITS.map((s) => <option key={s} value={s}>{PROGRAM_STYLES[s].label} ({splitDaysLabel(s)}{PROGRAM_STYLES[s].needsGym ? ", gym" : ""})</option>)}
               </select>
               <span className="mt-1 block text-xs text-muted">Auto picks {PROGRAM_STYLES[program.auto.split].label.toLowerCase()}. {program.auto.reason}</span>
+            </label>
+            <label className="sm:col-span-2">
+              <span className="label">Skill goal</span>
+              <select className="input" name="skill" defaultValue={program.skill ?? "auto"}>
+                <option value="auto">Auto: {program.autoSkill ? SKILLS[program.autoSkill].label : "none found in their goals"}</option>
+                <option value="none">None</option>
+                {SKILL_KEYS.map((k) => <option key={k} value={k}>{SKILLS[k].label}</option>)}
+              </select>
+              <span className="mt-1 block text-xs text-muted">A skill goal opens every session with a step-by-step progression (e.g. support hold → tuck L-sit → one-leg L-sit → L-sit) plus its supporting work.</span>
             </label>
             <label>
               <span className="label">Session length (min)</span>

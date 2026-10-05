@@ -4,7 +4,7 @@ import { IntakeAnswersSchema, type IntakeAnswers } from "@/lib/intake";
 import type { LibExercise, LibFood } from "@/lib/plan-types";
 
 export const EX_LIB: LibExercise[] = EXERCISES.map((e) => ({
-  id: e.slug, name: e.name, pattern: e.pattern, primary_muscles: e.primary_muscles, equipment: e.equipment,
+  id: e.slug, slug: e.slug, name: e.name, pattern: e.pattern, primary_muscles: e.primary_muscles, equipment: e.equipment,
   contraindications: e.contraindications, regression_id: e.regression, progression_id: e.progression, is_compound: e.is_compound,
 }));
 export const FOOD_LIB: LibFood[] = FOODS.map((f) => ({ ...f, id: f.slug, slug: f.slug }));

@@ -260,3 +260,58 @@ export async function toggleWorkoutAction(clientId: string, planId: string, date
   revalidateClient(clientId);
   return { ok: true, done: true };
 }
+
+export type ResultsState = { error: string | null; savedAt?: number; sets?: number };
+
+/**
+ * Save the results of one scheduled session straight from the plan's
+ * Training tab: replaces that day's sets for the session (whether they came
+ * from a check-off, an imported sheet or an earlier save).
+ */
+export async function saveSessionResultsAction(clientId: string, planId: string, date: string, key: string, _prev: ResultsState, form: FormData): Promise<ResultsState> {
+  const db = createClient();
+  let sets: SetInput[];
+  try {
+    sets = JSON.parse(str(form, "sets") || "[]");
+  } catch {
+    return { error: "Invalid set data." };
+  }
+  for (const s of sets) {
+    if (s.reps != null && (!Number.isFinite(s.reps) || s.reps < 0 || s.reps > 600)) return { error: "Reps or seconds must be 0–600." };
+    if (s.weight_lb != null && (!Number.isFinite(s.weight_lb) || s.weight_lb < 0 || s.weight_lb > 1500)) return { error: "Weight must be 0–1,500 lb." };
+  }
+  if (date > todayIn()) return { error: "That day hasn't happened yet." };
+  const { data: plan } = await db.from("plans").select("id, client_id").eq("id", planId).maybeSingle();
+  if (!plan || plan.client_id !== clientId) return { error: "Plan not found." };
+
+  const rows = sets.filter((s) => s.exercise_id && (s.reps != null || s.weight_lb != null));
+  const expected = Number(str(form, "expected_sets") || 0);
+  const status = rows.length === 0 ? null : expected && rows.length < expected ? "partial" : "completed";
+  const notes = str(form, "notes") || null;
+
+  const { data: existing } = await db.from("workout_sessions").select("id").eq("client_id", clientId).eq("date", date).eq("planned_session_key", key).order("id");
+  const ids = ((existing ?? []) as { id: string }[]).map((r) => r.id);
+  if (!status) {
+    // Everything cleared: remove the session (and its sets) if one was saved.
+    if (ids.length) await db.from("workout_sessions").delete().in("id", ids);
+    revalidateClient(clientId);
+    revalidatePath(`/clients/${clientId}/plan/${planId}`);
+    return { error: null, savedAt: Date.now(), sets: 0 };
+  }
+  let sessionId = ids[0];
+  if (sessionId) {
+    const { error } = await db.from("workout_sessions").update({ status, notes, source: "coach_entered", plan_id: planId }).eq("id", sessionId);
+    if (error) return { error: error.message };
+    if (ids.length > 1) await db.from("workout_sessions").delete().in("id", ids.slice(1));
+    await db.from("set_logs").delete().eq("session_id", sessionId);
+  } else {
+    const { data, error } = await db.from("workout_sessions").insert({ client_id: clientId, plan_id: planId, date, planned_session_key: key, status, notes, source: "coach_entered" }).select("id").single();
+    if (error) return { error: error.message };
+    sessionId = data.id;
+  }
+  const { error: e2 } = await db.from("set_logs").insert(rows.map((s) => ({ session_id: sessionId, exercise_id: s.exercise_id, set_number: s.set_number, weight_lb: s.weight_lb, reps: s.reps, rpe: s.rpe ?? null, is_test: Boolean(s.is_test) })));
+  if (e2) return { error: e2.message };
+  revalidateClient(clientId);
+  revalidatePath(`/clients/${clientId}/plan/${planId}`);
+  return { error: null, savedAt: Date.now(), sets: rows.length };
+}

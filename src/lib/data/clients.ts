@@ -2,7 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { GeneratorContext } from "@/lib/generator";
 import { IntakeAnswersSchema } from "@/lib/intake";
-import { loadExercises, loadFoods } from "./libraries";
+import { ensureExerciseLibrary, loadExercises, loadFoods } from "./libraries";
 import type { AppSettings } from "./settings";
 import type {
   CalibrationRow, CheckpointRow, ClearanceRow, ClientRow, ContactRow, IntakeRow, OverrideRow, PlanRow, ReferralRow, TaskRow,
@@ -92,6 +92,8 @@ export async function getClientBundle(db: SupabaseClient, id: string): Promise<C
 }
 
 export async function generatorContext(db: SupabaseClient, clientId: string, settings: AppSettings, goalOverride?: GeneratorContext["goal"]): Promise<GeneratorContext> {
+  // New built-in exercises (skill progressions) reach the database the first time a plan is generated.
+  await ensureExerciseLibrary(db).catch(() => 0);
   const [client, intake, clearance, refs, exercises, foods] = await Promise.all([
     getClient(db, clientId),
     latestIntake(db, clientId),
@@ -106,6 +108,7 @@ export async function generatorContext(db: SupabaseClient, clientId: string, set
     goal: goalOverride ?? client.goal_category,
     intake: IntakeAnswersSchema.parse(intake.answers),
     referOut: intake.refer_out_flags,
+    parqFlagged: Boolean(intake.parq_flagged),
     referralsHandled: refs.map((r) => ({ flag: r.flag, handled_note: r.handled_note })),
     clearance: clearance
       ? {

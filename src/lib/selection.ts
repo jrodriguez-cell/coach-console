@@ -19,6 +19,7 @@ export interface SelectionRequest {
     cardio_preferences: string;
     split_label: string;
     split_reasons?: string[];
+    skill_goal?: string;
     focus?: string[];
     phases: string[];
   };

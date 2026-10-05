@@ -16,19 +16,22 @@ import { GOAL_TEMPLATES } from "@/config/goal-templates";
 import { PHASES } from "@/config/training-variables";
 import { METS, NEAT_FACTORS } from "@/config/energy";
 import { goalLabel, PATTERN_LABEL } from "@/lib/labels";
-import { DAY_NAMES, formatDate, todayIn } from "@/lib/dates";
+import { DAY_NAMES, dayOfWeek, formatDate, todayIn } from "@/lib/dates";
 import { describePrediction } from "@/lib/energy";
-import { blockOfWeek, holdSeconds, isUsable, sessionsInBlock } from "@/lib/training";
+import { blockOfWeek, holdSeconds, isUsable, sessionsInBlock, skillLadder } from "@/lib/training";
+import { SKILLS } from "@/config/skills";
 import { candidateFilter, programDefaults } from "@/lib/generator";
 import { FOCUS_LABELS } from "@/config/program-styles";
 import type { ProgramDefaults } from "@/components/generate-form";
 import { IntakeAnswersSchema } from "@/lib/intake";
 import { planCalendar } from "@/lib/calendar";
 import type { PlanRow } from "@/lib/data/types";
+import type { NutritionPlan } from "@/lib/plan-types";
 import { currentPlanWeek } from "@/lib/client-week";
 import { ShareWeek } from "@/components/share-week";
-import { plannedItems, recordFor, type ItemKind, type SessionRecord } from "@/lib/schedule";
+import { plannedItems, plannedItemsForWeek, recordFor, type ItemKind, type SessionRecord } from "@/lib/schedule";
 import { ExportFileButton } from "@/components/export-file-button";
+import { SessionResults, type ResultExercise } from "@/components/session-results";
 
 export const dynamic = "force-dynamic";
 
@@ -92,12 +95,67 @@ export default async function PlanPage({ params, searchParams }: { params: { id:
           <Overview plan={plan} editable={editable} clientId={client.id} purpose={client.purpose_text} intakeGoal={intake?.answers.primary_goal} program={intake ? programDefaults(plan.goal_category, intake.answers, plan.parameters) : undefined} />
         </>
       )}
-      {tab === "training" && <Training plan={plan} editable={editable} week={Number(searchParams.week) || currentPlanWeek(plan.parameters, todayIn())} fileBase={client.name.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "")} base={base} candidates={await swapCandidates(db, plan, intake?.answers)} />}
+      {tab === "training" && <Training plan={plan} editable={editable} week={Number(searchParams.week) || currentPlanWeek(plan.parameters, todayIn())} fileBase={client.name.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "")} base={base} candidates={await swapCandidates(db, plan, intake?.answers)} results={await weekResults(db, plan, Math.min(Math.max(Number(searchParams.week) || currentPlanWeek(plan.parameters, todayIn()), 1), plan.parameters.weeks))} />}
       {tab === "nutrition" && <Nutrition plan={plan} editable={editable} disclaimer={settings.disclaimer} hasGoalWeight={Boolean(intake?.answers.goal_weight_lb)} />}
       {tab === "calendar" && <Calendar plan={plan} done={await doneByDate(db, plan)} />}
       {tab === "checkpoints" && <Checkpoints plan={plan} clientId={client.id} />}
     </div>
   );
+}
+
+interface WeekResult { date: string; key: string; name: string; exercises: ResultExercise[]; notes: string; logged: boolean }
+
+/** This week's scheduled strength sessions with what's been logged and last time's numbers. */
+async function weekResults(db: ReturnType<typeof createClient>, plan: PlanRow, week: number): Promise<WeekResult[] | null> {
+  const t = plan.training;
+  if (!t || plan.status !== "approved") return null;
+  const items = plannedItemsForWeek(plan.parameters, t, week).filter((i) => i.kind === "strength");
+  if (!items.length) return [];
+  const wk = t.weeks[week - 1];
+  const from = items[0].date;
+  const [{ data: thisWeek }, { data: before }] = await Promise.all([
+    db.from("workout_sessions").select("id, date, planned_session_key, notes").eq("client_id", plan.client_id).gte("date", from).lte("date", items[items.length - 1].date),
+    db.from("workout_sessions").select("id, date").eq("client_id", plan.client_id).lt("date", from).order("date", { ascending: false }).limit(40),
+  ]);
+  type S = { id: string; date: string; planned_session_key?: string | null; notes?: string | null };
+  const cur = (thisWeek ?? []) as S[];
+  const prev = (before ?? []) as S[];
+  const ids = [...cur, ...prev].map((x) => x.id);
+  const { data: setData } = ids.length ? await db.from("set_logs").select("session_id, exercise_id, set_number, weight_lb, reps").in("session_id", ids) : { data: [] };
+  const sets = (setData ?? []) as { session_id: string; exercise_id: string; set_number: number; weight_lb: number | null; reps: number | null }[];
+  const dateOf = new Map([...cur, ...prev].map((x) => [x.id, x.date]));
+  // Most recent earlier sets per exercise.
+  const lastBy = new Map<string, { date: string; sets: typeof sets }>();
+  for (const sl of sets) {
+    const d = dateOf.get(sl.session_id)!;
+    if (cur.some((c) => c.id === sl.session_id)) continue;
+    const have = lastBy.get(sl.exercise_id);
+    if (!have || d > have.date) lastBy.set(sl.exercise_id, { date: d, sets: [sl] });
+    else if (d === have.date) have.sets.push(sl);
+  }
+  const fmtSet = (x: { weight_lb: number | null; reps: number | null }, unit: string) => `${x.weight_lb != null ? `${Number(x.weight_lb)} lb × ` : ""}${x.reps ?? "?"}${unit === "seconds" ? " s" : ""}`;
+  return items.map((it) => {
+    const session = t.sessions.find((x) => x.key === it.key)!;
+    const logged = cur.find((c) => c.date === it.date && c.planned_session_key === it.key);
+    const mine = logged ? sets.filter((x) => x.session_id === logged.id) : [];
+    const exercises = session.slots.filter((sl) => wk?.prescriptions[sl.id]).map((sl): ResultExercise => {
+      const rx = wk.prescriptions[sl.id];
+      const reps = sl.unit === "seconds" ? `${holdSeconds(rx)[0]}–${holdSeconds(rx)[1]} s` : `${rx.reps_min}–${rx.reps_max}`;
+      const last = lastBy.get(sl.exercise.id);
+      const best = last ? [...last.sets].sort((a, b) => (Number(b.weight_lb ?? 0) - Number(a.weight_lb ?? 0)) || ((b.reps ?? 0) - (a.reps ?? 0)))[0] : null;
+      return {
+        id: sl.exercise.id,
+        name: sl.exercise.name,
+        unit: sl.unit,
+        sets: rx.sets,
+        target: `${rx.sets} × ${reps} · RPE ${rx.rpe_min}–${rx.rpe_max}`,
+        last: best ? `${fmtSet(best, sl.unit)} (${formatDate(last!.date).replace(/, \d{4}$/, "")})` : null,
+        lastWeight: best?.weight_lb != null ? Number(best.weight_lb) : null,
+        logged: mine.filter((x) => x.exercise_id === sl.exercise.id).map((x) => ({ set_number: x.set_number, weight_lb: x.weight_lb != null ? Number(x.weight_lb) : null, reps: x.reps })),
+      };
+    });
+    return { date: it.date, key: it.key, name: session.name, exercises, notes: logged?.notes ?? "", logged: mine.length > 0 };
+  });
 }
 
 async function swapCandidates(db: ReturnType<typeof createClient>, plan: PlanRow, answers: unknown) {
@@ -106,7 +164,7 @@ async function swapCandidates(db: ReturnType<typeof createClient>, plan: PlanRow
   const lib = await loadExercises(db);
   const f = candidateFilter(intake);
   const out: Record<string, { id: string; name: string }[]> = {};
-  for (const s of plan.training.sessions) for (const sl of s.slots) out[sl.id] = lib.filter((e) => e.pattern === sl.pattern && isUsable(e, f)).map((e) => ({ id: e.id, name: e.name }));
+  for (const s of plan.training.sessions) for (const sl of s.slots) out[sl.id] = (sl.role === "skill" && sl.skill ? skillLadder(sl.skill, lib, f) : lib.filter((e) => e.pattern === sl.pattern && isUsable(e, f))).map((e) => ({ id: e.id, name: e.name }));
   return out;
 }
 
@@ -181,7 +239,7 @@ function Overview({ plan, editable, clientId, purpose, intakeGoal, program }: { 
   );
 }
 
-function Training({ plan, editable, week, base, candidates, fileBase }: { plan: PlanRow; editable: boolean; week: number; base: string; candidates: Record<string, { id: string; name: string }[]>; fileBase: string }) {
+function Training({ plan, editable, week, base, candidates, fileBase, results }: { plan: PlanRow; editable: boolean; week: number; base: string; candidates: Record<string, { id: string; name: string }[]>; fileBase: string; results: WeekResult[] | null }) {
   const t = plan.training;
   if (!t) return <Banner tone="red" title="Training not generated">{plan.nutrition?.training_blocked_reason ?? "Refer out before generating training."}</Banner>;
   const wk = t.weeks[Math.min(Math.max(week, 1), t.weeks.length) - 1];
@@ -202,6 +260,23 @@ function Training({ plan, editable, week, base, candidates, fileBase }: { plan: 
       <p className="text-sm">
         <b>Week {wk.week}</b> · {PHASES[wk.phase].label}{wk.deload ? " · DELOAD (≈40% fewer sets, stop at RPE 5–6)" : ""}{wk.retest ? " · retest at the last session" : ""}{t.block_rotations ? ` · block ${blockOfWeek(wk.week) + 1} exercises` : ""} · {t.split_label}, lifting on {t.lifting_days.map((d) => DAY_NAMES[d]).join(", ")}
       </p>
+      {results && results.length > 0 && (() => {
+        const today = todayIn();
+        const openIdx = results.findIndex((r) => r.date <= today && !r.logged);
+        return (
+          <Card title={`Log week ${wk.week} results`} actions={<span className="text-sm text-muted">{results.filter((r) => r.logged).length}/{results.length} logged</span>}>
+            <p className="muted mb-2">Enter weight and reps (seconds for holds) for each set. Leave weight blank for bodyweight. Saving ticks the workout off and feeds strength progress and adherence. The fillable Excel still works too.</p>
+            <div className="divide-y divide-fg/10">
+              {results.map((r, i) => (
+                <Collapsible key={`${r.date}-${r.key}`} defaultOpen={i === openIdx} title={`${DAY_NAMES[dayOfWeek(r.date)]} ${formatDate(r.date).replace(/, \d{4}$/, "")} · ${r.name}`} hint={r.logged ? "✓ logged" : r.date > today ? "upcoming" : "not logged yet"}>
+                  <SessionResults clientId={plan.client_id} planId={plan.id} date={r.date} sessionKey={r.key} exercises={r.exercises} notes={r.notes} editable={r.date <= today} />
+                </Collapsible>
+              ))}
+            </div>
+          </Card>
+        );
+      })()}
+      <h3 className="pt-2">Program for week {wk.week}</h3>
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
         {sessionsInBlock(t.sessions, blockOfWeek(wk.week)).map((s, si) => (
           <Collapsible key={s.key} defaultOpen={si === 0} title={s.name} hint={`${s.slots.filter((sl) => wk.prescriptions[sl.id]).length} exercises · ≈${wk.session_minutes[s.key]} min + warm-up`}>
@@ -303,83 +378,133 @@ function Training({ plan, editable, week, base, candidates, fileBase }: { plan: 
   );
 }
 
+function MacroSplit({ t }: { t: NonNullable<NutritionPlan["targets"]> }) {
+  // Share of calories; each segment named directly (no colour-only identity).
+  const parts = [
+    { label: "Protein", pct: t.protein_pct, cls: "bg-fg" },
+    { label: "Carbs", pct: t.carbs_pct, cls: "bg-fg/55" },
+    { label: "Fat", pct: t.fat_pct, cls: "bg-fg/25" },
+  ];
+  return (
+    <figure>
+      <div className="flex h-3 w-full gap-0.5" role="img" aria-label={parts.map((x) => `${x.label} ${Math.round(x.pct)}%`).join(", ")}>
+        {parts.map((x) => <div key={x.label} className={x.cls} style={{ width: `${x.pct}%` }} />)}
+      </div>
+      <figcaption className="mt-1.5 flex justify-between text-xs text-muted">
+        {parts.map((x) => <span key={x.label}>{x.label} {Math.round(x.pct)}%</span>)}
+      </figcaption>
+    </figure>
+  );
+}
+
 function Nutrition({ plan, editable, disclaimer, hasGoalWeight }: { plan: PlanRow; editable: boolean; disclaimer: string; hasGoalWeight: boolean }) {
   const n = plan.nutrition;
   const p = plan.parameters;
-  const disc = <p className="note-info p-2 text-xs text-muted">{disclaimer}</p>;
+  const disc = <p className="text-xs text-muted">{disclaimer}</p>;
   if (!n || n.blocked || !n.targets) return <div className="space-y-3"><Banner tone="red" title="Nutrition guidance not generated">{n?.blocked_reason}</Banner>{disc}</div>;
   const t = n.targets;
   const e = n.energy!;
-  const row = (label: string, g: number, pct: number, tol: number) => <tr><td>{label}</td><td className="font-semibold">{g} g</td><td>±{tol} g</td><td>{pct.toFixed(0)}% of calories</td></tr>;
+  const perMeal = Math.round(t.protein_g / n.meals_per_day);
+  const macro = (label: string, g: number, tol: number) => (
+    <div className="border-t border-fg/15 pt-2">
+      <div className="caps">{label}</div>
+      <div className="mt-1 text-2xl font-semibold tabular-nums">{g}<span className="text-base font-medium"> g</span></div>
+      <div className="text-xs text-muted">± {tol} g</div>
+    </div>
+  );
   return (
-    <div className="space-y-4">
-      {disc}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <Card title="Daily targets (estimates)">
-          <div className="table-wrap"><table className="table">
-            <thead><tr><th></th><th>Target</th><th>Tolerance</th><th></th></tr></thead>
-            <tbody>
-              <tr><td>Calories</td><td className="font-semibold">{fmt.n(t.calories)} kcal</td><td>±{t.tolerance.calories} kcal</td><td>{fmt.n(t.calories - t.tolerance.calories)}–{fmt.n(t.calories + t.tolerance.calories)}</td></tr>
-              {row("Protein", t.protein_g, t.protein_pct, t.tolerance.protein_g)}
-              {row("Carbohydrate", t.carbs_g, t.carbs_pct, t.tolerance.carbs_g)}
-              {row("Fat", t.fat_g, t.fat_pct, t.tolerance.fat_g)}
-            </tbody>
-          </table></div>
-          <p className="mt-2 text-xs text-muted">Protein {t.protein_g_per_lb.toFixed(2)} g/lb of {t.reference_weight_lb} lb reference weight. 4P + 4C + 9F = {fmt.n(4 * t.protein_g + 4 * t.carbs_g + 9 * t.fat_g)} kcal.</p>
-          <p className="mt-2 text-sm">{n.fiber_text}</p>
-          <p className="mt-1 text-sm">{n.hydration_text}</p>
-          <p className="mt-1 text-sm">{n.meals_guidance}</p>
+    <div className="space-y-8">
+      <Card title="Daily targets">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_1.4fr]">
+          <div>
+            <div className="caps">Calories</div>
+            <div className="mt-1 text-5xl font-semibold leading-none tracking-tight tabular-nums">{fmt.n(t.calories)}</div>
+            <div className="mt-1 text-sm text-muted">kcal a day · aim for {fmt.n(t.calories - t.tolerance.calories)}–{fmt.n(t.calories + t.tolerance.calories)}</div>
+            <p className="mt-3 text-sm"><b>Expected change:</b> {describePrediction(e)}.</p>
+          </div>
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              {macro("Protein", t.protein_g, t.tolerance.protein_g)}
+              {macro("Carbs", t.carbs_g, t.tolerance.carbs_g)}
+              {macro("Fat", t.fat_g, t.tolerance.fat_g)}
+            </div>
+            <MacroSplit t={t} />
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="panel"><div className="caps">Meals</div><p className="mt-1 text-sm">{n.meals_per_day} a day, about <b>{perMeal} g protein</b> each.</p></div>
+        <div className="panel"><div className="caps">Fiber</div><p className="mt-1 text-sm"><b>{t.fiber_g} g</b> a day from vegetables, fruit, legumes and whole grains.</p></div>
+        <div className="panel"><div className="caps">Water</div><p className="mt-1 text-sm">{t.water ? <>About <b>{t.water.from_drinks_fl_oz} fl oz</b> from drinks ({t.water.total_fl_oz} fl oz total fluids); more around training and heat.</> : n.hydration_text}</p></div>
+      </div>
+
+      <section className="space-y-3">
+        <div className="flex items-baseline justify-between gap-3"><h2>Example days</h2><span className="text-xs text-muted">Examples only; swap foods freely.</span></div>
+        {n.example_days.length === 0 ? <Empty>No example days fit inside every target with the allowed foods.</Empty> : (
+          <div className="divide-y divide-fg/10 border-y border-fg/10">
+            {n.example_days.map((d, i) => (
+              <Collapsible key={d.label} defaultOpen={i === 0} title={d.label.replace(/\s*[—-]\s*example.*$/i, "")} hint={`${d.totals.calories} kcal · P ${d.totals.protein_g} · C ${d.totals.carbs_g} · F ${d.totals.fat_g}${Object.values(d.within_band).every(Boolean) ? " · on target" : ""}`}>
+                <dl className="divide-y divide-fg/10">
+                  {d.meals.map((m, j) => (
+                    <div key={j} className="grid grid-cols-1 gap-1 py-2 sm:grid-cols-[8rem_1fr]">
+                      <dt className="caps pt-0.5">{m.name}</dt>
+                      <dd className="text-sm">
+                        <ul className="space-y-0.5">{m.items.map((it, k) => <li key={k}>{it.name} <span className="text-muted">· {it.household} (~{Math.round(it.grams)} g)</span></li>)}</ul>
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </Collapsible>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <div className="divide-y divide-fg/10 border-y border-fg/10">
+        <Collapsible title="Food guide" hint="Foods that fit, swaps and a grocery list">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div>
+              <h3 className="mb-2">Foods that fit</h3>
+              {Object.entries(n.food_lists).map(([cat, foods]) => (
+                <div key={cat} className="mb-2"><div className="caps mb-1 capitalize">{cat}</div><p className="text-sm">{foods.map((f) => f.name).join(" · ")}</p></div>
+              ))}
+            </div>
+            <div>
+              <h3 className="mb-2">Swaps</h3>
+              {n.swaps.map((sw) => (
+                <div key={sw.category} className="mb-2"><div className="caps mb-1">{sw.category}</div><ul className="space-y-0.5 text-sm">{sw.options.map((o) => <li key={o.name}>{o.name} <span className="text-muted">· {o.household} (~{o.grams} g)</span></li>)}</ul></div>
+              ))}
+            </div>
+            <div>
+              <h3 className="mb-2">Grocery staples</h3>
+              <ul className="space-y-0.5 text-sm">{n.grocery_staples.map((g) => <li key={g}>{g}</li>)}</ul>
+            </div>
+          </div>
+        </Collapsible>
+        <Collapsible title="How the numbers are worked out" hint="Energy balance, assumptions and adjustments">
+          <EnergyTable plan={plan} />
+          <p className="mt-2 text-xs text-muted">Protein {t.protein_g_per_lb.toFixed(2)} g per lb of {t.reference_weight_lb} lb reference weight · 4P + 4C + 9F = {fmt.n(4 * t.protein_g + 4 * t.carbs_g + 9 * t.fat_g)} kcal. Uses 3,500 kcal per lb as a planning approximation; ±{(e.uncertainty_pct * 100).toFixed(0)}% TDEE uncertainty ({e.uncertainty_pct <= 0.05 ? "calibrated" : e.mode}). Recalibrated from weigh-ins at checkpoints.</p>
           {n.notes.map((x, i) => <p key={i} className="mt-1 text-xs text-muted">{x}</p>)}
           {editable && (
             <details className="mt-3">
               <summary className="cursor-pointer text-sm font-medium">Adjust targets (within guardrails)</summary>
-              <PlanEditForm planId={plan.id} op="params" className="mt-2 grid grid-cols-2 gap-2 text-sm">
+              <PlanEditForm planId={plan.id} op="params" className="mt-2 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
                 <input type="hidden" name="start_date" value={p.start_date} />
                 <input type="hidden" name="checkpoint_weeks" value={p.checkpoint_weeks.join(",")} />
-                <label>Calorie mode<select className="input" name="calorie_mode" defaultValue={p.calorie_mode}><option value="deficit">Deficit / surplus from TDEE</option><option value="fixed">Fixed target</option></select></label>
-                <label>Deficit (kcal/day; negative = surplus)<input className="input" type="number" name="deficit" defaultValue={p.deficit} /></label>
-                <label>Fixed target (kcal)<input className="input" type="number" name="target_override" defaultValue={p.target_override ?? ""} /></label>
-                <label>Protein (g per lb)<input className="input" type="number" step="0.05" name="protein_g_per_lb" defaultValue={p.protein_g_per_lb ?? ""} placeholder={t.protein_g_per_lb.toFixed(2)} /></label>
-                <label>Fat (% of calories)<input className="input" type="number" step="1" name="fat_pct" defaultValue={p.fat_pct ?? ""} placeholder={t.fat_pct.toFixed(0)} /></label>
-                <label>Reference weight<select className="input" name="reference_weight" defaultValue={p.reference_weight}><option value="current">Current weight</option>{hasGoalWeight && <option value="goal">Goal weight</option>}</select></label>
-                <label>Resting equation<select className="input" name="bmr_method" defaultValue={p.bmr_method}><option value="mifflin">Mifflin-St Jeor</option><option value="katch">Katch-McArdle (needs body fat %)</option></select></label>
-                <label>Daily activity<select className="input" name="neat_level" defaultValue={p.neat_level}>{Object.entries(NEAT_FACTORS).map(([k, v]) => <option key={k} value={k}>{v.label} (×{v.factor})</option>)}</select></label>
-                <label>Energy mode<select className="input" name="energy_mode" defaultValue={p.energy_mode}><option value="formula">Formula</option><option value="measured">Measured (wearable TDEE)</option></select></label>
+                <label><span className="label">Calorie mode</span><select className="input" name="calorie_mode" defaultValue={p.calorie_mode}><option value="deficit">Deficit / surplus from TDEE</option><option value="fixed">Fixed target</option></select></label>
+                <label><span className="label">Deficit (kcal/day; negative = surplus)</span><input className="input" type="number" name="deficit" defaultValue={p.deficit} /></label>
+                <label><span className="label">Fixed target (kcal)</span><input className="input" type="number" name="target_override" defaultValue={p.target_override ?? ""} /></label>
+                <label><span className="label">Protein (g per lb)</span><input className="input" type="number" step="0.05" name="protein_g_per_lb" defaultValue={p.protein_g_per_lb ?? ""} placeholder={t.protein_g_per_lb.toFixed(2)} /></label>
+                <label><span className="label">Fat (% of calories)</span><input className="input" type="number" step="1" name="fat_pct" defaultValue={p.fat_pct ?? ""} placeholder={t.fat_pct.toFixed(0)} /></label>
+                <label><span className="label">Reference weight</span><select className="input" name="reference_weight" defaultValue={p.reference_weight}><option value="current">Current weight</option>{hasGoalWeight && <option value="goal">Goal weight</option>}</select></label>
+                <label><span className="label">Resting equation</span><select className="input" name="bmr_method" defaultValue={p.bmr_method}><option value="mifflin">Mifflin-St Jeor</option><option value="katch">Katch-McArdle (needs body fat %)</option></select></label>
+                <label><span className="label">Daily activity</span><select className="input" name="neat_level" defaultValue={p.neat_level}>{Object.entries(NEAT_FACTORS).map(([k, v]) => <option key={k} value={k}>{v.label} (×{v.factor})</option>)}</select></label>
+                <label><span className="label">Energy mode</span><select className="input" name="energy_mode" defaultValue={p.energy_mode}><option value="formula">Formula</option><option value="measured">Measured (wearable TDEE)</option></select></label>
               </PlanEditForm>
             </details>
           )}
-        </Card>
-        <Card title="Energy balance (estimates)">
-          <EnergyTable plan={plan} />
-          <p className="mt-2 text-sm"><b>Expected change:</b> {describePrediction(e)}.</p>
-          <p className="mt-1 text-xs text-muted">Uses 3,500 kcal per lb as a planning approximation only; ±{(e.uncertainty_pct * 100).toFixed(0)}% TDEE uncertainty ({e.uncertainty_pct <= 0.05 ? "calibrated" : e.mode}). Recalibrated from real weigh-ins at checkpoints. Post-exercise afterburn is ignored (conservative).</p>
-        </Card>
-      </div>
-      <Card title="Example days">
-            <p className="muted mb-3">Examples only. Swap foods freely.</p>
-        {n.example_days.length === 0 ? <Empty>No example days fit inside every band with the allowed foods.</Empty> : (
-          <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
-            {n.example_days.map((d) => (
-              <div key={d.label} className="rounded border border-fg/15 p-3">
-                <div className="mb-1 flex justify-between text-sm font-semibold"><span>{d.label}</span><span className="font-normal text-muted">{d.totals.calories} kcal · P {d.totals.protein_g} · C {d.totals.carbs_g} · F {d.totals.fat_g} {Object.values(d.within_band).every(Boolean) && <Badge tone="green">in band</Badge>}</span></div>
-                {d.meals.map((m, i) => (
-                  <div key={i} className="mt-1 text-sm"><b>{m.name}:</b> {m.items.map((it) => `${it.name}: ${it.household} (~${Math.round(it.grams)} g)`).join("; ")}</div>
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <Card title="Food lists">
-          {Object.entries(n.food_lists).map(([cat, foods]) => <p key={cat} className="mb-1 text-sm"><b className="capitalize">{cat}:</b> {foods.map((f) => f.name).join(", ")}</p>)}
-        </Card>
-        <Card title="Swaps">
-          {n.swaps.map((s) => (
-            <div key={s.category} className="mb-2 text-sm"><b>{s.category}</b><ul className="list-disc pl-5">{s.options.map((o) => <li key={o.name}>{o.name}: {o.household} (~{o.grams} g)</li>)}</ul></div>
-          ))}
-        </Card>
-        <Card title="Grocery staples"><ul className="list-disc pl-5 text-sm">{n.grocery_staples.map((g) => <li key={g}>{g}</li>)}</ul></Card>
+        </Collapsible>
       </div>
       {disc}
     </div>

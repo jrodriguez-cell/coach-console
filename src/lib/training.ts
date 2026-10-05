@@ -8,6 +8,7 @@ import { GOAL_TEMPLATES, HR_ZONES, hrMax, type GoalCategory } from "@/config/goa
 import { METS } from "@/config/energy";
 import { EQUIPMENT_ACCESS, type EquipmentAccess, type Pattern } from "@/data/exercises";
 import { FOCUS_SLOTS, PROGRAM_STYLES, SPLIT_LABELS, type Focus, type Split, type Template, type TemplateSlot } from "@/config/program-styles";
+import { SKILLS, startStep, type SkillKey } from "@/config/skills";
 import type { ExerciseLoad } from "./energy";
 import { chooseProgram } from "./program-design";
 import type {
@@ -33,7 +34,9 @@ import type {
 export type { Split };
 export { SPLIT_LABELS };
 
-const ROLE_PRIORITY: Record<SlotRole, number> = { main: 1, power: 2, secondary: 3, core: 4, accessory: 5, isolation: 6 };
+const ROLE_PRIORITY: Record<SlotRole, number> = { skill: 0, main: 1, power: 2, secondary: 3, core: 4, accessory: 5, isolation: 6 };
+/** Skill supporting work ranks with the client's focus areas. */
+const SKILL_SUPPORT_PRIORITY = 44;
 /** Focus slots rank just after core work, so they survive trimming before ordinary accessories. */
 const FOCUS_PRIORITY = 45;
 
@@ -46,7 +49,7 @@ function trains(t: Template, region: "lower" | "upper" | "any"): boolean {
   return t.slots.some((s) => pats.includes(s.pattern) && (s.role === "main" || s.role === "secondary"));
 }
 
-export function sessionTemplates(split: Split, daysPerWeek: number, goal: GoalCategory, focus: Focus[] = []): { templates: { key: string; name: string; slots: SlotDef[] }[]; rotation: string[] } {
+export function sessionTemplates(split: Split, daysPerWeek: number, goal: GoalCategory, focus: Focus[] = [], skill: SkillKey | null = null): { templates: { key: string; name: string; slots: SlotDef[] }[]; rotation: string[] } {
   const tpl = GOAL_TEMPLATES[goal];
   const style = PROGRAM_STYLES[split];
   const days = style.rotation[daysPerWeek] ? daysPerWeek : style.days.reduce((a, b) => (Math.abs(b - daysPerWeek) < Math.abs(a - daysPerWeek) ? b : a));
@@ -54,8 +57,9 @@ export function sessionTemplates(split: Split, daysPerWeek: number, goal: GoalCa
   const base = style.templates.filter((t) => rotation.includes(t.key));
   // Isolation work: muscle gain, or inherent to body-part style splits.
   const keepIsolation = tpl.includesIsolation || Boolean(style.keepIsolation);
-  const templates = base.map((t) => {
-    let slots: (TemplateSlot & { focus?: Focus })[] = t.slots.filter((s) => keepIsolation || s.role !== "isolation");
+  const skillDef = skill ? SKILLS[skill] : null;
+  const templates = base.map((t, ti) => {
+    let slots: (TemplateSlot & { focus?: Focus; skill?: SkillKey; slug?: string })[] = t.slots.filter((s) => keepIsolation || s.role !== "isolation");
     // Performance: power work first, while fresh (skip pure pull days).
     if (tpl.includesPower && !style.hasPower && t.key !== "PL") slots = [{ pattern: "power", role: "power" }, ...slots];
     // Focus areas: extra work on the sessions that train that region.
@@ -64,6 +68,13 @@ export function sessionTemplates(split: Split, daysPerWeek: number, goal: GoalCa
       if (!trains(t, rule.region)) continue;
       slots = [...slots, ...rule.slots.map((s) => ({ ...s, focus: f }))];
     }
+    // Skill goal: practise the skill first in every session, and share its
+    // supporting work out across the week (two pieces per session).
+    if (skillDef && skill) {
+      const sup = skillDef.support;
+      const mine = sup.length <= 2 ? sup : [sup[(2 * ti) % sup.length], sup[(2 * ti + 1) % sup.length]];
+      slots = [{ pattern: "skill", role: "skill", skill }, ...slots, ...mine.map((s) => ({ pattern: s.pattern, role: s.role, muscle: s.muscle, slug: s.slug, skill }))];
+    }
     return {
       key: t.key,
       name: t.name,
@@ -71,9 +82,11 @@ export function sessionTemplates(split: Split, daysPerWeek: number, goal: GoalCa
         id: `${t.key}-${i + 1}`,
         pattern: s.pattern,
         role: s.role,
-        priority: (s.focus ? FOCUS_PRIORITY : ROLE_PRIORITY[s.role] * 10) + i,
+        priority: (s.role === "skill" ? 0 : s.skill ? SKILL_SUPPORT_PRIORITY : s.focus ? FOCUS_PRIORITY : ROLE_PRIORITY[s.role] * 10) + i,
         muscle: s.muscle,
         ...(s.focus ? { focus: s.focus } : {}),
+        ...(s.skill ? { skill: s.skill } : {}),
+        ...(s.slug ? { slug: s.slug } : {}),
       })),
     };
   });
@@ -125,6 +138,14 @@ export function prescribe(phase: Phase, role: SlotRole, week: number, opts: { sh
     sets = Math.min(v.setsMax, v.setsMin + (buildIdx - 1));
   } else if (role === "secondary") {
     sets = Math.max(v.setsMin, Math.min(v.setsMax, v.setsMin + (buildIdx - 1)) - 1);
+  } else if (role === "skill") {
+    // Skill practice: quality holds/reps well short of failure, full rest,
+    // the same in every phase; one more set as each block builds.
+    sets = Math.min(5, 2 + buildIdx);
+    repsMin = 3;
+    repsMax = 6;
+    rest = 90;
+    rpe = [6, 8];
   } else if (role === "power") {
     const p = PHASES.power;
     sets = 3;
@@ -142,7 +163,7 @@ export function prescribe(phase: Phase, role: SlotRole, week: number, opts: { sh
     rest = h.restSecMin;
     rpe = [h.rpe[0], h.rpe[1]];
   }
-  if (opts.shortRest && role !== "main" && role !== "power") rest = Math.max(30, Math.round(rest * 0.75));
+  if (opts.shortRest && role !== "main" && role !== "power" && role !== "skill") rest = Math.max(30, Math.round(rest * 0.75));
   // Time-limited sessions: use the low end of the phase's rest range.
   if (opts.minRest) rest = Math.min(rest, role === "main" || role === "power" ? v.restSecMin : rest);
   if (deload) {
@@ -152,7 +173,7 @@ export function prescribe(phase: Phase, role: SlotRole, week: number, opts: { sh
   return { sets, reps_min: repsMin, reps_max: repsMax, rest_sec: rest, rpe_min: rpe[0], rpe_max: rpe[1] };
 }
 
-const HOLD_WORDS = ["plank", "hold", "carry", "wall sit", "dead bug", "bird dog"];
+const HOLD_WORDS = ["plank", "hold", "carry", "wall sit", "dead bug", "bird dog", "dead hang", "stretch", "forward fold", "handstand practice"];
 export function unitFor(exerciseName: string): "reps" | "seconds" {
   const n = exerciseName.toLowerCase();
   return HOLD_WORDS.some((w) => n.includes(w)) && !n.includes("shoulder tap") ? "seconds" : "reps";
@@ -250,7 +271,22 @@ export function resolveVariation(ex: LibExercise, dir: "regression" | "progressi
 
 const TARGET_DEPTH: Record<TrainingLevel, number> = { none: 1, beginner: 2, intermediate: 3, advanced: 4 };
 
+/** Usable steps of a skill ladder, easiest first. */
+export function skillLadder(skill: SkillKey, lib: LibExercise[], f: CandidateFilter): LibExercise[] {
+  const bySlug = new Map(lib.filter((e) => e.slug).map((e) => [e.slug!, e]));
+  return SKILLS[skill].ladder.map((s) => bySlug.get(s)).filter((e): e is LibExercise => Boolean(e && isUsable(e, f)));
+}
+
 export function candidatesForSlot(slot: SlotDef, lib: LibExercise[], f: CandidateFilter, level: TrainingLevel): LibExercise[] {
+  // The skill step: the ladder from the client's starting rung (fixed, not left to the selector).
+  if (slot.role === "skill" && slot.skill) {
+    const ladder = skillLadder(slot.skill, lib, f);
+    return ladder.length ? [ladder[startStep(level, ladder.length)]] : [];
+  }
+  const preferred = slot.slug ? lib.find((e) => e.slug === slot.slug && isUsable(e, f)) : undefined;
+  // Skill-only exercises are never stand-ins for anything else.
+  if (slot.pattern === "skill") return preferred ? [preferred] : [];
+  if (preferred) return [preferred, ...candidatesForSlot({ ...slot, slug: undefined }, lib, f, level).filter((e) => e.id !== preferred.id)];
   const byId = new Map(lib.map((e) => [e.id, e]));
   const wantCompound = slot.role === "main" || slot.role === "secondary";
   const list = lib.filter(
@@ -380,6 +416,7 @@ export interface SkeletonInput {
   goal: GoalCategory;
   /** defaults to the automatic choice (program-design.ts) */
   split?: Split;
+  skill?: SkillKey | null;
   splitReasons?: string[];
   focus?: Focus[];
   daysPerWeek: number;
@@ -402,6 +439,8 @@ export interface SlotWithCandidates extends SlotDef {
 
 export interface Skeleton {
   split: Split;
+  skill: SkillKey | null;
+  level: TrainingLevel;
   split_reasons: string[];
   focus: Focus[];
   rotation: string[];
@@ -415,7 +454,7 @@ export function buildSkeleton(input: SkeletonInput, lib: LibExercise[]): Skeleto
   const auto = input.split ? null : chooseProgram({ goal: input.goal, daysPerWeek: input.daysPerWeek, level: input.level, deconditioned: input.deconditioned, age: input.age, sessionLengthMin: input.sessionLengthMin, text: "" });
   const split = input.split ?? auto!.split;
   const focus = input.focus ?? [];
-  const { templates, rotation } = sessionTemplates(split, input.daysPerWeek, input.goal, focus);
+  const { templates, rotation } = sessionTemplates(split, input.daysPerWeek, input.goal, focus, input.skill ?? null);
   const lifting = liftingDays(input.daysPerWeek, input.preferredDays);
   const sessions = templates.map((t) => {
     // Repeated slots (two biceps slots on arms day) need a distinct exercise each; drop extras the library can't fill.
@@ -423,7 +462,7 @@ export function buildSkeleton(input: SkeletonInput, lib: LibExercise[]): Skeleto
     const slots = t.slots
       .map((s) => ({ ...s, candidates: candidatesForSlot(s, lib, input.filter, input.level) }))
       .filter((s) => {
-        const k = `${s.pattern}|${s.muscle ?? ""}`;
+        const k = `${s.pattern}|${s.muscle ?? ""}|${s.slug ?? ""}|${s.role === "skill" ? "skill" : ""}`;
         const n = (seen.get(k) ?? 0) + 1;
         if (s.candidates.length < n) return false;
         seen.set(k, n);
@@ -433,6 +472,8 @@ export function buildSkeleton(input: SkeletonInput, lib: LibExercise[]): Skeleto
   });
   return {
     split,
+    skill: input.skill ?? null,
+    level: input.level,
     split_reasons: input.splitReasons ?? auto?.reasons ?? [],
     focus,
     rotation,
@@ -560,7 +601,10 @@ export function assembleTraining(
   const blocks = Math.ceil(p.weeks / DELOAD.everyNWeeks);
   let sessions = base;
   let blockRotations: string[][] | undefined;
-  if (p.rotateAccessories && blocks > 1) {
+  const hasSkill = sk.sessions.some((s) => s.slots.some((sl) => sl.role === "skill"));
+  const ladder = sk.skill ? skillLadder(sk.skill, lib, p.filter) : [];
+  const start = startStep(sk.level, ladder.length);
+  if ((p.rotateAccessories || hasSkill) && blocks > 1) {
     sessions = base.map((s) => ({ ...s, block: 1 }));
     blockRotations = [sk.rotation];
     const history = new Map<string, Set<string>>(base.flatMap((s) => s.slots.map((sl) => [sl.id, new Set([sl.exercise.id])] as [string, Set<string>])));
@@ -573,7 +617,13 @@ export function assembleTraining(
         const slots = s.slots.map((sl, i) => {
           const skSlot = sk.sessions[si].slots[i];
           const id = sl.id.replace(/^[^-]+/, keyOf(sk.sessions[si].key));
-          if (sl.role === "main" || sl.role === "power") {
+          // Skill step: one rung up the ladder each block.
+          if (sl.role === "skill") {
+            const step = ladder[Math.min(start + b, ladder.length - 1)];
+            inSession.add(step?.id ?? sl.exercise.id);
+            return step && step.id !== sl.exercise.id ? choose(skSlot, step, "", id) : { ...sl, id };
+          }
+          if (sl.role === "main" || sl.role === "power" || !p.rotateAccessories) {
             inSession.add(sl.exercise.id);
             return { ...sl, id };
           }
@@ -602,6 +652,7 @@ export function assembleTraining(
     split_label: SPLIT_LABELS[sk.split],
     split_reasons: sk.split_reasons,
     focus: sk.focus,
+    skill: sk.skill,
     lifting_days: sk.lifting_days,
     sessions,
     rotation: sk.rotation,

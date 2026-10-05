@@ -3,6 +3,7 @@ import type { Phase } from "@/config/training-variables";
 import type { GoalCategory } from "@/config/goal-templates";
 import type { Pattern } from "@/data/exercises";
 import type { Focus, Split } from "@/config/program-styles";
+import type { SkillKey } from "@/config/skills";
 import type { NeatLevel, Activity } from "@/config/energy";
 import type { EnergyOutputs } from "./energy";
 import type { MacroTargets } from "./nutrition";
@@ -10,6 +11,8 @@ import type { GuardrailResult } from "./guardrails";
 
 export interface LibExercise {
   id: string;
+  /** stable library key (src/data/exercises.ts); null for exercises added by hand */
+  slug?: string | null;
   name: string;
   pattern: Pattern;
   primary_muscles: string[];
@@ -35,7 +38,7 @@ export interface LibFood {
   dietary_tags: string[];
 }
 
-export type SlotRole = "power" | "main" | "secondary" | "accessory" | "isolation" | "core";
+export type SlotRole = "skill" | "power" | "main" | "secondary" | "accessory" | "isolation" | "core";
 
 export interface SlotDef {
   id: string;
@@ -46,6 +49,10 @@ export interface SlotDef {
   muscle?: string;
   /** extra work for a focus area the client wants to bring up */
   focus?: Focus;
+  /** the client's skill goal: the skill step itself, or (with role ≠ skill) its supporting work */
+  skill?: SkillKey;
+  /** preferred exercise (library slug) when the client can do it */
+  slug?: string;
 }
 
 export interface ExerciseRef {
@@ -120,6 +127,8 @@ export interface TrainingPlan {
   /** why this program style was chosen (shown to the trainer) */
   split_reasons?: string[];
   focus?: Focus[];
+  /** skill goal the program is built around, if any */
+  skill?: SkillKey | null;
   lifting_days: number[];
   sessions: SessionPlan[];
   /** order sessions rotate through lifting days */
@@ -163,6 +172,8 @@ export interface PlanParameters {
   focus?: Focus[] | null;
   /** swap accessory exercises at each new 4-week block (default on) */
   rotate_accessories?: boolean;
+  /** skill goal; null = detected from the intake, "none" = no skill work */
+  skill?: SkillKey | "none" | null;
   /** weight at approval — anchors the planned trajectory */
   start_weight_lb?: number;
   /** planned lb/week at approval — anchors the planned trajectory */

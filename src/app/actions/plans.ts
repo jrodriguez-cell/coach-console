@@ -12,6 +12,7 @@ import { todayIn, weekStart } from "@/lib/dates";
 import { checkpointDate, planEndDate, retestDate } from "@/lib/tasks";
 import { isUsable, recomputeWeekMinutes, resolveVariation, unitFor } from "@/lib/training";
 import { FOCUS_AREAS, SPLITS, type Focus, type Split } from "@/config/program-styles";
+import { SKILL_KEYS, SKILLS, type SkillKey } from "@/config/skills";
 import { candidateFilter } from "@/lib/generator";
 import { PRESET_BENCHMARKS } from "@/config/goal-templates";
 import { METS, NEAT_FACTORS, type Activity, type NeatLevel } from "@/config/energy";
@@ -65,6 +66,10 @@ function parseOverrides(form: FormData): Partial<PlanParameters> {
   }
   if (form.has("focus_set")) o.focus = form.getAll("focus").map(String).filter((f): f is Focus => (FOCUS_AREAS as string[]).includes(f));
   if (form.has("rotate_set")) o.rotate_accessories = form.get("rotate_accessories") === "on";
+  if (form.has("skill")) {
+    const sk = str(form, "skill");
+    o.skill = sk === "none" ? "none" : (SKILL_KEYS as string[]).includes(sk) ? (sk as SkillKey) : null;
+  }
   return o;
 }
 
@@ -168,7 +173,8 @@ export async function editPlanAction(planId: string, _prev: ActionState, form: F
     const session = training!.sessions.find((s) => s.slots.some((x) => x.id === slotId));
     const slot = session?.slots.find((x) => x.id === slotId);
     if (!ex || !slot || !session) return { error: "Unknown exercise or slot." };
-    if (ex.pattern !== slot.pattern) return { error: "Pick an exercise with the same movement pattern." };
+    const onLadder = slot.role === "skill" && slot.skill && ex.slug ? SKILLS[slot.skill].ladder.includes(ex.slug) : false;
+    if (ex.pattern !== slot.pattern && !onLadder) return { error: slot.role === "skill" ? "Pick a step from this skill's progression." : "Pick an exercise with the same movement pattern." };
     if (!isUsable(ex, filter)) return { error: "That exercise needs unavailable equipment, is contraindicated, or is on the client's dislike list." };
     const main = slot.role === "main" || slot.role === "secondary";
     Object.assign(slot, {

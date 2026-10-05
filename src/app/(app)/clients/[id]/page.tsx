@@ -17,6 +17,10 @@ import { addDays, formatDate, todayIn, weekStart } from "@/lib/dates";
 import { describePrediction } from "@/lib/energy";
 import clsx from "clsx";
 import { WeekChecklist } from "@/components/week-checklist";
+import { GoalProgress } from "@/components/goal-progress";
+import { goalOverview, type GoalOverview } from "@/lib/goal-progress";
+import { loadProgressData, summarize } from "@/lib/data/progress-data";
+import { getSettings } from "@/lib/data/settings";
 import { planWeekOf, weekChecklist, type ChecklistDay, type SessionRecord } from "@/lib/schedule";
 import { programDefaults } from "@/lib/generator";
 
@@ -44,6 +48,13 @@ export default async function ClientPage({ params, searchParams }: { params: { i
     const ws = weekStart(live.plan.parameters.start_date, shownWeek);
     const { data: recs } = await db.from("workout_sessions").select("date, planned_session_key, status, source").eq("client_id", client.id).gte("date", ws).lte("date", addDays(ws, 6));
     checklist = weekChecklist(live.plan.parameters, live.training, shownWeek, (recs ?? []) as SessionRecord[]);
+  }
+  // Progress toward the goal from training and nutrition inputs.
+  let goal: GoalOverview | null = null;
+  if (tab === "overview" && plan) {
+    const settings = await getSettings(db);
+    const pd = (await loadProgressData(db, [client])).get(client.id);
+    if (pd) goal = goalOverview(pd, summarize(pd, today, settings.task_thresholds), today);
   }
   const doneCount = checklist.flatMap((d) => d.items).filter((i) => i.state).length;
   const dueCount = checklist.flatMap((d) => d.items).length;
@@ -141,6 +152,11 @@ export default async function ClientPage({ params, searchParams }: { params: { i
       {!intake && <Banner tone="blue" title="Intake needed">Complete the intake (including PAR-Q) before generating a plan. <Link href={`/clients/${client.id}/intake`}>Start intake →</Link></Banner>}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="space-y-8 lg:col-span-2">
+          {goal && (
+            <Card title="Progress to goal" actions={<Link className="text-sm" href={`/clients/${client.id}/progress`}>Details</Link>}>
+              <GoalProgress g={goal} />
+            </Card>
+          )}
           {live && (
             <Card
               title={shownWeek === thisWeek ? "This week" : `Week ${shownWeek}`}
