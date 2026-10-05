@@ -26,18 +26,19 @@ HEAVY = EqualLettering(width=U, stem=22, bar=20, slab_i=False, o_style="ellipse"
                        name="MTTM Lettering Heavy cut")
 
 COLORS = {
-    # name: (hex, role)
-    "ink": ("#0E0E0D", "Master dark"),
-    "bone": ("#EFEBE3", "Master light"),
-    "stone": ("#8F8B83", "Grey for secondary text on Ink or Bone"),
+    # name: (hex, role)   v2.0: master theme = Ink on Sage, as packaged in the Coach Console app
+    "sage": ("#B7C0AE", "Master ground (app canvas, stories, profile)"),
+    "ink": ("#0E0E0D", "Master lettering, marks and text"),
+    "fern": ("#4F5549", "Secondary text and small labels on Sage (app muted)"),
+    "fern-light": ("#5F665A", "Secondary marks on Sage: chart guides, planned values"),
+    "bone": ("#EFEBE3", "Paper ground; light lettering on Ink"),
+    "stone": ("#8F8B83", "Secondary text on Ink"),
     "moss": ("#1E2A23", "Interviews ground"),
     "chalk": ("#E8E6DD", "Light on Moss"),
-    "lichen": ("#8C948D", "Grey on Moss"),
+    "lichen": ("#8C948D", "Secondary text on Moss"),
     "midnight": ("#121A26", "Mindset ground"),
     "mist": ("#E3E7EC", "Light on Midnight"),
-    "slate": ("#87909C", "Grey on Midnight"),
-    "sage": ("#B7C0AE", "Mobility ground (light)"),
-    "fern": ("#5F665A", "Grey on Sage"),
+    "slate": ("#87909C", "Secondary text on Midnight"),
     "black": ("#000000", "Utility: one-colour reproduction"),
     "white": ("#FFFFFF", "Utility: one-colour reproduction"),
 }
@@ -47,31 +48,35 @@ def hexc(name):
     return COLORS[name][0]
 
 
-# Themes: pillar -> (lettering colour, ground colour, grey)
+# Themes: pillar -> (lettering colour, ground colour, grey). The first theme is the master.
 THEMES = [
-    dict(id="start-here", pillar="Start Here", theme="Ink & Bone (light)", fg="ink", bg="bone", grey="stone"),
-    dict(id="strength", pillar="Strength", theme="Ink", fg="bone", bg="ink", grey="stone"),
-    dict(id="mobility", pillar="Mobility", theme="Sage", fg="ink", bg="sage", grey="fern"),
+    dict(id="start-here", pillar="Start Here", theme="Sage (master)", fg="ink", bg="sage", grey="fern"),
+    dict(id="strength", pillar="Strength", theme="Ink (inverse)", fg="sage", bg="ink", grey="stone"),
+    dict(id="mobility", pillar="Mobility", theme="Bone", fg="ink", bg="bone", grey="fern"),
     dict(id="mindset", pillar="Mindset", theme="Midnight", fg="mist", bg="midnight", grey="slate"),
     dict(id="interviews", pillar="Interviews", theme="Moss", fg="chalk", bg="moss", grey="lichen"),
 ]
+THEME = {t["id"]: t for t in THEMES}
 
 # Colourways for logo exports: (slug, lettering, ground or None for transparent)
 COLORWAYS = [
-    ("white-on-black", "white", "black"),
-    ("black-on-white", "black", "white"),
-    ("bone-on-ink", "bone", "ink"),
+    ("ink-on-sage", "ink", "sage"),
+    ("sage-on-ink", "sage", "ink"),
     ("ink-on-bone", "ink", "bone"),
+    ("bone-on-ink", "bone", "ink"),
     ("chalk-on-moss", "chalk", "moss"),
     ("mist-on-midnight", "mist", "midnight"),
-    ("ink-on-sage", "ink", "sage"),
+    ("white-on-black", "white", "black"),
+    ("black-on-white", "black", "white"),
+    ("ink", "ink", None),
+    ("sage", "sage", None),
+    ("bone", "bone", None),
     ("white", "white", None),
     ("black", "black", None),
-    ("bone", "bone", None),
-    ("ink", "ink", None),
 ]
 CORE_WAYS = [c for c in COLORWAYS if c[0] in
-             ("white-on-black", "black-on-white", "bone-on-ink", "ink-on-bone", "white", "black", "bone", "ink")]
+             ("ink-on-sage", "sage-on-ink", "ink-on-bone", "bone-on-ink", "white-on-black", "black-on-white",
+              "ink", "sage", "bone", "white", "black")]
 
 
 # ---------------------------------------------------------------- merch print files
@@ -157,7 +162,7 @@ class TextFace:
             x -= w / 2
         elif anchor == "end":
             x -= w
-        pen = SVGPathPen(None, ntos=fmt)
+        pen = SVGPathPen(self.gs, ntos=fmt)  # glyph set resolves composite glyphs (e.g. curly quotes)
         for ch in text:
             gname = self.cmap[ord(ch)]
             self.gs[gname].draw(TransformPen(pen, (k, 0, 0, -k, x, baseline)))
@@ -167,6 +172,8 @@ class TextFace:
 
 MICHROMA = TextFace("Michroma-Regular.ttf")
 MANROPE = TextFace("Manrope-Medium.ttf")
+MANROPE_REGULAR = TextFace("Manrope-Regular.ttf")
+MANROPE_SEMIBOLD = TextFace("Manrope-SemiBold.ttf")
 
 
 # ---------------------------------------------------------------- colour maths for the guidelines

@@ -21,10 +21,10 @@ def face(family, filename, weight="100 900"):
 
 PRINT_CSS = (face("Manrope", "Manrope-Medium.ttf")
              + face("IBM Plex Mono", "IBMPlexMono-Regular.ttf") + """
-@page{size:A4;margin:14mm 14mm 16mm}
+@page{size:A4;margin:14mm 14mm 16mm;background:#B7C0AE}
 html{scroll-behavior:auto}
 *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-body{font-size:10.5pt;background:#FFFFFF}
+body{font-size:10.5pt;background:#B7C0AE}
 thead{display:table-header-group}
 nav.toc,.copy{display:none !important}
 .wrap{max-width:none;padding-inline:0}
@@ -41,6 +41,8 @@ tr,figure,.sw,.theme,.ig,.merch figure,.specimen,.voice,pre.code,.marks,.cs{brea
 .themes .theme{padding:10px 14px}
 .theme-art{grid-template-columns:minmax(0,1fr) 80px}
 .ig-row{grid-template-columns:repeat(6,1fr)}
+.ig-row.post{grid-template-columns:repeat(4,1fr)}
+.ui{break-inside:avoid}
 .merch{grid-template-columns:repeat(3,1fr)}
 .swatches{grid-template-columns:repeat(5,1fr)}
 footer{break-before:avoid}
@@ -58,8 +60,8 @@ with open(tmp, "w") as f:
     f.write(src)
 
 out = os.path.join(ROOT, "mttm-brand-guidelines.pdf")
-footer = ('<div style="width:100%;font:7px Helvetica,Arial,sans-serif;letter-spacing:1.5px;color:#8F8B83;'
-          'padding:0 14mm;display:flex;justify-content:space-between"><span>MAKE TIME TO MOVE · BRAND GUIDELINES v1.0'
+footer = ('<div style="width:100%;font:7px Helvetica,Arial,sans-serif;letter-spacing:1.5px;color:#4F5549;'
+          'padding:0 14mm;display:flex;justify-content:space-between"><span>MAKE TIME TO MOVE · BRAND GUIDELINES v2.0'
           '</span><span><span class="pageNumber"></span> / <span class="totalPages"></span></span></div>')
 script = f"""
 import {{ createRequire }} from "node:module";
@@ -91,14 +93,16 @@ KIT = [
     "mttm-brand-guidelines.pdf", "guidelines.md", "tokens/mttm-brand.css", "tokens/mttm-tokens.css",
     "tokens/mttm-tokens.json", "fonts/mttm-lettering-regular.otf", "fonts/mttm-lettering-heavy.otf",
     "fonts/mttm-lettering-regular.woff2", "fonts/mttm-lettering-heavy.woff2",
-    "logo/wordmark/svg/mttm-wordmark-bone-on-ink.svg", "logo/wordmark/svg/mttm-wordmark-ink-on-bone.svg",
-    "logo/wordmark/svg/mttm-wordmark-bone.svg", "logo/wordmark/svg/mttm-wordmark-ink.svg",
-    "logo/monogram/svg/mttm-monogram-bone-on-ink.svg", "logo/monogram/svg/mttm-monogram-ink-on-bone.svg",
-    "logo/single-line/svg/mttm-single-line-bone-on-ink.svg", "logo/single-line/svg/mttm-single-line-ink-on-bone.svg",
+    "logo/wordmark/svg/mttm-wordmark-ink-on-sage.svg", "logo/wordmark/svg/mttm-wordmark-sage-on-ink.svg",
+    "logo/wordmark/svg/mttm-wordmark-ink-on-bone.svg", "logo/wordmark/svg/mttm-wordmark-ink.svg",
+    "logo/wordmark/svg/mttm-wordmark-sage.svg", "logo/wordmark/svg/mttm-wordmark-bone.svg",
+    "logo/monogram/svg/mttm-monogram-ink-on-sage.svg", "logo/monogram/svg/mttm-monogram-sage-on-ink.svg",
+    "logo/monogram/svg/mttm-monogram-ink.svg",
+    "logo/single-line/svg/mttm-single-line-ink-on-sage.svg", "logo/single-line/svg/mttm-single-line-sage-on-ink.svg",
     "logo/favicon/favicon.svg", "logo/favicon/favicon.ico", "logo/favicon/apple-touch-icon.png",
     "logo/favicon/icon-192.png", "logo/favicon/icon-512.png",
 ]
-README = """MAKE TIME TO MOVE: BRAND KIT
+README = """MAKE TIME TO MOVE: BRAND KIT · v2.0 (Ink on Sage, as in the Coach Console app)
 
 Give this whole kit to any designer, developer or AI chat.
 
@@ -107,10 +111,16 @@ Give this whole kit to any designer, developer or AI chat.
    the colours, the themes and the type classes. Link it and the brand font works with no other font files.
 3. fonts/: MTTM Lettering as .otf (install for Canva, Figma, desktop) and .woff2 (websites).
 4. logo/: the logo files. Always use these; never retype or redraw the logo.
+5. instagram/: the social kit. Finished PNGs, editable SVGs in templates/, and Canva-ready PDFs in instagram/canva/.
 
 MTTM Lettering is a custom font that exists only in this kit. Never substitute Michroma or any other typeface.
 """
 kit = os.path.join(ROOT, "mttm-brand-kit.zip")
+# the whole social kit (finished PNGs, editable templates, Canva PDFs)
+for dirpath, _, files in os.walk(os.path.join(ROOT, "instagram")):
+    for fn in sorted(files):
+        if fn.endswith((".png", ".svg", ".pdf")):
+            KIT.append(os.path.relpath(os.path.join(dirpath, fn), ROOT))
 with zipfile.ZipFile(kit, "w", zipfile.ZIP_DEFLATED) as z:
     z.writestr("mttm-brand-kit/README.txt", README)
     for rel in KIT:

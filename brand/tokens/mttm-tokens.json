@@ -6,17 +6,29 @@
     "file_prefix": "mttm-"
   },
   "color": {
+    "sage": {
+      "value": "#B7C0AE",
+      "role": "Master ground (app canvas, stories, profile)"
+    },
     "ink": {
       "value": "#0E0E0D",
-      "role": "Master dark"
+      "role": "Master lettering, marks and text"
+    },
+    "fern": {
+      "value": "#4F5549",
+      "role": "Secondary text and small labels on Sage (app muted)"
+    },
+    "fern-light": {
+      "value": "#5F665A",
+      "role": "Secondary marks on Sage: chart guides, planned values"
     },
     "bone": {
       "value": "#EFEBE3",
-      "role": "Master light"
+      "role": "Paper ground; light lettering on Ink"
     },
     "stone": {
       "value": "#8F8B83",
-      "role": "Grey for secondary text on Ink or Bone"
+      "role": "Secondary text on Ink"
     },
     "moss": {
       "value": "#1E2A23",
@@ -28,7 +40,7 @@
     },
     "lichen": {
       "value": "#8C948D",
-      "role": "Grey on Moss"
+      "role": "Secondary text on Moss"
     },
     "midnight": {
       "value": "#121A26",
@@ -40,15 +52,7 @@
     },
     "slate": {
       "value": "#87909C",
-      "role": "Grey on Midnight"
-    },
-    "sage": {
-      "value": "#B7C0AE",
-      "role": "Mobility ground (light)"
-    },
-    "fern": {
-      "value": "#5F665A",
-      "role": "Grey on Sage"
+      "role": "Secondary text on Midnight"
     },
     "black": {
       "value": "#000000",
@@ -63,20 +67,20 @@
     "start-here": {
       "pillar": "Start Here",
       "foreground": "#0E0E0D",
-      "background": "#EFEBE3",
-      "muted": "#8F8B83"
+      "background": "#B7C0AE",
+      "muted": "#4F5549"
     },
     "strength": {
       "pillar": "Strength",
-      "foreground": "#EFEBE3",
+      "foreground": "#B7C0AE",
       "background": "#0E0E0D",
       "muted": "#8F8B83"
     },
     "mobility": {
       "pillar": "Mobility",
       "foreground": "#0E0E0D",
-      "background": "#B7C0AE",
-      "muted": "#5F665A"
+      "background": "#EFEBE3",
+      "muted": "#4F5549"
     },
     "mindset": {
       "pillar": "Mindset",
@@ -130,6 +134,17 @@
       96,
       128
     ]
+  },
+  "tint": {
+    "hairline": "fg at 20%",
+    "rule-strong": "fg at 40%",
+    "fill": "fg at 5%",
+    "button-border": "fg at 35%"
+  },
+  "type": {
+    "label": "Manrope 500, 11px, uppercase, letter-spacing 0.12em, muted",
+    "title": "Manrope 600, 24-28px, tight",
+    "display": "MTTM Lettering, capitals, letter-spacing 0"
   },
   "radius": {
     "none": "0",

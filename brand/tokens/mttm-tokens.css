@@ -1,23 +1,26 @@
 :root {
-  /* Make Time To Move: design tokens. Master theme = Ink & Bone. */
-  --mttm-ink: #0E0E0D; /* Master dark */
-  --mttm-bone: #EFEBE3; /* Master light */
-  --mttm-stone: #8F8B83; /* Grey for secondary text on Ink or Bone */
+  /* Make Time To Move: design tokens v2.0. Master theme = Ink on Sage (Coach Console app). */
+  --mttm-sage: #B7C0AE; /* Master ground (app canvas, stories, profile) */
+  --mttm-ink: #0E0E0D; /* Master lettering, marks and text */
+  --mttm-fern: #4F5549; /* Secondary text and small labels on Sage (app muted) */
+  --mttm-fern-light: #5F665A; /* Secondary marks on Sage: chart guides, planned values */
+  --mttm-bone: #EFEBE3; /* Paper ground; light lettering on Ink */
+  --mttm-stone: #8F8B83; /* Secondary text on Ink */
   --mttm-moss: #1E2A23; /* Interviews ground */
   --mttm-chalk: #E8E6DD; /* Light on Moss */
-  --mttm-lichen: #8C948D; /* Grey on Moss */
+  --mttm-lichen: #8C948D; /* Secondary text on Moss */
   --mttm-midnight: #121A26; /* Mindset ground */
   --mttm-mist: #E3E7EC; /* Light on Midnight */
-  --mttm-slate: #87909C; /* Grey on Midnight */
-  --mttm-sage: #B7C0AE; /* Mobility ground (light) */
-  --mttm-fern: #5F665A; /* Grey on Sage */
+  --mttm-slate: #87909C; /* Secondary text on Midnight */
   --mttm-black: #000000; /* Utility: one-colour reproduction */
   --mttm-white: #FFFFFF; /* Utility: one-colour reproduction */
 
-  /* Active theme (defaults to master: Bone lettering on Ink) */
-  --mttm-fg: var(--mttm-bone);
-  --mttm-bg: var(--mttm-ink);
-  --mttm-muted: var(--mttm-stone);
+  /* Active theme (defaults to master: Ink on Sage). Tints of --mttm-fg only for hairlines, fills, hover. */
+  --mttm-fg: var(--mttm-ink);
+  --mttm-bg: var(--mttm-sage);
+  --mttm-muted: var(--mttm-fern);
+  --mttm-hairline: color-mix(in srgb, var(--mttm-fg) 20%, transparent);
+  --mttm-fill: color-mix(in srgb, var(--mttm-fg) 5%, transparent);
 
   --mttm-font-display: 'MTTM Lettering', sans-serif; /* never substitute another typeface */
   --mttm-font-body: 'Manrope', system-ui, sans-serif;
@@ -28,9 +31,9 @@
   --mttm-radius: 0; --mttm-rule: 1px solid var(--mttm-muted);
 }
 
-[data-mttm-theme="start-here"] { --mttm-fg: var(--mttm-ink); --mttm-bg: var(--mttm-bone); --mttm-muted: var(--mttm-stone); }
-[data-mttm-theme="strength"] { --mttm-fg: var(--mttm-bone); --mttm-bg: var(--mttm-ink); --mttm-muted: var(--mttm-stone); }
-[data-mttm-theme="mobility"] { --mttm-fg: var(--mttm-ink); --mttm-bg: var(--mttm-sage); --mttm-muted: var(--mttm-fern); }
+[data-mttm-theme="start-here"] { --mttm-fg: var(--mttm-ink); --mttm-bg: var(--mttm-sage); --mttm-muted: var(--mttm-fern); }
+[data-mttm-theme="strength"] { --mttm-fg: var(--mttm-sage); --mttm-bg: var(--mttm-ink); --mttm-muted: var(--mttm-stone); }
+[data-mttm-theme="mobility"] { --mttm-fg: var(--mttm-ink); --mttm-bg: var(--mttm-bone); --mttm-muted: var(--mttm-fern); }
 [data-mttm-theme="mindset"] { --mttm-fg: var(--mttm-mist); --mttm-bg: var(--mttm-midnight); --mttm-muted: var(--mttm-slate); }
 [data-mttm-theme="interviews"] { --mttm-fg: var(--mttm-chalk); --mttm-bg: var(--mttm-moss); --mttm-muted: var(--mttm-lichen); }
 
@@ -42,4 +45,15 @@
 
 body { background: var(--mttm-bg); color: var(--mttm-fg); font-family: var(--mttm-font-body); }
 .mttm-display { font-family: var(--mttm-font-display); text-transform: uppercase; letter-spacing: var(--mttm-tracking-display); font-weight: 400; }
-.mttm-label { font-family: var(--mttm-font-display); text-transform: uppercase; letter-spacing: 0; font-size: 0.75rem; color: var(--mttm-muted); }
+/* Small UI labels (under ~14px cap): Manrope spaced capitals, as in the app. Larger labels: .mttm-display */
+.mttm-caps { font-family: var(--mttm-font-body); font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.12em; line-height: 1; color: var(--mttm-muted); }
+.mttm-title { font-family: var(--mttm-font-body); font-size: 28px; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; }
+.mttm-section { border-top: 1px solid var(--mttm-hairline); padding-top: 20px; }
+.mttm-panel { background: var(--mttm-fill); padding: 16px; }
+.mttm-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 16px; border: 1px solid color-mix(in srgb, var(--mttm-fg) 35%, transparent); background: transparent; color: var(--mttm-fg); font: 600 14px/1.3 var(--mttm-font-body); border-radius: 0; text-decoration: none; }
+.mttm-btn:hover { border-color: var(--mttm-fg); }
+.mttm-btn-primary { background: var(--mttm-fg); border-color: var(--mttm-fg); color: var(--mttm-bg); }
+.mttm-input { border: 1px solid color-mix(in srgb, var(--mttm-fg) 30%, transparent); background: var(--mttm-bg); color: var(--mttm-fg); padding: 8px 12px; font: 16px var(--mttm-font-body); border-radius: 0; }
+.mttm-note-alert { background: var(--mttm-fg); color: var(--mttm-bg); } /* blocking */
+.mttm-note-warn { border: 1px solid var(--mttm-fg); } /* warning */
+.mttm-note-info { background: var(--mttm-fill); } /* info */
