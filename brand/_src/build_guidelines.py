@@ -204,7 +204,7 @@ LOGO: custom equal-width capitals, thin monoline (stroke = 12% of letter height)
   Wordmark (primary): MAKETIME over TOMOVE, centred, no word gap. 15 x 3 units.
   Monogram: M T over T M, same spacing, a 3 x 3 square. Avatar, favicon, app icon, small merch.
   Framed monogram: the monogram inside a square frame, 1 letter of padding, frame line = the letter stroke. App header, highlight covers, sign-offs.
-  Single line: MAKETIME, one empty box, TOMOVE. Hats, sleeves, website header, narrow spaces.
+  Single line: MAKETIMETOMOVE in one run, no word gap. Hats, sleeves, website header, narrow spaces.
   Heavy cut: same letters with a thicker stroke, for favicons, app icons and embroidery only.
   Clear space = 1 letter height on all sides. Always use the supplied files. Never retype the logo in a font.
 
@@ -230,7 +230,7 @@ VOICE: short, direct, imperative, calm. No hype, no fitness clichés, no exclama
 IMAGERY: natural light, real people, honest movement, muted or black-and-white colour, generous negative space. No stock gym imagery, no neon, no flexing for the camera.
 
 RULES FOR AI ASSISTANTS AND DESIGNERS
-  1. Use the supplied logo files (SVG or PNG). Never draw, retype or approximate the logo.
+  1. Use the supplied logo files (SVG or PNG). Never draw, retype or approximate the logo. The single line is always MAKETIMETOMOVE in one run: never add a space or word gap between MAKETIME and TOMOVE.
   2. Display text: MTTM Lettering only, capitals, letter-spacing 0. It is a custom font that exists only in the brand files: fonts/mttm-lettering-regular.woff2 / .otf (and -heavy), tokens/mttm-brand.css (font embedded), or Appendix 14 of these guidelines. Never substitute Michroma or any other typeface. If you cannot access the font, ask for the files before producing work.
   3. Everything else: Manrope (400 body, 600 headings, 500 spaced capitals for small labels).
   4. One theme per layout. Default to the master, Ink on Sage, unless the content belongs to a pillar theme.
@@ -305,7 +305,7 @@ D.ul(["Every letter sits in a **1 U × 1 U** square. All letters share that widt
       "Gap between letters: **1 U**. Gap between the two lines: **1 U**. The wordmark is 15 U × 3 U.",
       "Line 2 (TOMOVE) is centred under line 1 (MAKETIME) on the same columns. There is no word gap: the line break separates the words.",
       "Monogram: M T over T M with the same gaps, giving a **3 U × 3 U** square.",
-      "Single line: MAKETIME, one empty box, TOMOVE, giving 29 U × 1 U.",
+      "Single line: MAKETIMETOMOVE in one run with the same 1 U letter gaps and no word gap, giving 27 U × 1 U.",
       "Framed monogram: the 3 U monogram inside a 5 U square frame (1 U padding), frame line 0.12 U, the same as the letter stroke.",
       "Stroke: 12% of U for the regular weight, the same as the regular font weight. The heavy cut is 22%.",
       "The letters are custom: square boxes, a circular O, a plain-stroke I, and a K made of two straight diagonals meeting the stem. No font reproduces them, so never retype the logo."])
@@ -534,7 +534,8 @@ D.ul(["One colour per garment. Use screen print or DTG for prints, and embroider
       "Embroidery always uses the **heavy cut** artwork, because satin stitches need a stroke of about 1 mm or more.",
       "Match garment and ink colours to the palette by physical swatch, and approve a sample before ordering a run.",
       "Set slogans in MTTM Lettering, as one or two short lines, using brand-voice lines only.",
-      "Place a small monogram woven label or neck print on garments whose front carries a slogan."])
+      "Place a small monogram woven label or neck print on garments whose front carries a slogan.",
+      "Mockups of the tee, hoodie and cap in every colourway, plus a presentation board, are in `merch/mockups/` (rebuild with `_src/build_mockups.py`)."])
 
 D.section("voice", "11", "Brand voice",
           "Short, direct, imperative. Calm confidence. Say less, and mean it.")
@@ -554,7 +555,7 @@ D.ul(["Don’t add gradients, shadows, glows, outlines, textures or any other ef
       "Don’t stretch, squash, rotate, skew or re-space the letters. The equal spacing is the logo.",
       "Don’t type the logo, not even in MTTM Lettering. Always use the supplied artwork.",
       "Don’t recolour outside the approved pairs, and don’t put two theme colours in one logo.",
-      "Don’t add a word gap, or move TOMOVE off-centre.",
+      "Don’t add a word gap or a space anywhere in the logo. The single line is always MAKETIMETOMOVE in one run, and in the wordmark TOMOVE stays centred under MAKETIME.",
       "Don’t place the logo on busy photography without enough contrast, or inside its clear space.",
       "Don’t lock the logo up with taglines, icons or other marks. Keep each mark on its own.",
       "Don’t use the heavy cut at large sizes on screen. It exists for small sizes and thread."])
@@ -570,7 +571,7 @@ D.table(["Folder", "Contents"], [
     ["`logo/variants/`", "Layout study: variant A (centred, chosen) and B (nested)"],
     ["`logo/favicon/`", "favicon.ico, favicon.svg, 16 / 32 / 48 px, apple-touch-icon, 192 and 512 px icons (Ink on Sage, as the app icon)"],
     ["`instagram/`", "Social kit: `avatar/`, `highlights/`, `stories/`, `interview/`, `reels/` (+ `overlays/`), `posts/`; editable SVGs in each `templates/` folder; Canva-ready PDFs in `canva/`"],
-    ["`merch/`", "Print-ready transparent files in Bone, Ink, White and Black"],
+    ["`merch/`", "Print-ready transparent files in Bone, Ink, White and Black; garment mockups and a presentation board in `merch/mockups/`"],
     ["`fonts/`", "MTTM Lettering font files: OTF (install for Canva, Figma, desktop) and WOFF2 (websites), Regular and Heavy, plus a specimen page"],
     ["`tokens/`", "`mttm-brand.css` (self-contained: tokens plus the embedded brand font), `mttm-tokens.css` and `.json`"],
     ["`_src/`", "Source fonts and the build scripts that generate every file"],

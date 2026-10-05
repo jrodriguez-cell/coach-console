@@ -47,8 +47,11 @@ def export(kind, slug, svg, folder, widths, transparent):
 
 
 # clean previous output of this script
-for d in ("logo", "merch", "tokens"):  # instagram/ is built by build_social.py
+for d in ("logo", "tokens"):  # instagram/ is built by build_social.py; merch/ below keeps mockups/
     shutil.rmtree(os.path.join(ROOT, d), ignore_errors=True)
+for d in os.listdir(os.path.join(ROOT, "merch")):  # keep merch/mockups (built by build_mockups.py)
+    if d != "mockups":
+        shutil.rmtree(os.path.join(ROOT, "merch", d), ignore_errors=True)
 
 # ================================================================ LOGOS
 for slug, fg, bg in COLORWAYS:
