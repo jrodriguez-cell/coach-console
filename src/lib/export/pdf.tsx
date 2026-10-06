@@ -1,8 +1,8 @@
 /**
  * Printable plan, progress-report and client-week PDFs (@react-pdf/renderer,
- * server-side), in the Make Time To Move "Ink & Bone" document theme: Ink on
- * Bone, Stone for secondary text, hairline rules; MTTM Lettering for display,
- * Manrope for body; single-line logo in the header, monogram in the footer.
+ * server-side), in the Make Time To Move Sage theme: Ink on Sage, Fern for
+ * secondary text, hairline rules; MTTM Lettering for headings, Manrope for
+ * body; monogram in the header.
  * DRAFT watermark and header on every page until the plan is approved; the
  * nutrition disclaimer and any clearance notes are always included.
  */
@@ -13,7 +13,9 @@ import { GOAL_TEMPLATES } from "@/config/goal-templates";
 import { PHASES } from "@/config/training-variables";
 import { METS } from "@/config/energy";
 import { planCalendar } from "@/lib/calendar";
-import { holdSeconds } from "@/lib/training";
+import { blockOfWeek, holdSeconds, sessionsInBlock } from "@/lib/training";
+import { DELOAD } from "@/config/training-variables";
+import { SKILLS } from "@/config/skills";
 import { DAY_NAMES, formatDate } from "@/lib/dates";
 import { describePrediction } from "@/lib/energy";
 import type { ExportInput } from "./xlsx";
@@ -137,6 +139,80 @@ function Chrome({ x }: { x: Pick<ExportInput, "clientName" | "status"> & { versi
   );
 }
 
+// ---------------------------------------------------------------------------
+// Full program PDF
+// ---------------------------------------------------------------------------
+
+const ps = StyleSheet.create({
+  section: { ...DISPLAY, fontSize: 10, marginTop: 18, marginBottom: 8, paddingBottom: 4, borderBottomWidth: 0.75, borderBottomColor: INK },
+  sub: { ...DISPLAY, fontSize: 8, marginTop: 12, marginBottom: 2 },
+  label: { ...CAPS, fontSize: 6.5, color: FERN },
+  tiles: { flexDirection: "row", marginTop: 10, marginBottom: 4 },
+  tile: { flexGrow: 1, flexBasis: 0, borderTopWidth: 0.75, borderTopColor: INK, paddingTop: 5, marginRight: 10 },
+  tileValue: { ...BOLD, fontSize: 11, marginTop: 2 },
+  big: { ...BOLD, fontSize: 26, lineHeight: 1.1 },
+  cell: { paddingRight: 4 },
+  note: { fontSize: 7.5, color: FERN, marginTop: 3 },
+  bullet: { flexDirection: "row", marginBottom: 2 },
+});
+
+function Tiles({ items }: { items: { label: string; value: string }[] }) {
+  return (
+    <View style={ps.tiles} wrap={false}>
+      {items.map((it, i) => (
+        <View key={it.label} style={[ps.tile, i === items.length - 1 ? { marginRight: 0 } : {}] as never}>
+          <Text style={ps.label}>{pdfText(it.label)}</Text>
+          <Text style={ps.tileValue}>{pdfText(it.value)}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function Bullets({ items, muted }: { items: string[]; muted?: boolean }) {
+  return (
+    <View>
+      {items.map((b, i) => (
+        <View key={i} style={ps.bullet} wrap={false}>
+          <Text style={[{ width: 10 }, muted ? s.muted : {}] as never}>•</Text>
+          <Text style={[{ flex: 1 }, muted ? s.muted : {}] as never}>{pdfText(b)}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/** Table whose cells may hold a main line and a muted second line. */
+function Grid({ cols, widths, rows }: { cols: string[]; widths: number[]; rows: (string | { main: string; sub?: string; bold?: boolean })[][] }) {
+  return (
+    <View style={{ marginTop: 3 }}>
+      <View style={[s.row, s.th]} wrap={false}>
+        {cols.map((c, i) => <Text key={i} style={[ps.cell, { width: `${widths[i]}%` }] as never}>{pdfText(c)}</Text>)}
+      </View>
+      {rows.map((r, i) => (
+        <View key={i} style={s.row} wrap={false}>
+          {r.map((c, j) => {
+            const v = typeof c === "string" ? { main: c } : c;
+            return (
+              <View key={j} style={[ps.cell, { width: `${widths[j]}%` }] as never}>
+                <Text style={v.bold ? BOLD : undefined}>{pdfText(v.main)}</Text>
+                {v.sub ? <Text style={{ fontSize: 7, color: FERN }}>{pdfText(v.sub)}</Text> : null}
+              </View>
+            );
+          })}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const rxText = (rx: { sets: number; reps_min: number; reps_max: number }, unit: "reps" | "seconds") =>
+  unit === "seconds" ? `${rx.sets} x ${holdSeconds(rx as never)[0]}-${holdSeconds(rx as never)[1]}s` : `${rx.sets} x ${rx.reps_min}-${rx.reps_max}`;
+const range = (a: number, b: number) => (a === b ? `${a}` : `${a}-${b}`);
+/** Drop descriptions in brackets and method notes after a dash: "Support Hold (parallel bars…)" -> "Support Hold". */
+const shortName = (n: string) => n.replace(/\s*\([^)]*\)/g, "").replace(/\s+—.*$/, "");
+const shortDate = (d: string) => formatDate(d).replace(/, \d{4}$/, "");
+
 export function PlanDocument({ x }: { x: ExportInput }) {
   const p = x.parameters;
   const tpl = GOAL_TEMPLATES[x.goal];
@@ -144,124 +220,262 @@ export function PlanDocument({ x }: { x: ExportInput }) {
   const e = x.nutrition.energy;
   const tr = x.training;
   const cal = planCalendar(p, tr);
+  const blocks = tr ? Array.from({ length: Math.ceil(tr.weeks.length / DELOAD.everyNWeeks) }, (_, b) => b) : [];
+  const weeksOf = (b: number) => (tr ? tr.weeks.filter((w) => blockOfWeek(w.week) === b) : []);
+  const cardio = tr?.cardio;
+  const skill = tr?.skill ? SKILLS[tr.skill] : null;
+
   return (
     <Document title={`${x.clientName} plan v${x.version}`} author="Coach Console">
+      {/* ---------------- Overview ---------------- */}
       <Page size="LETTER" style={s.page}>
         <Chrome x={x} />
-        <H style={s.h1}>{`${x.clientName}: ${tpl.label} plan`}</H>
-        <T style={s.muted}>{`${formatDate(p.start_date)} · ${p.weeks} weeks · ${p.days_per_week} lifting days/week · ${p.phase_sequence.map((ph) => PHASES[ph].label).join(" -> ")}`}</T>
+        <H style={s.h1}>{`${x.clientName}: ${tpl.label} program`}</H>
+        <T style={s.muted}>{`Starts ${formatDate(p.start_date)} · ${p.weeks} weeks · plan v${x.version}`}</T>
+        <Tiles
+          items={[
+            { label: "Program", value: tr?.split_label ?? "On hold" },
+            { label: "Training", value: tr ? `${tr.lifting_days.length} days/week · ~${p.session_length_min} min` : "-" },
+            { label: "Training days", value: tr ? tr.lifting_days.map((d) => DAY_NAMES[d]).join(" ") : "-" },
+            ...(skill ? [{ label: "Skill goal", value: skill.label }] : []),
+          ]}
+        />
         {x.clearanceNotes && (
-          <View style={s.alert}>
+          <View style={s.alert} wrap={false}>
             <T style={BOLD}>Physician clearance notes</T>
             <T>{x.clearanceNotes}</T>
           </View>
         )}
-        <H style={s.h2}>Programming guidelines</H>
-        {tpl.guidelines.map((g, i) => <T key={i}>{`${i + 1}. ${g}`}</T>)}
-        {tr?.program_summary ? <T style={{ marginTop: 4 }}>{tr.program_summary}</T> : null}
-        {(tr?.coaching_notes ?? []).map((n, i) => <T key={i}>{`• ${n}`}</T>)}
+
+        {tr && (tr.split_reasons?.length || tr.program_summary) ? (
+          <>
+            <H style={ps.section}>Why this program</H>
+            {tr.program_summary ? <T style={{ marginBottom: 4 }}>{tr.program_summary}</T> : null}
+            <Bullets items={tr.split_reasons ?? []} />
+          </>
+        ) : null}
+
         {t && (
-          <View style={s.box}>
-            <T style={BOLD}>Daily targets (estimates)</T>
-            <T>{`Calories ${t.calories} kcal (±${t.tolerance.calories}) · Protein ${t.protein_g} g (±${t.tolerance.protein_g}) · Carbohydrate ${t.carbs_g} g (±${t.tolerance.carbs_g}) · Fat ${t.fat_g} g (±${t.tolerance.fat_g})`}</T>
-            {e && <T>{`Expected change: ${describePrediction(e)}. Uses 3,500 kcal/lb as a planning approximation; recalibrated from weigh-ins.`}</T>}
-          </View>
+          <>
+            <H style={ps.section}>Daily nutrition targets</H>
+            <View style={{ flexDirection: "row" }} wrap={false}>
+              <View style={{ width: "34%" }}>
+                <Text style={ps.label}>Calories</Text>
+                <Text style={ps.big}>{t.calories.toLocaleString("en-US")}</Text>
+                <T style={s.muted}>{`kcal a day (${t.calories - t.tolerance.calories}-${t.calories + t.tolerance.calories})`}</T>
+              </View>
+              <View style={{ width: "66%" }}>
+                <Tiles items={[{ label: "Protein", value: `${t.protein_g} g` }, { label: "Carbs", value: `${t.carbs_g} g` }, { label: "Fat", value: `${t.fat_g} g` }]} />
+              </View>
+            </View>
+            {e && <T style={ps.note}>{`Expected change: ${describePrediction(e)} (estimate; recalibrated from weigh-ins).`}</T>}
+          </>
         )}
 
-        <H style={s.h2}>Training — week by week</H>
-        {!tr && <T>{x.nutrition.training_blocked_reason ?? "Training not generated."}</T>}
-        {tr && <T style={BOLD}>{`Program: ${tr.split_label}${tr.block_rotations ? " · accessory exercises change each 4-week block" : ""}`}</T>}
-        {(tr?.split_reasons ?? []).map((r, i) => <T key={i} style={s.muted}>{`• ${r}`}</T>)}
-        {tr?.weeks.map((w) => (
-          <View key={w.week} style={{ marginBottom: 6 }}>
-            <H style={s.h3} minPresenceAhead={80}>{`Week ${w.week} — ${PHASES[w.phase].label}${w.deload ? " — DELOAD (~40% fewer sets, stop at RPE 5-6)" : ""}${w.retest ? " — retest at last session" : ""}`}</H>
-            <Table
-              cols={["Session", "Exercise", "Sets x reps", "Rest", "RPE", "Regression / progression"]}
-              widths={[14, 30, 12, 7, 7, 30]}
-              rows={tr.sessions.flatMap((ss) =>
-                ss.slots.filter((sl) => w.prescriptions[sl.id]).map((sl) => {
-                  const rx = w.prescriptions[sl.id];
-                  const reps = sl.unit === "seconds" ? `${holdSeconds(rx)[0]}-${holdSeconds(rx)[1]} s` : `${rx.reps_min}-${rx.reps_max}`;
-                  return [ss.name, sl.exercise.name, `${rx.sets} x ${reps}`, `${rx.rest_sec}s`, `${rx.rpe_min}-${rx.rpe_max}`, `${sl.regression?.name ?? "-"} / ${sl.progression?.name ?? "-"}`];
-                }),
-              )}
-            />
-            <T style={s.muted}>{tr.cardio.removed ? "Cardio: removed" : `Cardio: ${tr.cardio.weeks[w.week - 1].sessions} x ${tr.cardio.weeks[w.week - 1].minutes} min ${METS[tr.cardio.activity].label.toLowerCase()}${tr.cardio.hr_bpm ? ` (${tr.cardio.hr_bpm.min}-${tr.cardio.hr_bpm.max} bpm, RPE ${tr.cardio.rpe})` : ""} · Mobility ${tr.mobility.sessions_per_week} x ${tr.mobility.minutes} min`}</T>
-          </View>
-        ))}
         {tr && (
           <>
-            <H style={s.h3}>Mobility / recovery flow</H>
-            <T>{tr.mobility.flow.map((m) => m.name).join(" · ")}</T>
+            <H style={ps.section}>The plan in phases</H>
+            <Grid
+              cols={["Weeks", "Phase", "Main lifts", "Effort (RPE)", "Notes"]}
+              widths={[12, 22, 18, 14, 34]}
+              rows={blocks.map((b) => {
+                const ws = weeksOf(b);
+                const ph = PHASES[ws[0].phase];
+                const deload = ws.find((w) => w.deload);
+                return [
+                  `${ws[0].week}-${ws[ws.length - 1].week}`,
+                  { main: ph.label, bold: true },
+                  `${range(ph.setsMin, ph.setsMax)} sets x ${range(ph.repsMin, ph.repsMax)}`,
+                  range(ph.rpe[0], ph.rpe[1]),
+                  deload ? `Week ${deload.week}: deload, ~40% fewer sets, RPE 5-6; retest at the last session.` : "",
+                ];
+              })}
+            />
+            {skill && <T style={ps.note}>{`${skill.label} progression: ${skill.ladder.length} steps, one step up each 4-week block. ${skill.progressCue}`}</T>}
+          </>
+        )}
+
+        {!tr && (
+          <>
+            <H style={ps.section}>Programming guidelines</H>
+            <Bullets items={tpl.guidelines} muted />
           </>
         )}
       </Page>
 
+      {/* ---------------- Training ---------------- */}
+      {tr && (
+        <Page size="LETTER" style={s.page}>
+          <Chrome x={x} />
+          <H style={s.h1}>Training</H>
+          <T style={s.muted}>Sets x reps for each week (holds in seconds). Easier and harder options are under each exercise. Warm up 5-10 minutes first.</T>
+          {blocks.map((b) => {
+            const ws = weeksOf(b);
+            const sessions = sessionsInBlock(tr.sessions, b).filter((ss) => ws.some((w) => tr.rotation.length && Object.keys(w.session_minutes).includes(ss.key)));
+            const weekW = Math.floor(44 / ws.length);
+            return (
+              <View key={b}>
+                <H style={ps.section} minPresenceAhead={120}>{`Weeks ${ws[0].week}-${ws[ws.length - 1].week} · ${PHASES[ws[0].phase].label}`}</H>
+                {sessions.map((ss) => {
+                  const slots = ss.slots.filter((sl) => ws.some((w) => w.prescriptions[sl.id]));
+                  const first = ws.find((w) => !w.deload) ?? ws[0];
+                  const rpes = slots.flatMap((sl) => ws.map((w) => w.prescriptions[sl.id]).filter(Boolean));
+                  return (
+                    <View key={ss.key} style={{ marginBottom: 6 }}>
+                      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }} wrap={false} minPresenceAhead={60}>
+                        <H style={ps.sub}>{ss.name}</H>
+                        <Text style={{ fontSize: 7, color: FERN }}>{`~${first.session_minutes[ss.key] ?? "-"} min + warm-up`}</Text>
+                      </View>
+                      <Grid
+                        cols={["Exercise", ...ws.map((w) => `Wk ${w.week}${w.deload ? " (D)" : ""}`), "Rest", "RPE"]}
+                        widths={[100 - weekW * ws.length - 18, ...ws.map(() => weekW), 8, 10]}
+                        rows={slots.map((sl) => {
+                          const rx0 = first.prescriptions[sl.id] ?? ws.map((w) => w.prescriptions[sl.id]).find(Boolean)!;
+                          const r = ws.map((w) => w.prescriptions[sl.id]).filter(Boolean);
+                          const tag = sl.role === "skill" ? "Skill · " : sl.focus ? "Focus · " : "";
+                          const alt = [sl.regression ? `Easier: ${shortName(sl.regression.name)}` : "", sl.progression ? `Harder: ${shortName(sl.progression.name)}` : ""].filter(Boolean).join(" · ");
+                          return [
+                            { main: `${tag}${sl.exercise.name}`, sub: alt || undefined, bold: sl.role === "skill" || sl.role === "main" },
+                            ...ws.map((w) => (w.prescriptions[sl.id] ? rxText(w.prescriptions[sl.id], sl.unit) : "-")),
+                            `${rx0.rest_sec}s`,
+                            range(Math.min(...r.map((q) => q.rpe_min)), Math.max(...r.map((q) => q.rpe_max))),
+                          ];
+                        })}
+                      />
+                      {rpes.length === 0 && <T style={s.muted}>No exercises this block.</T>}
+                    </View>
+                  );
+                })}
+              </View>
+            );
+          })}
+
+          <H style={ps.section} minPresenceAhead={100}>Cardio and recovery</H>
+          {cardio?.removed ? (
+            <T>{`Cardio: not prescribed yet${cardio.removed_reason ? ` (${cardio.removed_reason.replace(/\.$/, "")})` : ""}.`}</T>
+          ) : cardio ? (
+            <>
+              <T>{`${METS[cardio.activity].label}${cardio.hr_bpm ? ` · heart rate ${cardio.hr_bpm.min}-${cardio.hr_bpm.max} bpm` : ""} · effort ${cardio.rpe} · ${cardio.intensity}`}</T>
+              <Grid
+                cols={["Weeks", "Sessions / week", "Minutes each"]}
+                widths={[30, 35, 35]}
+                rows={blocks.map((b) => {
+                  const ws = weeksOf(b).map((w) => cardio.weeks[w.week - 1]).filter(Boolean);
+                  return [`${ws[0]?.week}-${ws[ws.length - 1]?.week}`, range(Math.min(...ws.map((c) => c.sessions)), Math.max(...ws.map((c) => c.sessions))), range(Math.min(...ws.map((c) => c.minutes)), Math.max(...ws.map((c) => c.minutes)))];
+                })}
+              />
+            </>
+          ) : null}
+          {tr.mobility.sessions_per_week > 0 && (
+            <View style={{ marginTop: 6 }} wrap={false}>
+              <T style={BOLD}>{`Mobility: ${tr.mobility.sessions_per_week} x ${tr.mobility.minutes} min a week (${tr.mobility.days.map((d) => DAY_NAMES[d]).join(", ")})`}</T>
+              <T style={s.muted}>{tr.mobility.flow.map((m) => m.name).join(" · ")}</T>
+            </View>
+          )}
+
+          <View wrap={false}>
+            <H style={ps.section}>Coaching notes</H>
+            <Bullets items={[...(tr.coaching_notes ?? []), ...tpl.guidelines]} muted />
+          </View>
+        </Page>
+      )}
+
+      {/* ---------------- Nutrition ---------------- */}
       <Page size="LETTER" style={s.page}>
         <Chrome x={x} />
-        <H style={s.h1}>Nutrition guidance</H>
-        <T style={s.disclaimer}>{x.disclaimer}</T>
+        <H style={s.h1}>Nutrition</H>
         {!t ? (
           <T>{x.nutrition.blocked_reason ?? "Nutrition not generated."}</T>
         ) : (
           <>
-            <Table
-              cols={["", "Target", "Tolerance", "% of calories"]}
-              widths={[30, 20, 20, 30]}
-              rows={[
-                ["Calories", `${t.calories} kcal`, `±${t.tolerance.calories} kcal`, "-"],
-                ["Protein", `${t.protein_g} g`, `±${t.tolerance.protein_g} g`, `${t.protein_pct.toFixed(0)}%`],
-                ["Carbohydrate", `${t.carbs_g} g`, `±${t.tolerance.carbs_g} g`, `${t.carbs_pct.toFixed(0)}%`],
-                ["Fat", `${t.fat_g} g`, `±${t.tolerance.fat_g} g`, `${t.fat_pct.toFixed(0)}%`],
+            <Tiles
+              items={[
+                { label: "Calories", value: `${t.calories} kcal (±${t.tolerance.calories})` },
+                { label: "Protein", value: `${t.protein_g} g (±${t.tolerance.protein_g})` },
+                { label: "Carbs", value: `${t.carbs_g} g (±${t.tolerance.carbs_g})` },
+                { label: "Fat", value: `${t.fat_g} g (±${t.tolerance.fat_g})` },
               ]}
             />
-            <T style={{ marginTop: 4 }}>{x.nutrition.fiber_text}</T>
-            <T>{x.nutrition.hydration_text}</T>
-            <T>{x.nutrition.meals_guidance}</T>
+            <Tiles
+              items={[
+                { label: "Meals", value: `${x.nutrition.meals_per_day} a day · ~${Math.round(t.protein_g / x.nutrition.meals_per_day)} g protein each` },
+                { label: "Fiber", value: `${t.fiber_g} g a day` },
+                { label: "Water", value: t.water ? `~${t.water.from_drinks_fl_oz} fl oz from drinks` : "-" },
+              ]}
+            />
+
+            <H style={ps.section}>Example days</H>
+            <T style={s.muted}>Examples only. Swap foods freely using the swaps below.</T>
+            {x.nutrition.example_days.map((d) => (
+              <View key={d.label} style={{ marginTop: 8 }} wrap={false}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <H style={ps.sub}>{d.label.replace(/\s*[—-]\s*example.*$/i, "")}</H>
+                  <Text style={{ fontSize: 7, color: FERN, marginTop: 12 }}>{`${d.totals.calories} kcal · P ${d.totals.protein_g} · C ${d.totals.carbs_g} · F ${d.totals.fat_g}`}</Text>
+                </View>
+                {d.meals.map((m, i) => (
+                  <View key={i} style={[s.row, { paddingVertical: 2 }] as never}>
+                    <Text style={[ps.label, { width: "18%", paddingTop: 1.5 }] as never}>{pdfText(m.name)}</Text>
+                    <Text style={{ width: "82%" }}>{pdfText(m.items.map((it) => `${it.name} (${it.household})`).join(" · "))}</Text>
+                  </View>
+                ))}
+              </View>
+            ))}
+
+            <H style={ps.section} minPresenceAhead={100}>Swaps</H>
+            <Grid
+              cols={["Food group", "Equal swaps"]}
+              widths={[22, 78]}
+              rows={x.nutrition.swaps.map((sw) => [{ main: sw.category, bold: true }, sw.options.slice(0, 8).map((o) => `${o.name} (${o.household})`).join(" · ")])}
+            />
+            <H style={ps.section} minPresenceAhead={80}>Foods that fit</H>
+            <Grid cols={["Group", "Foods"]} widths={[22, 78]} rows={Object.entries(x.nutrition.food_lists).map(([cat, fs]) => [{ main: cat.charAt(0).toUpperCase() + cat.slice(1), bold: true }, fs.map((f) => f.name).join(" · ")])} />
+            <H style={ps.section} minPresenceAhead={60}>Grocery staples</H>
+            <T>{x.nutrition.grocery_staples.join(" · ")}</T>
+
             {e && (
-              <>
-                <H style={s.h2}>Energy balance (estimates)</H>
-                <Table
-                  cols={["Component", "kcal/day"]}
+              <View wrap={false}>
+                <H style={ps.section}>How the numbers are worked out</H>
+                <Grid
+                  cols={["Component", "kcal / day"]}
                   widths={[70, 30]}
                   rows={
                     e.mode === "measured"
-                      ? [["Measured TDEE (wearable)", Math.round(e.measured_tdee ?? 0)], ["+ Program exercise (net)", Math.round(e.planned_exercise_kcal_per_day)], ["- Current baseline exercise", Math.round(e.baseline_exercise_kcal_per_day ?? 0)], ["Estimated TDEE", Math.round(e.tdee)], ["Target intake", Math.round(e.target_kcal)]]
-                      : [["Resting (BMR)", Math.round(e.bmr)], ["Daily activity (non-exercise)", Math.round(e.nonexercise_kcal)], ["Strength (avg/day)", Math.round(e.strength_kcal_per_week / 7)], ["Cardio (avg/day)", Math.round(e.cardio_kcal_per_week / 7)], ["Mobility (avg/day)", Math.round(e.mobility_kcal_per_week / 7)], ["Food effect (TEF)", Math.round(e.tef_kcal ?? 0)], ["Estimated TDEE", Math.round(e.tdee)], ["Target intake", Math.round(e.target_kcal)]]
+                      ? [["Measured TDEE (wearable)", String(Math.round(e.measured_tdee ?? 0))], ["+ Program exercise (net)", String(Math.round(e.planned_exercise_kcal_per_day))], ["- Current baseline exercise", String(Math.round(e.baseline_exercise_kcal_per_day ?? 0))], [{ main: "Estimated daily burn (TDEE)", bold: true }, { main: String(Math.round(e.tdee)), bold: true }], [{ main: "Target intake", bold: true }, { main: String(Math.round(e.target_kcal)), bold: true }]]
+                      : [["Resting (BMR)", String(Math.round(e.bmr))], ["Daily activity (non-exercise)", String(Math.round(e.nonexercise_kcal))], ["Strength (avg/day)", String(Math.round(e.strength_kcal_per_week / 7))], ["Cardio (avg/day)", String(Math.round(e.cardio_kcal_per_week / 7))], ["Mobility (avg/day)", String(Math.round(e.mobility_kcal_per_week / 7))], ["Food effect (TEF)", String(Math.round(e.tef_kcal ?? 0))], [{ main: "Estimated daily burn (TDEE)", bold: true }, { main: String(Math.round(e.tdee)), bold: true }], [{ main: "Target intake", bold: true }, { main: String(Math.round(e.target_kcal)), bold: true }]]
                   }
                 />
-                <T style={{ marginTop: 3 }}>{`Expected change: ${describePrediction(e)} (±${Math.round(e.uncertainty_pct * 100)}% TDEE uncertainty). 3,500 kcal per lb is a planning approximation only.`}</T>
-              </>
-            )}
-            <H style={s.h2}>Example days — examples, swap freely</H>
-            {x.nutrition.example_days.map((d) => (
-              <View key={d.label} style={s.box} wrap={false}>
-                <T style={BOLD}>{`${d.label} · ${d.totals.calories} kcal · P ${d.totals.protein_g} g · C ${d.totals.carbs_g} g · F ${d.totals.fat_g} g`}</T>
-                {d.meals.map((m, i) => <T key={i}>{`${m.name}: ${m.items.map((it) => `${it.name}: ${it.household} (~${Math.round(it.grams)} g)`).join("; ")}`}</T>)}
+                <T style={ps.note}>{`Protein ${t.protein_g_per_lb.toFixed(2)} g per lb of ${t.reference_weight_lb} lb reference weight. ±${Math.round(e.uncertainty_pct * 100)}% uncertainty; 3,500 kcal per lb is a planning approximation only.`}</T>
               </View>
-            ))}
-            <H style={s.h2}>Swaps</H>
-            {x.nutrition.swaps.map((sw) => <T key={sw.category}>{`${sw.category}: ${sw.options.slice(0, 8).map((o) => `${o.name}: ${o.household}`).join("; ")}`}</T>)}
-            <H style={s.h2}>Food lists</H>
-            {Object.entries(x.nutrition.food_lists).map(([cat, fs]) => <T key={cat}>{`${cat}: ${fs.map((f) => f.name).join(", ")}`}</T>)}
-            <H style={s.h2}>Grocery staples</H>
-            <T>{x.nutrition.grocery_staples.join(" · ")}</T>
+            )}
           </>
         )}
         <T style={s.disclaimer}>{x.disclaimer}</T>
       </Page>
 
+      {/* ---------------- Calendar ---------------- */}
       <Page size="LETTER" orientation="landscape" style={s.page}>
         <Chrome x={x} />
         <H style={s.h1}>Calendar</H>
-        <Table
+        <Grid
           cols={["Week", ...(cal[0]?.days.map((d) => DAY_NAMES[d.weekday]) ?? [])]}
           widths={[9, 13, 13, 13, 13, 13, 13, 13]}
-          rows={cal.map((w) => [`W${w.week}${w.deload ? " (deload)" : ""}`, ...w.days.map((d) => `${formatDate(d.date).replace(/, \d{4}$/, "")}\n${d.items.join("\n")}`)])}
+          rows={cal.map((w) => [
+            { main: `W${w.week}`, sub: w.deload ? "deload" : w.phase ? PHASES[w.phase as keyof typeof PHASES].label : undefined, bold: true },
+            ...w.days.map((d) => ({ main: shortDate(d.date), sub: d.items.map(calLabel).join("\n") || undefined })),
+          ])}
         />
       </Page>
     </Document>
   );
+}
+
+/** Short calendar labels: "Strength: Full Body A" -> "Full Body A", etc. */
+function calLabel(item: string): string {
+  return item
+    .replace(/^Strength: /, "")
+    .replace(/^Cardio: (.+?) (\d+) min/, (_m, a: string, n: string) => `Cardio ${n} min (${a.replace(/,.*$/, "")})`)
+    .replace(/^Mobility\/recovery (\d+) min/, "Mobility $1 min")
+    .replace(/^Day 1: baseline weigh-in and measurements/, "Baseline weigh-in + measurements");
 }
 
 export async function renderPlanPdf(x: ExportInput): Promise<Buffer> {
