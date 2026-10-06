@@ -17,7 +17,7 @@ const dayLabel = (iso: string, today: string) => {
  * Tap again to undo. Workouts logged with sets (imported sheet, session form)
  * show as logged and can't be unchecked here.
  */
-export function WeekChecklist({ clientId, planId, days, today, editable = true, hideEmpty = false, hideDayLabel = false, clientName }: { clientId: string; planId: string; days: ChecklistDay[]; today: string; editable?: boolean; hideEmpty?: boolean; hideDayLabel?: boolean; clientName?: string }) {
+export function WeekChecklist({ clientId, planId, days, today, editable = true, hideEmpty = false, hideDayLabel = false, clientName, columns = false }: { clientId: string; planId: string; days: ChecklistDay[]; today: string; editable?: boolean; hideEmpty?: boolean; hideDayLabel?: boolean; clientName?: string; columns?: boolean }) {
   const [states, setStates] = useState<Record<string, ItemState>>(() => Object.fromEntries(days.flatMap((d) => d.items.map((i) => [`${i.date}|${i.key}`, i.state]))));
   const [pending, start] = useTransition();
   const [busy, setBusy] = useState<string | null>(null);
@@ -40,9 +40,10 @@ export function WeekChecklist({ clientId, planId, days, today, editable = true, 
 
   const shown = hideEmpty ? days.filter((d) => d.items.length) : days;
   return (
-    <ul className="divide-y divide-fg/10">
+    // `columns`: on wide screens the week reads like a calendar, one column per day.
+    <ul className={clsx("divide-y divide-fg/10", columns && "lg:grid lg:grid-cols-7 lg:divide-y-0 lg:border-t lg:border-fg/15")}>
       {shown.map((d) => (
-        <li key={d.date} className={clsx(hideDayLabel ? "pt-1" : "py-2.5", !hideDayLabel && d.date === today && "-mx-2 bg-fg/[0.04] px-2")}>
+        <li key={d.date} className={clsx(hideDayLabel ? "pt-1" : "py-2.5", !hideDayLabel && d.date === today && "-mx-2 bg-fg/[0.04] px-2", columns && "lg:mx-0 lg:border-l lg:border-fg/10 lg:px-2.5 lg:py-3 lg:first:border-l-0")}>
           {!hideDayLabel && <div className={clsx("caps mb-1.5", d.date === today && "text-fg")}>{dayLabel(d.date, today)}</div>}
           {d.items.length === 0 ? (
             <p className="text-sm text-muted">Rest day</p>

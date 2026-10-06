@@ -5,13 +5,14 @@ import { formatDate, todayIn } from "@/lib/dates";
 import { shortTaskTitle } from "@/lib/tasks";
 import type { TaskRow } from "@/lib/data/types";
 
-export function TaskList({ tasks, showClient = true, clientNames, clientName }: { tasks: TaskRow[]; showClient?: boolean; clientNames?: Record<string, string>; clientName?: string }) {
+export function TaskList({ tasks, showClient = true, clientNames, clientName, columns = false }: { tasks: TaskRow[]; showClient?: boolean; clientNames?: Record<string, string>; clientName?: string; columns?: boolean }) {
   const today = todayIn();
   if (tasks.length === 0) return <Empty>Nothing open. You&apos;re all caught up.</Empty>;
   return (
-    <ul className="divide-y divide-fg/15">
+    // `columns`: two columns on wide screens so a full-width card stays balanced.
+    <ul className={columns ? "divide-y divide-fg/15 lg:grid lg:grid-cols-2 lg:gap-x-10 lg:divide-y-0" : "divide-y divide-fg/15"}>
       {tasks.map((t) => (
-        <li key={t.id} className="space-y-2.5 py-3">
+        <li key={t.id} className={columns ? "space-y-2.5 py-3 lg:border-b lg:border-fg/15" : "space-y-2.5 py-3"}>
           <div className="min-w-0 space-y-1.5">
             <p className="text-[15px] leading-snug">{shortTaskTitle(t.title, clientName)}</p>
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted">

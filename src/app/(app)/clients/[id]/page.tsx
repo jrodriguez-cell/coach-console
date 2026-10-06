@@ -150,13 +150,14 @@ export default async function ClientPage({ params, searchParams }: { params: { i
       )}
 
       {!intake && <Banner tone="blue" title="Intake needed">Complete the intake (including PAR-Q) before generating a plan. <Link href={`/clients/${client.id}/intake`}>Start intake →</Link></Banner>}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="space-y-8 lg:col-span-2">
+          {/* One full-width column: goal, what needs doing, this week, the plan. */}
+          <div className="space-y-8">
           {goal && (
             <Card title="Progress to goal" actions={<Link className="text-sm" href={`/clients/${client.id}/progress`}>Details</Link>}>
               <GoalProgress g={goal} />
             </Card>
           )}
+          <Card title="Tasks"><TaskList tasks={b.tasks} showClient={false} clientName={client.name} columns /></Card>
           {live && (
             <Card
               title={shownWeek === thisWeek ? "This week" : `Week ${shownWeek}`}
@@ -170,7 +171,7 @@ export default async function ClientPage({ params, searchParams }: { params: { i
               }
             >
               <p className="muted mb-1">Week {shownWeek} of {live.plan.parameters.weeks}. Tap a workout when it&apos;s done; it greys out and counts toward adherence. Imported sheets tick themselves.</p>
-              <WeekChecklist key={shownWeek} clientId={client.id} planId={live.plan.id} days={checklist} today={today} clientName={client.name} />
+              <WeekChecklist key={shownWeek} clientId={client.id} planId={live.plan.id} days={checklist} today={today} clientName={client.name} columns />
             </Card>
           )}
           <Card title="Current plan">
@@ -204,9 +205,6 @@ export default async function ClientPage({ params, searchParams }: { params: { i
               </p>
             )}
           </Card>
-
-            </div>
-            <Card title="Tasks"><TaskList tasks={b.tasks} showClient={false} clientName={client.name} /></Card>
           </div>
         </>
       )}
