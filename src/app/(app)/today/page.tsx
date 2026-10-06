@@ -7,7 +7,8 @@ import { Card, Empty } from "@/components/ui";
 import { TaskList } from "@/components/task-list";
 import { SubmitButton } from "@/components/submit-button";
 import { createTaskAction } from "@/app/actions/tasks";
-import { formatDate, hourIn, todayIn, DAY_NAMES, dayOfWeek } from "@/lib/dates";
+import { addDays, formatDate, hourIn, todayIn, DAY_NAMES, dayOfWeek } from "@/lib/dates";
+import clsx from "clsx";
 import type { PlanRow, TaskRow } from "@/lib/data/types";
 import { WeekChecklist } from "@/components/week-checklist";
 import { planWeekOf, weekChecklist, type ChecklistDay, type SessionRecord } from "@/lib/schedule";
@@ -47,53 +48,87 @@ export default async function TodayPage() {
     .sort((a, b) => (names[a.plan.client_id] ?? "").localeCompare(names[b.plan.client_id] ?? ""));
   const order = Array.from(groups.keys()).sort((a, b) => (a === "_general" ? 1 : b === "_general" ? -1 : (names[a] ?? "").localeCompare(names[b] ?? "")));
 
+  // Next 7 days, one column per day (key dates only; tasks and workouts above).
+  const week = Array.from({ length: 7 }, (_, i) => addDays(today, i)).map((date) => ({ date, items: keyDates.filter((k) => k.date === date) }));
+  const weekCount = week.reduce((a, d) => a + d.items.length, 0);
+  const workoutsDone = workoutsToday.reduce((a, w) => a + w.day.items.filter((i) => i.state).length, 0);
+  const workoutsTotal = workoutsToday.reduce((a, w) => a + w.day.items.length, 0);
+  const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
   return (
     <div className="space-y-8">
-      <PageHeader eyebrow="Today" title={formatDate(today)} meta={`${tasks.length} open ${tasks.length === 1 ? "task" : "tasks"}`} />
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
-          {workoutsToday.length > 0 && (
-            <Card title="Today's workouts" actions={<span className="text-sm text-muted">{workoutsToday.reduce((a, w) => a + w.day.items.filter((i) => i.state).length, 0)}/{workoutsToday.reduce((a, w) => a + w.day.items.length, 0)} done</span>}>
-              <div className="divide-y divide-fg/10">
-                {workoutsToday.map(({ plan, day }) => (
-                  <div key={plan.id} className="py-2 first:pt-0">
-                    <Link className="text-sm font-semibold" href={`/clients/${plan.client_id}`}>{names[plan.client_id] ?? "Client"}</Link>
-                    <WeekChecklist clientId={plan.client_id} planId={plan.id} days={[day]} today={today} clientName={names[plan.client_id]} hideDayLabel />
-                  </div>
-                ))}
+      <PageHeader
+        eyebrow="Today"
+        title={formatDate(today)}
+        meta={[workoutsTotal ? `${workoutsDone}/${plural(workoutsTotal, "workout")} done` : null, plural(tasks.length, "open task"), weekCount ? `${plural(weekCount, "key date")} this week` : null].filter(Boolean).join(" · ")}
+      />
+
+      {workoutsToday.length > 0 && (
+        <Card title="Today's workouts" actions={<span className="text-sm text-muted">{workoutsDone}/{workoutsTotal} done</span>}>
+          <div className={clsx("grid grid-cols-1 gap-x-10", workoutsToday.length > 1 && "sm:grid-cols-2", workoutsToday.length > 2 && "lg:grid-cols-3")}>
+            {workoutsToday.map(({ plan, day }) => (
+              <div key={plan.id} className="border-t border-fg/10 py-3 first:border-t-0 sm:[&:nth-child(-n+2)]:border-t-0 lg:[&:nth-child(-n+3)]:border-t-0">
+                <Link className="text-sm font-semibold" href={`/clients/${plan.client_id}`}>{names[plan.client_id] ?? "Client"}</Link>
+                <WeekChecklist clientId={plan.client_id} planId={plan.id} days={[day]} today={today} clientName={names[plan.client_id]} hideDayLabel />
               </div>
-            </Card>
-          )}
-          {order.length === 0 && <Card><Empty>Nothing needs your attention right now. New tasks appear here as weigh-ins, check-ins and checkpoints come due.</Empty></Card>}
-          {order.map((k) => (
-            <Card key={k} title={k === "_general" ? "General" : <Link className="title-sm" href={`/clients/${k}`}>{names[k] ?? "Client"}</Link>}>
-              <TaskList tasks={groups.get(k)!} showClient={false} clientName={k === "_general" ? undefined : names[k]} />
-            </Card>
-          ))}
-        </div>
-        <div className="space-y-4">
-          <Card title="Next 7 days">
-            {keyDates.length === 0 ? <Empty>No key dates.</Empty> : (
-              <ul className="space-y-2 text-sm">
-                {keyDates.map((k, i) => (
-                  <li key={i} className="border-b border-fg/10 pb-2 last:border-0"><div className="label mb-1">{DAY_NAMES[dayOfWeek(k.date)]} {formatDate(k.date).replace(/, \d{4}$/, "")}</div><Link href={`/clients/${k.client_id}`}>{k.client_name}</Link> · {k.label}</li>
-                ))}
-              </ul>
-            )}
-          </Card>
-          <Card title="Add a task">
-            <form action={createTaskAction} className="space-y-2">
-              <input className="input" name="title" placeholder="Task" required />
+            ))}
+          </div>
+        </Card>
+      )}
+
+      <Card
+        title="Tasks"
+        actions={
+          <details className="group relative">
+            <summary className="btn btn-sm cursor-pointer list-none [&::-webkit-details-marker]:hidden"><span className="group-open:hidden">+ Add task</span><span className="hidden group-open:inline">Close</span></summary>
+            <form action={createTaskAction} className="panel absolute right-0 z-20 mt-2 grid w-[min(92vw,34rem)] grid-cols-1 gap-2 sm:grid-cols-[1fr_10rem]">
+              <input className="input sm:col-span-2" name="title" placeholder="What needs doing?" required />
               <select className="input" name="client_id" defaultValue="">
                 <option value="">No client</option>
                 {(allClients ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
-              <input className="input" type="date" name="due_date" defaultValue={today} />
-              <SubmitButton className="btn-primary w-full sm:w-auto">Add task</SubmitButton>
+              <input className="input" type="date" name="due_date" defaultValue={today} aria-label="Due date" />
+              <SubmitButton className="btn-primary sm:col-span-2">Add task</SubmitButton>
             </form>
-          </Card>
-        </div>
-      </div>
+          </details>
+        }
+      >
+        {order.length === 0 ? (
+          <Empty>Nothing needs your attention right now. Tasks appear here as weigh-ins, check-ins and checkpoints come due.</Empty>
+        ) : (
+          // One group: its tasks use both columns. Several: one group per column.
+          <div className={clsx("grid grid-cols-1 gap-x-10 gap-y-6", order.length > 1 && "lg:grid-cols-2")}>
+            {order.map((k) => (
+              <section key={k} aria-label={k === "_general" ? "General" : names[k]}>
+                <div className="flex items-baseline justify-between gap-3 border-b border-fg/40 pb-1.5">
+                  {k === "_general" ? <h3>General</h3> : <Link className="font-semibold no-underline hover:underline" href={`/clients/${k}`}>{names[k] ?? "Client"}</Link>}
+                  <span className="caps">{plural(groups.get(k)!.length, "task")}</span>
+                </div>
+                <TaskList tasks={groups.get(k)!} showClient={false} clientName={k === "_general" ? undefined : names[k]} columns={order.length === 1} />
+              </section>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      <Card title="Next 7 days">
+        {weekCount === 0 ? <Empty>No weigh-ins, checkpoints or retests coming up.</Empty> : (
+          <ol className="divide-y divide-fg/10 lg:grid lg:grid-cols-7 lg:divide-y-0 lg:border-t lg:border-fg/15">
+            {week.map((d) => (
+              <li key={d.date} className={clsx("py-2.5 lg:min-h-[7rem] lg:border-l lg:border-fg/10 lg:px-2.5 lg:py-3 lg:first:border-l-0", d.items.length === 0 && "hidden lg:block")}>
+                <div className={clsx("caps mb-1.5", d.date === today && "text-fg")}>{d.date === today ? "Today" : DAY_NAMES[dayOfWeek(d.date)]} · {formatDate(d.date).replace(/, \d{4}$/, "")}</div>
+                {d.items.length === 0 ? <span className="text-sm text-muted">—</span> : (
+                  <ul className="space-y-1.5 text-sm">
+                    {d.items.map((k, i) => (
+                      <li key={i} className="leading-snug"><Link className="font-semibold no-underline hover:underline" href={`/clients/${k.client_id}`}>{k.client_name}</Link><br /><span className="text-muted">{k.label}</span></li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ol>
+        )}
+      </Card>
     </div>
   );
 }
