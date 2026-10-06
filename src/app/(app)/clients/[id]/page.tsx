@@ -150,14 +150,8 @@ export default async function ClientPage({ params, searchParams }: { params: { i
       )}
 
       {!intake && <Banner tone="blue" title="Intake needed">Complete the intake (including PAR-Q) before generating a plan. <Link href={`/clients/${client.id}/intake`}>Start intake →</Link></Banner>}
-          {/* One full-width column: goal, what needs doing, this week, the plan. */}
+          {/* One full-width column: this week, progress to goal, tasks, the plan. */}
           <div className="space-y-8">
-          {goal && (
-            <Card title="Progress to goal" actions={<Link className="text-sm" href={`/clients/${client.id}/progress`}>Details</Link>}>
-              <GoalProgress g={goal} />
-            </Card>
-          )}
-          <Card title="Tasks"><TaskList tasks={b.tasks} showClient={false} clientName={client.name} columns /></Card>
           {live && (
             <Card
               title={shownWeek === thisWeek ? "This week" : `Week ${shownWeek}`}
@@ -174,6 +168,12 @@ export default async function ClientPage({ params, searchParams }: { params: { i
               <WeekChecklist key={shownWeek} clientId={client.id} planId={live.plan.id} days={checklist} today={today} clientName={client.name} columns />
             </Card>
           )}
+          {goal && (
+            <Card title="Progress to goal" actions={<Link className="text-sm" href={`/clients/${client.id}/progress`}>Details</Link>}>
+              <GoalProgress g={goal} />
+            </Card>
+          )}
+          <Card title="Tasks"><TaskList tasks={b.tasks} showClient={false} clientName={client.name} columns /></Card>
           <Card title="Current plan">
             {plan ? (
               <div className="space-y-2 text-sm">
