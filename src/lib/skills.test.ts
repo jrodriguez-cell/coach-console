@@ -4,6 +4,8 @@ import { EX_LIB, FOOD_LIB, WL_INTAKE } from "@/test/fixtures";
 import { detectSkill, SKILLS, SKILL_KEYS } from "@/config/skills";
 import { EXERCISES } from "@/data/exercises";
 import { sessionsForWeek } from "./training";
+import { clientWeek } from "./client-week";
+import { skillSchedule } from "./skill-schedule";
 
 // GES: general health, goal is an L-sit, PAR-Q flagged with clearance pending.
 const GES = { ...WL_INTAKE, primary_goal: "Be able to do an L-sit", success_90_days: "Hold an L-sit for 10 seconds", training_days_per_week: 3, training_history: "beginner" as const, activity_level: "on_feet_part" as const, equipment: "home_basic" as const };
@@ -68,5 +70,26 @@ describe("skill goals", () => {
       const p = await generatePlan(ctx({ parqFlagged: false, intake: { ...GES, equipment } }), { skill: k }, "2026-10-05", libraryDefaultSelector);
       expect(p.training, `${k}/${equipment}`).toBeTruthy();
     }
+  });
+});
+
+describe("skill call-outs", () => {
+  it("finds the skill in the client's purpose too, however it's written", async () => {
+    expect(detectSkill("perform a mobility exercise of an L sit")).toBe("l_sit");
+    expect(detectSkill("Lsit hold")).toBe("l_sit");
+    const plain = { ...GES, primary_goal: "Feel stronger", success_90_days: "" };
+    const p = await generatePlan(ctx({ intake: plain, purpose: "Perform an L sit", parqFlagged: false }), {}, "2026-10-05", libraryDefaultSelector);
+    expect(p.training!.skill).toBe("l_sit");
+  });
+
+  it("labels L-sit work on client sheets and lists the steps by week", async () => {
+    const p = await generatePlan(ctx({ parqFlagged: false }), { start_date: "2026-10-05", weeks: 12 }, "2026-10-05", libraryDefaultSelector);
+    const w = clientWeek({ clientName: "GES", draft: false, parameters: p.parameters, training: p.training! }, 1);
+    const names = w.days.flatMap((d) => d.strength?.exercises.map((e) => e.name) ?? []);
+    expect(names.some((n) => n.startsWith("L-sit: "))).toBe(true);
+    expect(names.some((n) => n.startsWith("L-sit prep: "))).toBe(true);
+    const sched = skillSchedule(p.training!);
+    expect(sched.map((x) => x.weeks)).toEqual(["1–4", "5–8", "9–12", null]);
+    expect(sched[0].name).toMatch(/Support Hold/);
   });
 });

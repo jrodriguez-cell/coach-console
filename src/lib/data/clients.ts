@@ -109,6 +109,7 @@ export async function generatorContext(db: SupabaseClient, clientId: string, set
     intake: IntakeAnswersSchema.parse(intake.answers),
     referOut: intake.refer_out_flags,
     parqFlagged: Boolean(intake.parq_flagged),
+    purpose: client.purpose_text,
     referralsHandled: refs.map((r) => ({ flag: r.flag, handled_note: r.handled_note })),
     clearance: clearance
       ? {

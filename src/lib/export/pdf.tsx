@@ -16,6 +16,7 @@ import { planCalendar } from "@/lib/calendar";
 import { blockOfWeek, holdSeconds, sessionsInBlock } from "@/lib/training";
 import { DELOAD } from "@/config/training-variables";
 import { SKILLS } from "@/config/skills";
+import { skillSchedule } from "@/lib/skill-schedule";
 import { DAY_NAMES, formatDate } from "@/lib/dates";
 import { describePrediction } from "@/lib/energy";
 import type { ExportInput } from "./xlsx";
@@ -291,7 +292,18 @@ export function PlanDocument({ x }: { x: ExportInput }) {
                 ];
               })}
             />
-            {skill && <T style={ps.note}>{`${skill.label} progression: ${skill.ladder.length} steps, one step up each 4-week block. ${skill.progressCue}`}</T>}
+            {skill && (
+              <View wrap={false}>
+                <H style={ps.section}>{`${skill.label} progression`}</H>
+                <T style={{ marginBottom: 2 }}>{`Every training day starts with the ${skill.label.toLowerCase()} step while fresh, plus ${skill.label.toLowerCase()} prep work (marked in the training tables).`}</T>
+                <Grid
+                  cols={["Step", "Exercise", "Weeks"]}
+                  widths={[12, 63, 25]}
+                  rows={skillSchedule(tr).map((st) => [`${st.step}${st.step === skill.ladder.length ? " (goal)" : ""}`, { main: st.name, bold: st.weeks != null }, st.weeks ?? "next plan / move up early"])}
+                />
+                <T style={ps.note}>{skill.progressCue}</T>
+              </View>
+            )}
           </>
         )}
 
@@ -332,10 +344,10 @@ export function PlanDocument({ x }: { x: ExportInput }) {
                         rows={slots.map((sl) => {
                           const rx0 = first.prescriptions[sl.id] ?? ws.map((w) => w.prescriptions[sl.id]).find(Boolean)!;
                           const r = ws.map((w) => w.prescriptions[sl.id]).filter(Boolean);
-                          const tag = sl.role === "skill" ? "Skill · " : sl.focus ? "Focus · " : "";
+                          const tag = sl.skill ? `${SKILLS[sl.skill].label}${sl.role === "skill" ? "" : " prep"} · ` : sl.focus ? "Focus · " : "";
                           const alt = [sl.regression ? `Easier: ${shortName(sl.regression.name)}` : "", sl.progression ? `Harder: ${shortName(sl.progression.name)}` : ""].filter(Boolean).join(" · ");
                           return [
-                            { main: `${tag}${sl.exercise.name}`, sub: alt || undefined, bold: sl.role === "skill" || sl.role === "main" },
+                            { main: `${tag}${sl.exercise.name}`, sub: alt || undefined, bold: Boolean(sl.skill) || sl.role === "main" },
                             ...ws.map((w) => (w.prescriptions[sl.id] ? rxText(w.prescriptions[sl.id], sl.unit) : "-")),
                             `${rx0.rest_sec}s`,
                             range(Math.min(...r.map((q) => q.rpe_min)), Math.max(...r.map((q) => q.rpe_max))),

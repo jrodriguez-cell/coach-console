@@ -42,7 +42,7 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
       { slug: "hollow_body_hold", pattern: "core_anti_extension", role: "core" },
       { slug: "bench_dip", pattern: "isolation_arms", muscle: "triceps", role: "accessory" },
     ],
-    keywords: /\bl[- ]?sits?\b/i,
+    keywords: /\bl[- ]?sit(s|ting)?\b/i,
     progressCue: "Move up a step when every set reaches the top of the hold time with straight arms and shoulders pushed down.",
   },
   pull_up: {
@@ -104,6 +104,12 @@ export const SKILLS: Record<SkillKey, SkillDef> = {
 };
 
 export const SKILL_KEYS = Object.keys(SKILLS) as SkillKey[];
+
+/** "L-sit: Tuck L-Sit Hold" for the skill step, "L-sit prep: Hollow Body Hold" for its supporting work. */
+export function skillTaggedName(name: string, slot: { skill?: SkillKey; role: string }): string {
+  if (!slot.skill) return name;
+  return `${SKILLS[slot.skill].label}${slot.role === "skill" ? "" : " prep"}: ${name}`;
+}
 
 /** The skill a client's own goal words name, if any (first match in this order). */
 export function detectSkill(goalText: string): SkillKey | null {

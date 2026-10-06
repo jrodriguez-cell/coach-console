@@ -19,7 +19,8 @@ import { goalLabel, PATTERN_LABEL } from "@/lib/labels";
 import { DAY_NAMES, dayOfWeek, formatDate, todayIn } from "@/lib/dates";
 import { describePrediction } from "@/lib/energy";
 import { blockOfWeek, holdSeconds, isUsable, sessionsInBlock, skillLadder } from "@/lib/training";
-import { SKILLS } from "@/config/skills";
+import { SKILLS, skillTaggedName } from "@/config/skills";
+import { skillSchedule } from "@/lib/skill-schedule";
 import { candidateFilter, programDefaults } from "@/lib/generator";
 import { FOCUS_LABELS } from "@/config/program-styles";
 import type { ProgramDefaults } from "@/components/generate-form";
@@ -92,7 +93,7 @@ export default async function PlanPage({ params, searchParams }: { params: { id:
           )}
 
           <GuardrailPanel plan={plan} overrides={overrides} editable={editable} />
-          <Overview plan={plan} editable={editable} clientId={client.id} purpose={client.purpose_text} intakeGoal={intake?.answers.primary_goal} program={intake ? programDefaults(plan.goal_category, intake.answers, plan.parameters) : undefined} />
+          <Overview plan={plan} editable={editable} clientId={client.id} purpose={client.purpose_text} intakeGoal={intake?.answers.primary_goal} program={intake ? programDefaults(plan.goal_category, intake.answers, plan.parameters, client.purpose_text) : undefined} />
         </>
       )}
       {tab === "training" && <Training plan={plan} editable={editable} week={Number(searchParams.week) || currentPlanWeek(plan.parameters, todayIn())} fileBase={client.name.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "")} base={base} candidates={await swapCandidates(db, plan, intake?.answers)} results={await weekResults(db, plan, Math.min(Math.max(Number(searchParams.week) || currentPlanWeek(plan.parameters, todayIn()), 1), plan.parameters.weeks))} />}
@@ -145,10 +146,10 @@ async function weekResults(db: ReturnType<typeof createClient>, plan: PlanRow, w
       const best = last ? [...last.sets].sort((a, b) => (Number(b.weight_lb ?? 0) - Number(a.weight_lb ?? 0)) || ((b.reps ?? 0) - (a.reps ?? 0)))[0] : null;
       return {
         id: sl.exercise.id,
-        name: sl.exercise.name,
+        name: skillTaggedName(sl.exercise.name, sl),
         unit: sl.unit,
         sets: rx.sets,
-        target: `${rx.sets} × ${reps} · RPE ${rx.rpe_min}–${rx.rpe_max}`,
+        target: `${rx.sets} × ${reps} · RPE ${rx.rpe_min === rx.rpe_max ? rx.rpe_min : `${rx.rpe_min}–${rx.rpe_max}`}`,
         last: best ? `${fmtSet(best, sl.unit)} (${formatDate(last!.date).replace(/, \d{4}$/, "")})` : null,
         lastWeight: best?.weight_lb != null ? Number(best.weight_lb) : null,
         logged: mine.filter((x) => x.exercise_id === sl.exercise.id).map((x) => ({ set_number: x.set_number, weight_lb: x.weight_lb != null ? Number(x.weight_lb) : null, reps: x.reps })),
@@ -239,6 +240,50 @@ function Overview({ plan, editable, clientId, purpose, intakeGoal, program }: { 
   );
 }
 
+/** The skill goal, called out: ladder with the weeks each step is scheduled, and this week's skill work. */
+function SkillCard({ t, week }: { t: NonNullable<PlanRow["training"]>; week: NonNullable<PlanRow["training"]>["weeks"][number] }) {
+  if (!t.skill) return null;
+  const def = SKILLS[t.skill];
+  const ladder = skillSchedule(t);
+  const names = ladder.map((x) => x.name);
+  const current = sessionsInBlock(t.sessions, blockOfWeek(week.week)).flatMap((ss) => ss.slots).find((sl) => sl.role === "skill");
+  const curIdx = current ? names.indexOf(current.exercise.name) : -1;
+  const sessions = sessionsInBlock(t.sessions, blockOfWeek(week.week));
+  const rx = (id: string, unit: "reps" | "seconds") => {
+    const p = week.prescriptions[id];
+    return p ? `${p.sets} × ${unit === "seconds" ? `${holdSeconds(p)[0]}–${holdSeconds(p)[1]} s` : `${p.reps_min}–${p.reps_max}`}` : null;
+  };
+  return (
+    <Card title={`${def.label} progression`} actions={<span className="caps">Skill goal</span>}>
+      <ol className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {names.map((n, i) => (
+          <li key={n} className={clsx("border p-2.5", i === curIdx ? "border-fg bg-fg text-canvas" : i < curIdx ? "border-fg/20 text-muted" : "border-fg/30")}>
+            <div className={clsx("caps", i === curIdx && "text-canvas/80")}>{i < curIdx ? "✓ " : ""}Step {i + 1}{i === names.length - 1 ? " · goal" : ""}</div>
+            <div className="mt-1 text-sm font-semibold leading-snug">{n}</div>
+            <div className={clsx("mt-0.5 text-xs", i === curIdx ? "text-canvas/80" : "text-muted")}>{ladder[i].weeks ? `Weeks ${ladder[i].weeks}` : i < curIdx ? "Done before this plan" : "Next plan, or move up early"}</div>
+          </li>
+        ))}
+      </ol>
+      <p className="muted mt-3">{def.progressCue} To move up early, swap the step in the session below.</p>
+      <h3 className="mt-4">{def.label} work in week {week.week}</h3>
+      <div className="mt-1 grid grid-cols-1 gap-x-8 sm:grid-cols-2 lg:grid-cols-3">
+        {sessions.map((ss) => {
+          const items = ss.slots.filter((sl) => sl.skill && week.prescriptions[sl.id]);
+          if (!items.length) return null;
+          return (
+            <div key={ss.key} className="border-t border-fg/10 py-2">
+              <div className="caps mb-1">{ss.name}</div>
+              <ul className="space-y-0.5 text-sm">
+                {items.map((sl) => <li key={sl.id}><span className={sl.role === "skill" ? "font-semibold" : ""}>{sl.exercise.name}</span> <span className="text-muted">· {rx(sl.id, sl.unit)}{sl.role === "skill" ? " · first, while fresh" : ""}</span></li>)}
+              </ul>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
 function Training({ plan, editable, week, base, candidates, fileBase, results }: { plan: PlanRow; editable: boolean; week: number; base: string; candidates: Record<string, { id: string; name: string }[]>; fileBase: string; results: WeekResult[] | null }) {
   const t = plan.training;
   if (!t) return <Banner tone="red" title="Training not generated">{plan.nutrition?.training_blocked_reason ?? "Refer out before generating training."}</Banner>;
@@ -260,6 +305,7 @@ function Training({ plan, editable, week, base, candidates, fileBase, results }:
       <p className="text-sm">
         <b>Week {wk.week}</b> · {PHASES[wk.phase].label}{wk.deload ? " · DELOAD (≈40% fewer sets, stop at RPE 5–6)" : ""}{wk.retest ? " · retest at the last session" : ""}{t.block_rotations ? ` · block ${blockOfWeek(wk.week) + 1} exercises` : ""} · {t.split_label}, lifting on {t.lifting_days.map((d) => DAY_NAMES[d]).join(", ")}
       </p>
+      <SkillCard t={t} week={wk} />
       {results && results.length > 0 && (() => {
         const today = todayIn();
         const openIdx = results.findIndex((r) => r.date <= today && !r.logged);
@@ -289,7 +335,10 @@ function Training({ plan, editable, week, base, candidates, fileBase, results }:
                   return (
                     <tr key={sl.id} className={clsx(!rx && "opacity-50")}>
                       <td data-primary>
-                        <div className="font-medium">{sl.exercise.name} <span className="text-xs font-normal text-muted">{PATTERN_LABEL[sl.pattern]} · {sl.role}{sl.focus ? ` · ${FOCUS_LABELS[sl.focus].toLowerCase()} focus` : ""}</span></div>
+                        <div className="font-medium">
+                          {sl.skill && <span className={clsx("mr-1.5 inline-block px-1.5 py-0.5 align-middle text-[10px] font-semibold uppercase tracking-[0.1em]", sl.role === "skill" ? "bg-fg text-canvas" : "border border-fg/50")}>{SKILLS[sl.skill].label}{sl.role === "skill" ? "" : " prep"}</span>}
+                          {sl.exercise.name} <span className="text-xs font-normal text-muted">{sl.role === "skill" ? "skill step" : `${PATTERN_LABEL[sl.pattern]} · ${sl.role}`}{sl.focus ? ` · ${FOCUS_LABELS[sl.focus].toLowerCase()} focus` : ""}</span>
+                        </div>
                         {sl.regression && <div className="text-xs text-muted">↓ Regression: {sl.regression.name}</div>}
                         {sl.progression && <div className="text-xs text-muted">↑ Progression: {sl.progression.name}</div>}
                         {sl.note && <div className="text-xs italic text-muted">{sl.note}</div>}
@@ -329,7 +378,7 @@ function Training({ plan, editable, week, base, candidates, fileBase, results }:
                       </td>
                       <td data-label="Sets × reps">{rx ? `${rx.sets} × ${reps}` : "—"}</td>
                       <td data-label="Rest">{rx ? `${rx.rest_sec}s` : "—"}</td>
-                      <td data-label="RPE">{rx ? `${rx.rpe_min}–${rx.rpe_max}` : "—"}</td>
+                      <td data-label="RPE">{rx ? (rx.rpe_min === rx.rpe_max ? rx.rpe_min : `${rx.rpe_min}–${rx.rpe_max}`) : "—"}</td>
                     </tr>
                   );
                 })}

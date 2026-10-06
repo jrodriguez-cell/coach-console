@@ -491,7 +491,9 @@ export function defaultSelection(sk: Skeleton): Record<string, string> {
   for (const s of sk.sessions) {
     const inSession = new Set<string>();
     for (const slot of s.slots) {
-      const pick = slot.candidates.find((c) => !used.has(c.id) && !inSession.has(c.id)) ?? slot.candidates.find((c) => !inSession.has(c.id)) ?? slot.candidates[0];
+      // A named exercise (skill prep work) is kept even if another session uses it.
+      const named = slot.slug ? slot.candidates.find((c) => c.slug === slot.slug && !inSession.has(c.id)) : undefined;
+      const pick = named ?? slot.candidates.find((c) => !used.has(c.id) && !inSession.has(c.id)) ?? slot.candidates.find((c) => !inSession.has(c.id)) ?? slot.candidates[0];
       out[slot.id] = pick.id;
       used.add(pick.id);
       inSession.add(pick.id);

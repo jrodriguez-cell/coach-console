@@ -9,6 +9,7 @@ import { PHASES } from "@/config/training-variables";
 import { planCalendar } from "./calendar";
 import { addDays, DAY_NAMES, formatDate, planWeek, weekStart } from "./dates";
 import { holdSeconds, sessionsForWeek } from "./training";
+import { skillTaggedName } from "@/config/skills";
 import type { PlanParameters, TrainingPlan } from "./plan-types";
 
 export interface ClientWeekExercise {
@@ -77,7 +78,7 @@ export function clientWeek(
       const reps = sl.unit === "seconds" ? `${range(...holdSeconds(rx))} s` : range(rx.reps_min, rx.reps_max);
       exercises.push({
         exerciseId: sl.exercise.id,
-        name: sl.exercise.name,
+        name: skillTaggedName(sl.exercise.name, sl),
         sets: rx.sets,
         target: sl.unit === "seconds" ? reps : `${reps} reps`,
         unit: sl.unit,

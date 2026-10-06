@@ -196,7 +196,7 @@ export default async function ClientPage({ params, searchParams }: { params: { i
             {intake && (
               <details className="mt-3" open={!plan}>
                 <summary className="cursor-pointer text-sm font-medium">{plan ? "Generate a new draft (keeps versions)" : "Generate a draft plan"}</summary>
-                <div className="mt-2"><GenerateForm clientId={client.id} defaults={{ start_date: client.start_date ?? today }} program={programDefaults(client.goal_category, intake.answers, plan?.parameters)} /></div>
+                <div className="mt-2"><GenerateForm clientId={client.id} defaults={{ start_date: client.start_date ?? today }} program={programDefaults(client.goal_category, intake.answers, plan?.parameters, client.purpose_text)} /></div>
               </details>
             )}
             {b.plans.length > 1 && (

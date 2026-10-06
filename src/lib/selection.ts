@@ -26,7 +26,7 @@ export interface SelectionRequest {
   sessions: {
     key: string;
     name: string;
-    slots: { slot_id: string; pattern: string; role: string; focus?: string; candidates: { code: string; name: string }[] }[];
+    slots: { slot_id: string; pattern: string; role: string; focus?: string; skill_prep?: boolean; candidates: { code: string; name: string }[] }[];
   }[];
 }
 
@@ -72,6 +72,7 @@ export function buildRequest(sk: Skeleton, client: SelectionRequest["client"]): 
           pattern: sl.pattern.replace(/_/g, " "),
           role: sl.role,
           ...(sl.focus ? { focus: sl.focus } : {}),
+          ...(sl.skill && sl.role !== "skill" ? { skill_prep: true } : {}),
           candidates: sl.candidates.slice(0, 12).map((c) => ({ code: codeFor(c.id), name: c.name })),
         })),
       })),

@@ -34,6 +34,8 @@ export interface GeneratorContext {
   referOut: Partial<ReferOutFlags> | null;
   /** PAR-Q answered yes to anything: physician clearance needed before hard training */
   parqFlagged?: boolean;
+  /** the client's purpose in their own words (client record) */
+  purpose?: string | null;
   referralsHandled: ReferralHandling[];
   clearance: ClearanceContext | null;
   exercises: LibExercise[];
@@ -49,14 +51,14 @@ export function intakeText(a: IntakeAnswers): string {
   return [a.primary_goal, a.success_90_days, a.sport_activity, a.exercise_likes, a.timeline_event].filter(Boolean).join(" \n ");
 }
 
-/** The client's goal statements only (not likes), used to spot a skill goal. */
-export function goalText(a: IntakeAnswers): string {
-  return [a.primary_goal, a.success_90_days, a.timeline_event].filter(Boolean).join(" \n ");
+/** The client's goal statements (intake goals, sport, and their purpose), used to spot a skill goal. Likes are left out. */
+export function goalText(a: IntakeAnswers, purpose?: string | null): string {
+  return [purpose, a.primary_goal, a.success_90_days, a.timeline_event, a.sport_activity].filter(Boolean).join(" \n ");
 }
 
 /** Skill goal for these parameters: the trainer's choice, else detected from the client's goals. */
-export function skillFor(a: IntakeAnswers, p: Pick<PlanParameters, "skill">): { skill: SkillKey | null; reason: string } {
-  const skill = p.skill === "none" ? null : p.skill ?? detectSkill(goalText(a));
+export function skillFor(a: IntakeAnswers, p: Pick<PlanParameters, "skill">, purpose?: string | null): { skill: SkillKey | null; reason: string } {
+  const skill = p.skill === "none" ? null : p.skill ?? detectSkill(goalText(a, purpose));
   if (!skill) return { skill: null, reason: "" };
   const def = SKILLS[skill];
   return {
@@ -321,7 +323,7 @@ export async function generatePlan(ctx: GeneratorContext, overrides: Partial<Pla
   } else {
     const filter = candidateFilter(a);
     const program = programFor(ctx.goal, a, params);
-    const skill = skillFor(a, params);
+    const skill = skillFor(a, params, ctx.purpose);
     const awaitingClearance = clearanceAwaited(ctx);
     const sk = buildSkeleton(
       {
@@ -430,12 +432,12 @@ export function diffDerived(before: { energy: EnergyOutputs | null; nutrition: N
 export { recomputeWeekMinutes };
 
 /** What the generate form shows for program style and focus. */
-export function programDefaults(goal: GoalCategory, answers: unknown, p?: Partial<PlanParameters>): { split: PlanParameters["split"]; auto: { split: ProgramChoice["split"]; reason: string }; focus: Focus[]; rotate: boolean; session_length_min: number; skill: PlanParameters["skill"]; autoSkill: SkillKey | null } | undefined {
+export function programDefaults(goal: GoalCategory, answers: unknown, p?: Partial<PlanParameters>, purpose?: string | null): { split: PlanParameters["split"]; auto: { split: ProgramChoice["split"]; reason: string }; focus: Focus[]; rotate: boolean; session_length_min: number; skill: PlanParameters["skill"]; autoSkill: SkillKey | null } | undefined {
   const parsed = IntakeAnswersSchema.safeParse(answers);
   if (!parsed.success) return undefined;
   const a = parsed.data;
   const days = p?.days_per_week ?? a.training_days_per_week;
   const length = p?.session_length_min ?? a.session_length_min;
   const auto = programFor(goal, a, { days_per_week: days, session_length_min: length, split: null, focus: p?.focus ?? null });
-  return { split: p?.split ?? null, auto: { split: auto.split, reason: auto.reasons[0] ?? "" }, focus: auto.focus, rotate: p?.rotate_accessories ?? true, session_length_min: length, skill: p?.skill ?? null, autoSkill: detectSkill(goalText(a)) };
+  return { split: p?.split ?? null, auto: { split: auto.split, reason: auto.reasons[0] ?? "" }, focus: auto.focus, rotate: p?.rotate_accessories ?? true, session_length_min: length, skill: p?.skill ?? null, autoSkill: detectSkill(goalText(a, purpose)) };
 }
