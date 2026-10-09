@@ -11,10 +11,12 @@ import { approvalIssues } from "@/lib/data/approval";
 import { todayIn, weekStart } from "@/lib/dates";
 import { checkpointDate, planEndDate, retestDate } from "@/lib/tasks";
 import { isUsable, recomputeWeekMinutes, resolveVariation, unitFor } from "@/lib/training";
-import { addExercise, applySkill, canSwap, removeExercise, swapExercise, type EditContext } from "@/lib/program-edit";
+import { addExercise, applySkill, canSwap, refitProgram, removeExercise, swapExercise, type EditContext } from "@/lib/program-edit";
+import { IntakeAnswersSchema } from "@/lib/intake";
+import { GOAL_CATEGORIES, type GoalCategory } from "@/config/goal-templates";
 import { FOCUS_AREAS, SPLITS, type Focus, type Split } from "@/config/program-styles";
-import { SKILL_KEYS, SKILLS, type SkillKey } from "@/config/skills";
-import { candidateFilter } from "@/lib/generator";
+import { detectSkill, SKILL_KEYS, SKILLS, type SkillKey } from "@/config/skills";
+import { candidateFilter, goalText } from "@/lib/generator";
 import { PRESET_BENCHMARKS } from "@/config/goal-templates";
 import { METS, NEAT_FACTORS, type Activity, type NeatLevel } from "@/config/energy";
 import type { LibExercise, PlanParameters, Prescription, TrainingPlan } from "@/lib/plan-types";
@@ -412,4 +414,87 @@ export async function setSkillGoalAction(planId: string, skill: string): Promise
   if (key === undefined) return { error: "Unknown skill." };
   const r = await editProgram(planId, (t, ctx) => applySkill(t, key, ctx));
   return { ...r, message: key ? `${SKILLS[key].label} work added to every session` : "Skill work removed" };
+}
+
+// ---------------------------------------------------------------------------
+// Client details that drive the program, edited from the plan
+// ---------------------------------------------------------------------------
+
+export type DetailsState = { error: string | null; message?: string; changes?: string[]; rebuild?: string[]; savedAt?: number };
+
+/**
+ * Save the client's training details (a new intake version; PAR-Q and
+ * referrals carry over), then either re-fit this program in place
+ * ("update": no AI, keeps the plan live) or build a new draft ("rebuild").
+ */
+export async function updateClientDetailsAction(planId: string, mode: "update" | "rebuild", _prev: DetailsState, form: FormData): Promise<DetailsState> {
+  const db = createClient();
+  const plan = await getPlan(db, planId);
+  if (!plan) return { error: "Plan not found." };
+  const { data: clientRow } = await db.from("clients").select("id, goal_category, purpose_text").eq("id", plan.client_id).single();
+  const intake = await latestIntake(db, plan.client_id);
+  if (!intake || !clientRow) return { error: "Complete the intake first." };
+  const before = IntakeAnswersSchema.parse(intake.answers);
+  const list = (k: string) => str(form, k).split(",").map((x) => x.trim()).filter(Boolean);
+  const raw = {
+    ...before,
+    primary_goal: str(form, "primary_goal"),
+    success_90_days: str(form, "success_90_days"),
+    sport_activity: str(form, "sport_activity"),
+    weight_lb: str(form, "weight_lb") || before.weight_lb,
+    goal_weight_lb: str(form, "goal_weight_lb") || null,
+    training_days_per_week: str(form, "training_days_per_week"),
+    session_length_min: str(form, "session_length_min"),
+    preferred_days: form.getAll("preferred_days").map(Number),
+    equipment: str(form, "equipment"),
+    training_history: str(form, "training_history"),
+    injuries_text: str(form, "injuries_text"),
+    injury_areas: form.getAll("injury_areas").map(String),
+    exercise_likes: str(form, "exercise_likes"),
+    exercise_dislikes: list("exercise_dislikes"),
+    cardio_preferences: str(form, "cardio_preferences"),
+  };
+  const parsed = IntakeAnswersSchema.safeParse(raw);
+  if (!parsed.success) return { error: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ") };
+  const a = parsed.data;
+  const purpose = str(form, "purpose_text") || null;
+  const goal = (GOAL_CATEGORIES as string[]).includes(str(form, "goal_category")) ? (str(form, "goal_category") as GoalCategory) : clientRow.goal_category;
+
+  const { error: e1 } = await db.from("intakes").insert({ client_id: plan.client_id, answers: a, parq_answers: intake.parq_answers, parq_flagged: intake.parq_flagged, refer_out_flags: intake.refer_out_flags });
+  if (e1) return { error: e1.message };
+  await db.from("clients").update({ purpose_text: purpose, goal_category: goal }).eq("id", plan.client_id);
+
+  // Changes the current program can't absorb in place.
+  const rebuild: string[] = [];
+  if (goal !== plan.goal_category) rebuild.push("goal type");
+  if (a.training_days_per_week !== plan.parameters.days_per_week) rebuild.push("days per week");
+  if (a.session_length_min !== plan.parameters.session_length_min) rebuild.push("session length");
+  if (a.training_history !== before.training_history) rebuild.push("training experience");
+  if (JSON.stringify([...a.preferred_days].sort()) !== JSON.stringify([...before.preferred_days].sort())) rebuild.push("training days");
+
+  revalidatePath(`/clients/${plan.client_id}`);
+  if (mode === "rebuild") {
+    const fd = new FormData();
+    fd.set("from_plan_id", plan.id);
+    fd.set("days_per_week", String(a.training_days_per_week));
+    fd.set("session_length_min", String(a.session_length_min));
+    return generatePlanAction(plan.client_id, { error: null }, fd) as Promise<DetailsState>; // redirects to the new draft
+  }
+
+  if (!plan.training) return { error: null, savedAt: Date.now(), message: "Details saved.", rebuild };
+  const skill = plan.parameters.skill === "none" ? null : detectSkill(goalText(a, purpose));
+  let changes: string[] = [];
+  const r = await editProgram(planId, (t, ctx) => {
+    const res = refitProgram(t, ctx, skill);
+    changes = res.changes;
+    return res.training;
+  });
+  if (r.error) return { error: r.error };
+  return {
+    error: null,
+    savedAt: Date.now(),
+    message: changes.length ? `Details saved and the program updated (${changes.length} change${changes.length === 1 ? "" : "s"}).` : "Details saved. The program already fits them.",
+    changes,
+    rebuild,
+  };
 }

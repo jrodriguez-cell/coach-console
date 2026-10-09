@@ -35,6 +35,7 @@ import { ExportFileButton } from "@/components/export-file-button";
 import { SessionResults, type ResultExercise } from "@/components/session-results";
 import { AddExercise, ExerciseActions } from "@/components/swap-exercise";
 import { SkillGoalControl } from "@/components/skill-goal-control";
+import { ClientDetailsCard } from "@/components/client-details-card";
 
 export const dynamic = "force-dynamic";
 
@@ -94,6 +95,7 @@ export default async function PlanPage({ params, searchParams }: { params: { id:
             </Banner>
           )}
 
+          {intake && plan.status !== "archived" && <ClientDetailsCard planId={plan.id} answers={IntakeAnswersSchema.parse(intake.answers)} purpose={client.purpose_text} goal={client.goal_category} />}
           <GuardrailPanel plan={plan} overrides={overrides} editable={editable} />
           <Overview plan={plan} editable={editable} clientId={client.id} purpose={client.purpose_text} intakeGoal={intake?.answers.primary_goal} program={intake ? programDefaults(plan.goal_category, intake.answers, plan.parameters, client.purpose_text) : undefined} />
         </>
@@ -253,7 +255,7 @@ function Overview({ plan, editable, clientId, purpose, intakeGoal, program }: { 
             <tr><td>Checkpoints</td><td>weeks {p.checkpoint_weeks.join(", ") || "—"}</td></tr>
           </tbody>
         </table></div>
-        {editable && (
+        {plan.status !== "archived" && (
           <details className="mt-3">
             <summary className="cursor-pointer text-sm font-medium">Change program style, focus or structure (regenerates a new draft)</summary>
             <div className="mt-2"><GenerateForm clientId={clientId} fromPlanId={plan.id} defaults={{ start_date: p.start_date, weeks: p.weeks, days_per_week: p.days_per_week }} program={program} label="Regenerate draft" /></div>

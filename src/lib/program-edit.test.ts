@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { generatePlan, libraryDefaultSelector } from "./generator";
 import { EX_LIB, FOOD_LIB, WL_INTAKE } from "@/test/fixtures";
-import { addExercise, applySkill, canSwap, removeExercise, swapExercise, type EditContext } from "./program-edit";
+import { addExercise, applySkill, canSwap, refitProgram, removeExercise, swapExercise, type EditContext } from "./program-edit";
 import { sessionsForWeek } from "./training";
 
 const intake = { ...WL_INTAKE, primary_goal: "Feel better", training_days_per_week: 3, training_history: "beginner" as const, activity_level: "on_feet_part" as const, equipment: "home_basic" as const };
@@ -58,5 +58,23 @@ describe("program edits", () => {
     const id = week(added, 1)[0].slots.find((x) => x.exercise.id === ex.id)!.id;
     const removed = removeExercise(added, id, "plan");
     for (const w of [1, 5, 9]) expect(week(removed, w)[0].slots.some((x) => x.exercise.id === ex.id)).toBe(false);
+  });
+});
+
+describe("refit to new client details", () => {
+  it("swaps out exercises the client can no longer do and adds a skill named in their goals", async () => {
+    const t = await plan();
+    const bw: EditContext = { lib: EX_LIB, filter: { equipment: "bodyweight", injuryAreas: ["knee"], dislikes: [] }, level: "beginner" };
+    const { training, changes } = refitProgram(t, bw, "l_sit");
+    expect(changes.length).toBeGreaterThan(1);
+    expect(changes.some((c) => /L-sit/.test(c))).toBe(true);
+    const byId = new Map(EX_LIB.map((e) => [e.id, e]));
+    for (const s of training.sessions) for (const sl of s.slots) {
+      const ex = byId.get(sl.exercise.id)!;
+      const ok = ex.equipment.every((q) => ["bodyweight", "box"].includes(q)) && !ex.contraindications.includes("knee");
+      if (!ok) expect(sl.exercise.name, `${s.name}: still needs equipment`).toBe("(no usable alternative)");
+    }
+    // nothing to change → no changes
+    expect(refitProgram(training, bw, "l_sit").changes).toEqual([]);
   });
 });

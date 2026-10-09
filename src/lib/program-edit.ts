@@ -160,3 +160,41 @@ export function applySkill(t: TrainingPlan, skill: SkillKey | null, ctx: EditCon
   out = finish(out);
   return out;
 }
+
+/**
+ * Re-fit the current program to updated client details without
+ * regenerating: any exercise the client can no longer do (new equipment,
+ * injury or dislike) is swapped for the best one that fits, and a skill
+ * goal named in the new goals is added. Returns what changed.
+ */
+export function refitProgram(t: TrainingPlan, ctx: EditContext, skill: SkillKey | null): { training: TrainingPlan; changes: string[] } {
+  let out: TrainingPlan = structuredClone(t);
+  const changes: string[] = [];
+  const byId = new Map(ctx.lib.map((e) => [e.id, e]));
+  const drop = new Set<string>();
+  for (const s of out.sessions) {
+    s.slots = s.slots.map((sl) => {
+      const ex = byId.get(sl.exercise.id);
+      if (!ex || isUsable(ex, ctx.filter)) return sl;
+      const inSession = new Set(s.slots.map((x) => x.exercise.id));
+      const pick =
+        sl.role === "skill" && sl.skill
+          ? skillLadder(sl.skill, ctx.lib, ctx.filter)[0]
+          : candidatesForSlot({ ...sl, slug: undefined }, ctx.lib, ctx.filter, ctx.level).find((c) => !inSession.has(c.id));
+      if (!pick) {
+        changes.push(`${s.name}: removed ${sl.exercise.name} (nothing similar fits)`);
+        drop.add(sl.id);
+        return sl;
+      }
+      changes.push(`${s.name}: ${sl.exercise.name} → ${pick.name}`);
+      return { ...choice(pick, sl, ctx), id: sl.id };
+    });
+    s.slots = s.slots.filter((x) => !drop.has(x.id));
+  }
+  for (const w of out.weeks) for (const id of Array.from(drop)) delete w.prescriptions[id];
+  if (skill && out.skill !== skill) {
+    out = applySkill(out, skill, ctx);
+    changes.push(`Added ${SKILLS[skill].label} work to every session`);
+  }
+  return { training: finish(out), changes: Array.from(new Set(changes)) };
+}

@@ -134,7 +134,7 @@ export function SessionResults({ clientId, planId, date, sessionKey, exercises, 
 
   function swap(e: ResultExercise, toId: string) {
     start(async () => {
-      await save(latest.current, true);
+      if (editable) await save(latest.current, true);
       const r = await swapExerciseAction(planId, e.slotId, toId);
       if (r.error) return toast(r.error, "info");
       toast(`Swapped to ${r.name}`);
@@ -168,7 +168,7 @@ export function SessionResults({ clientId, planId, date, sessionKey, exercises, 
                 <div className="no-scrollbar -mx-3 flex gap-2 overflow-x-auto px-3 sm:mx-0 sm:flex-wrap sm:px-0">
                   {editable && <Chip onClick={() => setRows((x) => ({ ...x, [e.id]: [...x[e.id], { weight: x[e.id].at(-1)?.weight ?? "", reps: "", done: false }] }))}>+ Add set</Chip>}
                   <Chip href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${e.rawName} exercise how to`)}`}>▶ How to</Chip>
-                  {editable && e.alternatives.length > 0 && <Chip active={p === "swap"} onClick={() => togglePanel("swap")}>⇄ Swap</Chip>}
+                  {e.alternatives.length > 0 && <Chip active={p === "swap"} onClick={() => togglePanel("swap")}>⇄ Swap</Chip>}
                   <Chip active={p === "history"} onClick={() => togglePanel("history")}>History</Chip>
                   <Chip active={p === "notes"} onClick={() => togglePanel("notes")}>Notes{exNotes[e.id] ? " •" : ""}</Chip>
                   {editable && rs.length > 1 && <Chip onClick={() => { const r = { ...rows, [e.id]: rows[e.id].slice(0, -1) }; setRows(r); start(() => save(r, true)); }}>Delete set</Chip>}
