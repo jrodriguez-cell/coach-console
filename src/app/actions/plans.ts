@@ -11,12 +11,13 @@ import { approvalIssues } from "@/lib/data/approval";
 import { todayIn, weekStart } from "@/lib/dates";
 import { checkpointDate, planEndDate, retestDate } from "@/lib/tasks";
 import { isUsable, recomputeWeekMinutes, resolveVariation, unitFor } from "@/lib/training";
+import { addExercise, applySkill, canSwap, removeExercise, swapExercise, type EditContext } from "@/lib/program-edit";
 import { FOCUS_AREAS, SPLITS, type Focus, type Split } from "@/config/program-styles";
 import { SKILL_KEYS, SKILLS, type SkillKey } from "@/config/skills";
 import { candidateFilter } from "@/lib/generator";
 import { PRESET_BENCHMARKS } from "@/config/goal-templates";
 import { METS, NEAT_FACTORS, type Activity, type NeatLevel } from "@/config/energy";
-import type { PlanParameters, Prescription, TrainingPlan } from "@/lib/plan-types";
+import type { LibExercise, PlanParameters, Prescription, TrainingPlan } from "@/lib/plan-types";
 import type { PlanRow } from "@/lib/data/types";
 import type { Phase } from "@/config/training-variables";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -344,43 +345,71 @@ export async function revisePlanAction(planId: string) {
   redirect(`/clients/${plan.client_id}/plan/${data.id}`);
 }
 
-/**
- * Swap one exercise in a plan, on drafts and approved plans alike (one tap
- * from the workout logger). Changes that slot for its 4-week block; logged
- * sets keep their original exercise in history.
- */
-export async function swapExerciseAction(planId: string, slotId: string, exerciseId: string): Promise<{ error: string | null; name?: string }> {
+// ---------------------------------------------------------------------------
+// Program edits on drafts and approved plans (swap, add, remove, skill goal)
+// ---------------------------------------------------------------------------
+
+type EditResult = { error: string | null; message?: string; name?: string };
+
+async function editProgram(planId: string, edit: (t: TrainingPlan, ctx: EditContext, lib: { find: (id: string) => LibExercise | undefined }) => TrainingPlan | string): Promise<EditResult> {
   const db = createClient();
   const plan = await getPlan(db, planId);
   if (!plan?.training) return { error: "Plan not found." };
   if (plan.status === "archived") return { error: "This version is archived; open the current plan." };
   const settings = await getSettings(db);
-  const ctx = await generatorContext(db, plan.client_id, settings, plan.goal_category);
-  const training: TrainingPlan = structuredClone(plan.training);
-  const slot = training.sessions.flatMap((s) => s.slots).find((x) => x.id === slotId);
-  const ex = ctx.exercises.find((e) => e.id === exerciseId);
-  if (!slot || !ex) return { error: "Unknown exercise." };
-  const filter = candidateFilter(ctx.intake);
-  const onLadder = slot.role === "skill" && slot.skill && ex.slug ? SKILLS[slot.skill].ladder.includes(ex.slug) : false;
-  if (ex.pattern !== slot.pattern && !onLadder) return { error: slot.role === "skill" ? "Pick a step from this skill's progression." : "Pick an exercise with the same movement pattern." };
-  if (!isUsable(ex, filter)) return { error: "That exercise needs unavailable equipment, is contraindicated, or is on the client's dislike list." };
-  const main = slot.role === "main" || slot.role === "secondary";
-  Object.assign(slot, {
-    exercise: { id: ex.id, name: ex.name },
-    regression: resolveVariation(ex, "regression", ctx.exercises, filter, main),
-    progression: resolveVariation(ex, "progression", ctx.exercises, filter, main),
-    unit: unitFor(ex.name),
-    note: "",
-  });
-  training.weeks = training.weeks.map((w) => recomputeWeekMinutes(training.sessions, w));
+  const gctx = await generatorContext(db, plan.client_id, settings, plan.goal_category);
+  const ctx: EditContext = { lib: gctx.exercises, filter: candidateFilter(gctx.intake), level: gctx.intake.training_history };
+  const result = edit(plan.training, ctx, { find: (id) => gctx.exercises.find((e) => e.id === id) });
+  if (typeof result === "string") return { error: result };
   if (plan.status === "draft") {
-    const r = await recomputeAndSave(db, plan, plan.parameters, training);
+    const r = await recomputeAndSave(db, plan, plan.parameters, result);
     if (r.error) return { error: r.error };
   } else {
-    const { error } = await db.from("plans").update({ training }).eq("id", planId);
+    const { error } = await db.from("plans").update({ training: result }).eq("id", planId);
     if (error) return { error: error.message };
   }
   revalidatePath(`/clients/${plan.client_id}/plan/${planId}`);
   revalidatePath(`/clients/${plan.client_id}`);
-  return { error: null, name: ex.name };
+  return { error: null };
+}
+
+/** Swap an exercise: in its session for this 4-week block, or for the whole plan. */
+export async function swapExerciseAction(planId: string, slotId: string, exerciseId: string, scope: "block" | "plan" = "block"): Promise<EditResult> {
+  let name = "";
+  const r = await editProgram(planId, (t, ctx, lib) => {
+    const ex = lib.find(exerciseId);
+    const slot = t.sessions.flatMap((s) => s.slots).find((x) => x.id === slotId);
+    if (!ex || !slot) return "Unknown exercise.";
+    const bad = canSwap(slot, ex, ctx);
+    if (bad) return bad;
+    name = ex.name;
+    return swapExercise(t, slotId, ex, scope, ctx);
+  });
+  return { ...r, name };
+}
+
+/** Add an exercise to a session (this block, or this and later blocks). */
+export async function addExerciseAction(planId: string, sessionKey: string, exerciseId: string, scope: "block" | "plan" = "plan"): Promise<EditResult> {
+  let name = "";
+  const r = await editProgram(planId, (t, ctx, lib) => {
+    const ex = lib.find(exerciseId);
+    if (!ex) return "Unknown exercise.";
+    if (!isUsable(ex, ctx.filter)) return "That exercise needs unavailable equipment, is contraindicated, or is on the client's dislike list.";
+    name = ex.name;
+    return addExercise(t, sessionKey, ex, scope, ctx);
+  });
+  return { ...r, name };
+}
+
+/** Remove an exercise from a session (this block, or this and later blocks). */
+export async function removeExerciseAction(planId: string, slotId: string, scope: "block" | "plan" = "plan"): Promise<EditResult> {
+  return editProgram(planId, (t) => removeExercise(t, slotId, scope));
+}
+
+/** Add, change or remove the skill goal's work in this program without regenerating. */
+export async function setSkillGoalAction(planId: string, skill: string): Promise<EditResult> {
+  const key = skill === "none" ? null : (SKILL_KEYS as string[]).includes(skill) ? (skill as SkillKey) : undefined;
+  if (key === undefined) return { error: "Unknown skill." };
+  const r = await editProgram(planId, (t, ctx) => applySkill(t, key, ctx));
+  return { ...r, message: key ? `${SKILLS[key].label} work added to every session` : "Skill work removed" };
 }

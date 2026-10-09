@@ -19,9 +19,9 @@ import { goalLabel, PATTERN_LABEL } from "@/lib/labels";
 import { DAY_NAMES, dayOfWeek, formatDate, todayIn } from "@/lib/dates";
 import { describePrediction } from "@/lib/energy";
 import { blockOfWeek, holdSeconds, isUsable, sessionsInBlock, skillLadder } from "@/lib/training";
-import { SKILLS, skillTaggedName } from "@/config/skills";
+import { detectSkill, SKILLS, skillTaggedName, type SkillKey } from "@/config/skills";
 import { skillSchedule } from "@/lib/skill-schedule";
-import { candidateFilter, programDefaults } from "@/lib/generator";
+import { candidateFilter, goalText, programDefaults } from "@/lib/generator";
 import { FOCUS_LABELS } from "@/config/program-styles";
 import type { ProgramDefaults } from "@/components/generate-form";
 import { IntakeAnswersSchema } from "@/lib/intake";
@@ -33,7 +33,8 @@ import { ShareWeek } from "@/components/share-week";
 import { plannedItems, plannedItemsForWeek, recordFor, type ItemKind, type SessionRecord } from "@/lib/schedule";
 import { ExportFileButton } from "@/components/export-file-button";
 import { SessionResults, type ResultExercise } from "@/components/session-results";
-import { SwapExercise } from "@/components/swap-exercise";
+import { AddExercise, ExerciseActions } from "@/components/swap-exercise";
+import { SkillGoalControl } from "@/components/skill-goal-control";
 
 export const dynamic = "force-dynamic";
 
@@ -97,7 +98,7 @@ export default async function PlanPage({ params, searchParams }: { params: { id:
           <Overview plan={plan} editable={editable} clientId={client.id} purpose={client.purpose_text} intakeGoal={intake?.answers.primary_goal} program={intake ? programDefaults(plan.goal_category, intake.answers, plan.parameters, client.purpose_text) : undefined} />
         </>
       )}
-      {tab === "training" && <Training plan={plan} editable={editable} week={Number(searchParams.week) || currentPlanWeek(plan.parameters, todayIn())} fileBase={client.name.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "")} base={base} candidates={await swapCandidates(db, plan, intake?.answers)} results={await weekResults(db, plan, await swapCandidates(db, plan, intake?.answers), Math.min(Math.max(Number(searchParams.week) || currentPlanWeek(plan.parameters, todayIn()), 1), plan.parameters.weeks))} />}
+      {tab === "training" && <Training plan={plan} editable={editable} week={Number(searchParams.week) || currentPlanWeek(plan.parameters, todayIn())} fileBase={client.name.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "")} base={base} candidates={await swapCandidates(db, plan, intake?.answers)} library={await usableLibrary(db, intake?.answers)} detectedSkill={intake ? detectSkill(`${goalText(IntakeAnswersSchema.parse(intake.answers), client.purpose_text)} ${IntakeAnswersSchema.parse(intake.answers).exercise_likes}`) : null} clientName={client.name} results={await weekResults(db, plan, await swapCandidates(db, plan, intake?.answers), Math.min(Math.max(Number(searchParams.week) || currentPlanWeek(plan.parameters, todayIn()), 1), plan.parameters.weeks))} />}
       {tab === "nutrition" && <Nutrition plan={plan} editable={editable} disclaimer={settings.disclaimer} hasGoalWeight={Boolean(intake?.answers.goal_weight_lb)} />}
       {tab === "calendar" && <Calendar plan={plan} done={await doneByDate(db, plan)} />}
       {tab === "checkpoints" && <Checkpoints plan={plan} clientId={client.id} />}
@@ -174,6 +175,13 @@ async function weekResults(db: ReturnType<typeof createClient>, plan: PlanRow, a
     });
     return { date: it.date, key: it.key, name: session.name, exercises, notes: logged?.notes ?? "", logged: mine.length > 0 };
   });
+}
+
+/** Every library exercise the client can do, for "+ Add exercise". */
+async function usableLibrary(db: ReturnType<typeof createClient>, answers: unknown) {
+  if (!answers) return [];
+  const f = candidateFilter(IntakeAnswersSchema.parse(answers));
+  return (await loadExercises(db)).filter((e) => isUsable(e, f)).map((e) => ({ id: e.id, name: e.name, group: PATTERN_LABEL[e.pattern] ?? e.pattern }));
 }
 
 async function swapCandidates(db: ReturnType<typeof createClient>, plan: PlanRow, answers: unknown) {
@@ -301,7 +309,7 @@ function SkillCard({ t, week }: { t: NonNullable<PlanRow["training"]>; week: Non
   );
 }
 
-function Training({ plan, editable, week, base, candidates, fileBase, results }: { plan: PlanRow; editable: boolean; week: number; base: string; candidates: Record<string, { id: string; name: string }[]>; fileBase: string; results: WeekResult[] | null }) {
+function Training({ plan, editable, week, base, candidates, fileBase, results, library, detectedSkill, clientName }: { plan: PlanRow; editable: boolean; week: number; base: string; candidates: Record<string, { id: string; name: string }[]>; fileBase: string; results: WeekResult[] | null; library: { id: string; name: string; group: string }[]; detectedSkill: SkillKey | null; clientName: string }) {
   const t = plan.training;
   if (!t) return <Banner tone="red" title="Training not generated">{plan.nutrition?.training_blocked_reason ?? "Refer out before generating training."}</Banner>;
   const wk = t.weeks[Math.min(Math.max(week, 1), t.weeks.length) - 1];
@@ -322,6 +330,7 @@ function Training({ plan, editable, week, base, candidates, fileBase, results }:
       <p className="text-sm">
         <b>Week {wk.week}</b> · {PHASES[wk.phase].label}{wk.deload ? " · DELOAD (≈40% fewer sets, stop at RPE 5–6)" : ""}{wk.retest ? " · retest at the last session" : ""}{t.block_rotations ? ` · block ${blockOfWeek(wk.week) + 1} exercises` : ""} · {t.split_label}, lifting on {t.lifting_days.map((d) => DAY_NAMES[d]).join(", ")}
       </p>
+      {plan.status !== "archived" && <SkillGoalControl planId={plan.id} current={t.skill ?? null} detected={detectedSkill} clientName={clientName} />}
       <SkillCard t={t} week={wk} />
       {results && results.length > 0 && (() => {
         const today = todayIn();
@@ -362,16 +371,10 @@ function Training({ plan, editable, week, base, candidates, fileBase, results }:
                         {sl.progression && <div className="text-xs text-muted">↑ Progression: {sl.progression.name}</div>}
                         {sl.note && <div className="text-xs italic text-muted">{sl.note}</div>}
                         {!rx && <div className="text-xs text-muted">Not in this block (session-length limit)</div>}
-                        {!editable && plan.status === "approved" && <SwapExercise planId={plan.id} slotId={sl.id} current={sl.exercise.name} options={candidates[sl.id] ?? []} />}
+                        {plan.status !== "archived" && <ExerciseActions planId={plan.id} slotId={sl.id} current={sl.exercise.name} options={candidates[sl.id] ?? []} blocks={Boolean(t.block_rotations)} />}
                         {editable && (
                           <details className="mt-1">
-                            <summary className="cursor-pointer text-xs text-fg">Edit</summary>
-                            <PlanEditForm planId={plan.id} op="swap" className="mt-1 flex gap-1">
-                              <input type="hidden" name="slot_id" value={sl.id} />
-                              <select className="input text-xs" name="exercise_id" defaultValue={sl.exercise.id}>
-                                {(candidates[sl.id] ?? [sl.exercise]).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                              </select>
-                            </PlanEditForm>
+                            <summary className="cursor-pointer text-xs text-fg">Edit sets &amp; reps</summary>
                             <PlanEditForm planId={plan.id} op="rx" className="mt-1 grid grid-cols-3 items-end gap-1 text-xs sm:grid-cols-6">
                               <input type="hidden" name="slot_id" value={sl.id} />
                               <input type="hidden" name="week" value={wk.week} />
@@ -404,6 +407,7 @@ function Training({ plan, editable, week, base, candidates, fileBase, results }:
                 })}
               </tbody>
             </table></div>
+            {plan.status !== "archived" && <AddExercise planId={plan.id} sessionKey={s.key} sessionName={s.name} options={library} blocks={Boolean(t.block_rotations)} />}
           </Collapsible>
         ))}
       </div>
