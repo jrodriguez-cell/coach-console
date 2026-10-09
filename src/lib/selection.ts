@@ -20,6 +20,8 @@ export interface SelectionRequest {
     split_label: string;
     split_reasons?: string[];
     skill_goal?: string;
+    /** the trainer's own selection rules */
+    trainer_guidance?: string;
     focus?: string[];
     phases: string[];
   };

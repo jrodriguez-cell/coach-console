@@ -129,6 +129,7 @@ async function weekResults(db: ReturnType<typeof createClient>, plan: PlanRow, a
   const { data: setData } = ids.length ? await db.from("set_logs").select("session_id, exercise_id, set_number, weight_lb, reps").in("session_id", ids) : { data: [] };
   const sets = (setData ?? []) as { session_id: string; exercise_id: string; set_number: number; weight_lb: number | null; reps: number | null }[];
   const dateOf = new Map([...cur, ...prev].map((x) => [x.id, x.date]));
+  const videos = new Map((await loadExercises(db)).filter((e) => e.video_url).map((e) => [e.id, e.video_url!]));
   // Earlier sessions per exercise, newest first (for "Previous" and History).
   const pastBy = new Map<string, { date: string; sets: typeof sets }[]>();
   for (const sl of sets) {
@@ -166,6 +167,7 @@ async function weekResults(db: ReturnType<typeof createClient>, plan: PlanRow, a
         logged: mine.filter((x) => x.exercise_id === sl.exercise.id).map((x) => ({ set_number: x.set_number, weight_lb: x.weight_lb != null ? Number(x.weight_lb) : null, reps: x.reps })),
         slotId: sl.id,
         rawName: sl.exercise.name,
+        videoUrl: videos.get(sl.exercise.id) ?? null,
         repsLabel: sl.unit === "seconds" ? `${holdSeconds(rx)[0]}–${holdSeconds(rx)[1]} s` : `${rx.reps_min}–${rx.reps_max} reps`,
         rpe: rx.rpe_min === rx.rpe_max ? String(rx.rpe_min) : `${rx.rpe_min}–${rx.rpe_max}`,
         rest: rx.rest_sec,

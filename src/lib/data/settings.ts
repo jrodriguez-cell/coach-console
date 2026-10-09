@@ -14,5 +14,6 @@ export async function getSettings(db: SupabaseClient): Promise<AppSettings> {
     guardrail_limits: obj("guardrail_limits", SETTINGS_DEFAULTS.guardrail_limits),
     default_deficits: obj("default_deficits", SETTINGS_DEFAULTS.default_deficits),
     uncertainty: obj("uncertainty", SETTINGS_DEFAULTS.uncertainty),
+    ai_guidance: typeof map.get("ai_guidance") === "string" ? (map.get("ai_guidance") as string) : "",
   };
 }

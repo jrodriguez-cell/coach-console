@@ -26,7 +26,7 @@ export async function ensureExerciseLibrary(db: SupabaseClient): Promise<number>
 }
 
 export async function loadExercises(db: SupabaseClient): Promise<LibExercise[]> {
-  const { data, error } = await db.from("exercises").select("id, slug, name, pattern, primary_muscles, equipment, contraindications, regression_id, progression_id, is_compound").order("name");
+  const { data, error } = await db.from("exercises").select("id, slug, video_url, name, pattern, primary_muscles, equipment, contraindications, regression_id, progression_id, is_compound").order("name");
   if (error) throw error;
   return (data ?? []) as LibExercise[];
 }

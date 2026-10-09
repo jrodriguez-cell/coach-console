@@ -41,6 +41,15 @@ export async function saveSettingsAction(form: FormData) {
   revalidatePath("/settings");
 }
 
+/** The trainer's coaching rules the AI follows when picking exercises. */
+export async function saveAiGuidanceAction(form: FormData) {
+  const db = createClient();
+  const text = str(form, "ai_guidance").slice(0, 4000);
+  const { error } = await db.from("settings").upsert({ key: "ai_guidance", value: text }, { onConflict: "key" });
+  if (error) throw error;
+  revalidatePath("/settings");
+}
+
 export async function upsertExerciseAction(form: FormData) {
   const db = createClient();
   const id = str(form, "id");

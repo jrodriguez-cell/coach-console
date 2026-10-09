@@ -12,6 +12,8 @@ export interface ResultExercise {
   name: string;
   rawName: string;
   slotId: string;
+  /** demo video from the exercise library, else a web search */
+  videoUrl?: string | null;
   unit: "reps" | "seconds";
   /** prescribed sets this week */
   sets: number;
@@ -167,7 +169,7 @@ export function SessionResults({ clientId, planId, date, sessionKey, exercises, 
               <div className="space-y-3 px-3 pb-3 sm:px-4 sm:pb-4">
                 <div className="no-scrollbar -mx-3 flex gap-2 overflow-x-auto px-3 sm:mx-0 sm:flex-wrap sm:px-0">
                   {editable && <Chip onClick={() => setRows((x) => ({ ...x, [e.id]: [...x[e.id], { weight: x[e.id].at(-1)?.weight ?? "", reps: "", done: false }] }))}>+ Add set</Chip>}
-                  <Chip href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${e.rawName} exercise how to`)}`}>▶ How to</Chip>
+                  <Chip href={e.videoUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(`${e.rawName} exercise how to`)}`}>▶ How to</Chip>
                   {e.alternatives.length > 0 && <Chip active={p === "swap"} onClick={() => togglePanel("swap")}>⇄ Swap</Chip>}
                   <Chip active={p === "history"} onClick={() => togglePanel("history")}>History</Chip>
                   <Chip active={p === "notes"} onClick={() => togglePanel("notes")}>Notes{exNotes[e.id] ? " •" : ""}</Chip>

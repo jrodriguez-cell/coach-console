@@ -9,6 +9,8 @@ export interface AppSettings {
   guardrail_limits: GuardrailLimits;
   default_deficits: Record<GoalCategory, number>;
   uncertainty: { formula: number; measured: number; calibrated: number };
+  /** the trainer's own rules for exercise selection, given to the AI on every plan */
+  ai_guidance: string;
 }
 
 export const SETTINGS_DEFAULTS: AppSettings = {
@@ -17,5 +19,6 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   guardrail_limits: GUARDRAIL_DEFAULTS,
   default_deficits: { ...DEFAULT_DEFICIT },
   uncertainty: { ...UNCERTAINTY },
+  ai_guidance: "",
 };
 

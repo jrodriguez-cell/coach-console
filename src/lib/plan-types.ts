@@ -13,6 +13,8 @@ export interface LibExercise {
   id: string;
   /** stable library key (src/data/exercises.ts); null for exercises added by hand */
   slug?: string | null;
+  /** demo video set in Settings → Exercise library */
+  video_url?: string | null;
   name: string;
   pattern: Pattern;
   primary_muscles: string[];

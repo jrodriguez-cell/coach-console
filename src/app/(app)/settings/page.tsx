@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/data/settings";
 import { Banner, Card, Field } from "@/components/ui";
 import { SubmitButton } from "@/components/submit-button";
-import { deleteClientAction, saveSettingsAction } from "@/app/actions/settings";
+import { deleteClientAction, saveAiGuidanceAction, saveSettingsAction } from "@/app/actions/settings";
 import { GOAL_CATEGORIES } from "@/config/goal-templates";
 import { goalLabel } from "@/lib/labels";
 
@@ -44,6 +44,24 @@ export default async function SettingsPage({ searchParams }: { searchParams: { d
         <Link className="btn" href="/settings/exercises">Exercises</Link>
         <Link className="btn" href="/settings/foods">Foods</Link>
       </div>
+      <Card title="Program engine">
+        <p className="muted mb-3">What the plan generator knows, and where to change it.</p>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <form action={saveAiGuidanceAction} className="space-y-2">
+            <label className="block">
+              <span className="label">Your coaching rules for the AI</span>
+              <textarea className="input" name="ai_guidance" rows={7} defaultValue={s.ai_guidance} placeholder={"e.g.\n- Beginners: prefer machines and dumbbells over barbells.\n- Always include a rear-delt or face-pull movement.\n- For calisthenics goals, favour bodyweight options.\n- Avoid jumping for clients over 60."} />
+            </label>
+            <p className="text-xs text-muted">Claude reads these on every new plan when choosing among the allowed exercises and writing coaching notes. It still can&apos;t change sets, reps, calories or the safety screens.</p>
+            <SubmitButton className="btn-primary">Save coaching rules</SubmitButton>
+          </form>
+          <div className="space-y-3 text-sm">
+            <div><b>Exercise library</b> · <Link href="/settings/exercises">edit</Link><p className="text-muted">Every exercise Claude can pick and every swap suggestion comes from here. Swaps list exercises with the same movement pattern that fit the client&apos;s equipment, injuries and dislikes. Add exercises, fix equipment and injury tags, set easier/harder links and add a demo video URL (used by &ldquo;How to&rdquo;).</p></div>
+            <div><b>Client details</b><p className="text-muted">Goals, equipment, injuries, likes and dislikes on each plan&apos;s Overview steer which exercises are allowed and what the program focuses on.</p></div>
+            <div><b>Program rules</b> (in code)<p className="text-muted">Program styles and session templates, skill progressions (L-sit and others), sets/reps by phase and goal guidelines live in <code>src/config/</code>. Ask for changes there.</p></div>
+          </div>
+        </div>
+      </Card>
       <form action={saveSettingsAction} className="space-y-4">
         <Card title="Nutrition disclaimer">
           <p className="muted mb-2">Printed on every nutrition page and export.</p>

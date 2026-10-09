@@ -54,14 +54,31 @@ export default async function TodayPage() {
   const workoutsDone = workoutsToday.reduce((a, w) => a + w.day.items.filter((i) => i.state).length, 0);
   const workoutsTotal = workoutsToday.reduce((a, w) => a + w.day.items.length, 0);
   const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+  const overdueBy = (k: string) => (groups.get(k) ?? []).filter((t) => t.due_date < today).length;
+  const overdueCount = tasks.filter((t) => t.due_date < today).length;
+  // Clients with the most overdue first, then most tasks; "General" last.
+  order.sort((a, b) => (a === "_general" ? 1 : b === "_general" ? -1 : overdueBy(b) - overdueBy(a) || (groups.get(b)!.length - groups.get(a)!.length) || (names[a] ?? "").localeCompare(names[b] ?? "")));
 
   return (
     <div className="space-y-8">
       <PageHeader
         eyebrow="Today"
         title={formatDate(today)}
-        meta={[workoutsTotal ? `${workoutsDone}/${plural(workoutsTotal, "workout")} done` : null, plural(tasks.length, "open task"), weekCount ? `${plural(weekCount, "key date")} this week` : null].filter(Boolean).join(" · ")}
       />
+      {/* At a glance: what today holds. */}
+      <dl className="grid grid-cols-3 gap-3 sm:gap-6">
+        {[
+          { label: "Workouts today", value: workoutsTotal ? `${workoutsDone}/${workoutsTotal}` : "—", sub: workoutsTotal ? "done" : "none scheduled" },
+          { label: "Overdue", value: String(overdueCount), sub: overdueCount ? "tasks past due" : "all caught up" },
+          { label: "Due today", value: String(tasks.length - overdueCount), sub: weekCount ? `${plural(weekCount, "key date")} this week` : "tasks" },
+        ].map((x) => (
+          <div key={x.label} className="border-t-2 border-fg pt-2">
+            <dt className="caps">{x.label}</dt>
+            <dd className="mt-1 text-3xl font-semibold leading-none tabular-nums">{x.value}</dd>
+            <dd className="mt-1 text-xs text-muted">{x.sub}</dd>
+          </div>
+        ))}
+      </dl>
 
       {workoutsToday.length > 0 && (
         <Card title="Today's workouts" actions={<span className="text-sm text-muted">{workoutsDone}/{workoutsTotal} done</span>}>
@@ -102,9 +119,9 @@ export default async function TodayPage() {
               <section key={k} aria-label={k === "_general" ? "General" : names[k]}>
                 <div className="flex items-baseline justify-between gap-3 border-b border-fg/40 pb-1.5">
                   {k === "_general" ? <h3>General</h3> : <Link className="font-semibold no-underline hover:underline" href={`/clients/${k}`}>{names[k] ?? "Client"}</Link>}
-                  <span className="caps">{plural(groups.get(k)!.length, "task")}</span>
+                  <span className="caps">{plural(groups.get(k)!.length, "task")}{overdueBy(k) ? ` · ${overdueBy(k)} overdue` : ""}</span>
                 </div>
-                <TaskList tasks={groups.get(k)!} showClient={false} clientName={k === "_general" ? undefined : names[k]} columns={order.length === 1} />
+                <TaskList tasks={groups.get(k)!} showClient={false} clientName={k === "_general" ? undefined : names[k]} columns={order.length === 1} limit={order.length === 1 ? 8 : 4} />
               </section>
             ))}
           </div>

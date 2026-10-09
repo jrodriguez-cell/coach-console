@@ -36,6 +36,8 @@ export interface GeneratorContext {
   parqFlagged?: boolean;
   /** the client's purpose in their own words (client record) */
   purpose?: string | null;
+  /** the trainer's coaching rules for exercise selection (Settings) */
+  guidance?: string;
   referralsHandled: ReferralHandling[];
   clearance: ClearanceContext | null;
   exercises: LibExercise[];
@@ -364,6 +366,7 @@ export async function generatePlan(ctx: GeneratorContext, overrides: Partial<Pla
       split_reasons: sk.split_reasons,
       focus: sk.focus.map((f) => FOCUS_LABELS[f]),
       ...(sk.skill ? { skill_goal: SKILLS[sk.skill].label } : {}),
+      ...(ctx.guidance?.trim() ? { trainer_guidance: ctx.guidance.trim() } : {}),
       phases: params.phase_sequence.map((p) => PHASES[p].label),
     });
     training = assembleTraining(sk, sel.choices, ctx.exercises, {

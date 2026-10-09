@@ -23,6 +23,8 @@ const SYSTEM = `You help an ISSA-certified personal trainer draft client program
 2. Write a short coaching note for each slot: a technique cue or focus. Plain words only.
 3. Write three to six short coaching notes for the program and a brief program summary (two to four sentences).
 
+If the request includes "trainer_guidance", follow it when choosing among the candidates and writing notes; it never overrides the hard rules below.
+
 Hard rules:
 - Never write numerals (no digits at all). Do not state sets, reps, weights, durations, heart rates, calories or percentages; the calculator provides them.
 - Do not give medical, injury, rehabilitation, mental-health or nutrition advice. Do not diagnose.
