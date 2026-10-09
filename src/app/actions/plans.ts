@@ -343,3 +343,44 @@ export async function revisePlanAction(planId: string) {
   if (error) throw error;
   redirect(`/clients/${plan.client_id}/plan/${data.id}`);
 }
+
+/**
+ * Swap one exercise in a plan, on drafts and approved plans alike (one tap
+ * from the workout logger). Changes that slot for its 4-week block; logged
+ * sets keep their original exercise in history.
+ */
+export async function swapExerciseAction(planId: string, slotId: string, exerciseId: string): Promise<{ error: string | null; name?: string }> {
+  const db = createClient();
+  const plan = await getPlan(db, planId);
+  if (!plan?.training) return { error: "Plan not found." };
+  if (plan.status === "archived") return { error: "This version is archived; open the current plan." };
+  const settings = await getSettings(db);
+  const ctx = await generatorContext(db, plan.client_id, settings, plan.goal_category);
+  const training: TrainingPlan = structuredClone(plan.training);
+  const slot = training.sessions.flatMap((s) => s.slots).find((x) => x.id === slotId);
+  const ex = ctx.exercises.find((e) => e.id === exerciseId);
+  if (!slot || !ex) return { error: "Unknown exercise." };
+  const filter = candidateFilter(ctx.intake);
+  const onLadder = slot.role === "skill" && slot.skill && ex.slug ? SKILLS[slot.skill].ladder.includes(ex.slug) : false;
+  if (ex.pattern !== slot.pattern && !onLadder) return { error: slot.role === "skill" ? "Pick a step from this skill's progression." : "Pick an exercise with the same movement pattern." };
+  if (!isUsable(ex, filter)) return { error: "That exercise needs unavailable equipment, is contraindicated, or is on the client's dislike list." };
+  const main = slot.role === "main" || slot.role === "secondary";
+  Object.assign(slot, {
+    exercise: { id: ex.id, name: ex.name },
+    regression: resolveVariation(ex, "regression", ctx.exercises, filter, main),
+    progression: resolveVariation(ex, "progression", ctx.exercises, filter, main),
+    unit: unitFor(ex.name),
+    note: "",
+  });
+  training.weeks = training.weeks.map((w) => recomputeWeekMinutes(training.sessions, w));
+  if (plan.status === "draft") {
+    const r = await recomputeAndSave(db, plan, plan.parameters, training);
+    if (r.error) return { error: r.error };
+  } else {
+    const { error } = await db.from("plans").update({ training }).eq("id", planId);
+    if (error) return { error: error.message };
+  }
+  revalidatePath(`/clients/${plan.client_id}/plan/${planId}`);
+  revalidatePath(`/clients/${plan.client_id}`);
+  return { error: null, name: ex.name };
+}

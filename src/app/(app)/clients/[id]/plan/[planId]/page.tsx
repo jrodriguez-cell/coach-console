@@ -33,6 +33,7 @@ import { ShareWeek } from "@/components/share-week";
 import { plannedItems, plannedItemsForWeek, recordFor, type ItemKind, type SessionRecord } from "@/lib/schedule";
 import { ExportFileButton } from "@/components/export-file-button";
 import { SessionResults, type ResultExercise } from "@/components/session-results";
+import { SwapExercise } from "@/components/swap-exercise";
 
 export const dynamic = "force-dynamic";
 
@@ -96,7 +97,7 @@ export default async function PlanPage({ params, searchParams }: { params: { id:
           <Overview plan={plan} editable={editable} clientId={client.id} purpose={client.purpose_text} intakeGoal={intake?.answers.primary_goal} program={intake ? programDefaults(plan.goal_category, intake.answers, plan.parameters, client.purpose_text) : undefined} />
         </>
       )}
-      {tab === "training" && <Training plan={plan} editable={editable} week={Number(searchParams.week) || currentPlanWeek(plan.parameters, todayIn())} fileBase={client.name.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "")} base={base} candidates={await swapCandidates(db, plan, intake?.answers)} results={await weekResults(db, plan, Math.min(Math.max(Number(searchParams.week) || currentPlanWeek(plan.parameters, todayIn()), 1), plan.parameters.weeks))} />}
+      {tab === "training" && <Training plan={plan} editable={editable} week={Number(searchParams.week) || currentPlanWeek(plan.parameters, todayIn())} fileBase={client.name.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "")} base={base} candidates={await swapCandidates(db, plan, intake?.answers)} results={await weekResults(db, plan, await swapCandidates(db, plan, intake?.answers), Math.min(Math.max(Number(searchParams.week) || currentPlanWeek(plan.parameters, todayIn()), 1), plan.parameters.weeks))} />}
       {tab === "nutrition" && <Nutrition plan={plan} editable={editable} disclaimer={settings.disclaimer} hasGoalWeight={Boolean(intake?.answers.goal_weight_lb)} />}
       {tab === "calendar" && <Calendar plan={plan} done={await doneByDate(db, plan)} />}
       {tab === "checkpoints" && <Checkpoints plan={plan} clientId={client.id} />}
@@ -107,7 +108,7 @@ export default async function PlanPage({ params, searchParams }: { params: { id:
 interface WeekResult { date: string; key: string; name: string; exercises: ResultExercise[]; notes: string; logged: boolean }
 
 /** This week's scheduled strength sessions with what's been logged and last time's numbers. */
-async function weekResults(db: ReturnType<typeof createClient>, plan: PlanRow, week: number): Promise<WeekResult[] | null> {
+async function weekResults(db: ReturnType<typeof createClient>, plan: PlanRow, alternatives: Record<string, { id: string; name: string }[]>, week: number): Promise<WeekResult[] | null> {
   const t = plan.training;
   if (!t || plan.status !== "approved") return null;
   const items = plannedItemsForWeek(plan.parameters, t, week).filter((i) => i.kind === "strength");
@@ -125,14 +126,20 @@ async function weekResults(db: ReturnType<typeof createClient>, plan: PlanRow, w
   const { data: setData } = ids.length ? await db.from("set_logs").select("session_id, exercise_id, set_number, weight_lb, reps").in("session_id", ids) : { data: [] };
   const sets = (setData ?? []) as { session_id: string; exercise_id: string; set_number: number; weight_lb: number | null; reps: number | null }[];
   const dateOf = new Map([...cur, ...prev].map((x) => [x.id, x.date]));
-  // Most recent earlier sets per exercise.
-  const lastBy = new Map<string, { date: string; sets: typeof sets }>();
+  // Earlier sessions per exercise, newest first (for "Previous" and History).
+  const pastBy = new Map<string, { date: string; sets: typeof sets }[]>();
   for (const sl of sets) {
-    const d = dateOf.get(sl.session_id)!;
     if (cur.some((c) => c.id === sl.session_id)) continue;
-    const have = lastBy.get(sl.exercise_id);
-    if (!have || d > have.date) lastBy.set(sl.exercise_id, { date: d, sets: [sl] });
-    else if (d === have.date) have.sets.push(sl);
+    const d = dateOf.get(sl.session_id)!;
+    const list = pastBy.get(sl.exercise_id) ?? [];
+    const day = list.find((x) => x.date === d);
+    if (day) day.sets.push(sl);
+    else list.push({ date: d, sets: [sl] });
+    pastBy.set(sl.exercise_id, list);
+  }
+  for (const list of Array.from(pastBy.values())) {
+    list.sort((a, b) => b.date.localeCompare(a.date));
+    for (const x of list) x.sets.sort((a, b) => a.set_number - b.set_number);
   }
   const fmtSet = (x: { weight_lb: number | null; reps: number | null }, unit: string) => `${x.weight_lb != null ? `${Number(x.weight_lb)} lb × ` : ""}${x.reps ?? "?"}${unit === "seconds" ? " s" : ""}`;
   return items.map((it) => {
@@ -142,7 +149,8 @@ async function weekResults(db: ReturnType<typeof createClient>, plan: PlanRow, w
     const exercises = session.slots.filter((sl) => wk?.prescriptions[sl.id]).map((sl): ResultExercise => {
       const rx = wk.prescriptions[sl.id];
       const reps = sl.unit === "seconds" ? `${holdSeconds(rx)[0]}–${holdSeconds(rx)[1]} s` : `${rx.reps_min}–${rx.reps_max}`;
-      const last = lastBy.get(sl.exercise.id);
+      const past = pastBy.get(sl.exercise.id) ?? [];
+      const last = past[0];
       const best = last ? [...last.sets].sort((a, b) => (Number(b.weight_lb ?? 0) - Number(a.weight_lb ?? 0)) || ((b.reps ?? 0) - (a.reps ?? 0)))[0] : null;
       return {
         id: sl.exercise.id,
@@ -153,6 +161,15 @@ async function weekResults(db: ReturnType<typeof createClient>, plan: PlanRow, w
         last: best ? `${fmtSet(best, sl.unit)} (${formatDate(last!.date).replace(/, \d{4}$/, "")})` : null,
         lastWeight: best?.weight_lb != null ? Number(best.weight_lb) : null,
         logged: mine.filter((x) => x.exercise_id === sl.exercise.id).map((x) => ({ set_number: x.set_number, weight_lb: x.weight_lb != null ? Number(x.weight_lb) : null, reps: x.reps })),
+        slotId: sl.id,
+        rawName: sl.exercise.name,
+        repsLabel: sl.unit === "seconds" ? `${holdSeconds(rx)[0]}–${holdSeconds(rx)[1]} s` : `${rx.reps_min}–${rx.reps_max} reps`,
+        rpe: rx.rpe_min === rx.rpe_max ? String(rx.rpe_min) : `${rx.rpe_min}–${rx.rpe_max}`,
+        rest: rx.rest_sec,
+        tag: sl.skill ? `${SKILLS[sl.skill].label}${sl.role === "skill" ? "" : " prep"}` : null,
+        previous: last ? Array.from({ length: Math.max(rx.sets, last.sets.length) }, (_, i) => { const x = last.sets.find((q) => q.set_number === i + 1); return x ? fmtSet(x, sl.unit) : null; }) : [],
+        history: past.slice(0, 6).map((h) => ({ date: formatDate(h.date).replace(/, \d{4}$/, ""), sets: h.sets.map((x) => fmtSet(x, sl.unit)).join(" · ") })),
+        alternatives: (alternatives[sl.id] ?? []).filter((a) => a.id !== sl.exercise.id),
       };
     });
     return { date: it.date, key: it.key, name: session.name, exercises, notes: logged?.notes ?? "", logged: mine.length > 0 };
@@ -308,14 +325,16 @@ function Training({ plan, editable, week, base, candidates, fileBase, results }:
       <SkillCard t={t} week={wk} />
       {results && results.length > 0 && (() => {
         const today = todayIn();
-        const openIdx = results.findIndex((r) => r.date <= today && !r.logged);
+        // Today's session, else the latest one so far: stays open while logging (saving refreshes the page).
+        const pastIdx = results.map((r, i) => (r.date <= today ? i : -1)).filter((i) => i >= 0);
+        const openIdx = results.findIndex((r) => r.date === today) >= 0 ? results.findIndex((r) => r.date === today) : pastIdx.length ? pastIdx[pastIdx.length - 1] : 0;
         return (
           <Card title={`Log week ${wk.week} results`} actions={<span className="text-sm text-muted">{results.filter((r) => r.logged).length}/{results.length} logged</span>}>
             <p className="muted mb-2">Enter weight and reps (seconds for holds) for each set. Leave weight blank for bodyweight. Saving ticks the workout off and feeds strength progress and adherence. The fillable Excel still works too.</p>
             <div className="divide-y divide-fg/10">
               {results.map((r, i) => (
                 <Collapsible key={`${r.date}-${r.key}`} defaultOpen={i === openIdx} title={`${DAY_NAMES[dayOfWeek(r.date)]} ${formatDate(r.date).replace(/, \d{4}$/, "")} · ${r.name}`} hint={r.logged ? "✓ logged" : r.date > today ? "upcoming" : "not logged yet"}>
-                  <SessionResults clientId={plan.client_id} planId={plan.id} date={r.date} sessionKey={r.key} exercises={r.exercises} notes={r.notes} editable={r.date <= today} />
+                  <SessionResults key={r.exercises.map((e) => e.id).join(",")} clientId={plan.client_id} planId={plan.id} date={r.date} sessionKey={r.key} exercises={r.exercises} notes={r.notes} editable={r.date <= today} />
                 </Collapsible>
               ))}
             </div>
@@ -343,6 +362,7 @@ function Training({ plan, editable, week, base, candidates, fileBase, results }:
                         {sl.progression && <div className="text-xs text-muted">↑ Progression: {sl.progression.name}</div>}
                         {sl.note && <div className="text-xs italic text-muted">{sl.note}</div>}
                         {!rx && <div className="text-xs text-muted">Not in this block (session-length limit)</div>}
+                        {!editable && plan.status === "approved" && <SwapExercise planId={plan.id} slotId={sl.id} current={sl.exercise.name} options={candidates[sl.id] ?? []} />}
                         {editable && (
                           <details className="mt-1">
                             <summary className="cursor-pointer text-xs text-fg">Edit</summary>
