@@ -5,6 +5,8 @@
  * every number still comes from prescribe().
  */
 import { SKILLS, startStep, type SkillKey } from "@/config/skills";
+import { MOBILITY, WEAKNESSES, type MobilityArea, type WeakMovement } from "@/config/coach-notes";
+import type { CoachNote } from "./intake";
 import type { Pattern } from "@/data/exercises";
 import type { LibExercise, Prescription, SessionPlan, SlotChoice, SlotRole, TrainingPlan } from "./plan-types";
 import {
@@ -195,6 +197,75 @@ export function refitProgram(t: TrainingPlan, ctx: EditContext, skill: SkillKey 
   if (skill && out.skill !== skill) {
     out = applySkill(out, skill, ctx);
     changes.push(`Added ${SKILLS[skill].label} work to every session`);
+  }
+  return { training: finish(out), changes: Array.from(new Set(changes)) };
+}
+
+/**
+ * Apply the client's active coach notes to the program: corrective work for
+ * movement weaknesses and mobility drills for limitations, added to the
+ * sessions that need them. Work added for notes that are no longer active
+ * is removed. (Preferences and pain act through the client's dislikes and
+ * injury areas, handled by refitProgram.)
+ */
+export function applyCoachNotes(t: TrainingPlan, ctx: EditContext, notes: CoachNote[]): { training: TrainingPlan; changes: string[] } {
+  const out: TrainingPlan = structuredClone(t);
+  const changes: string[] = [];
+  const active = notes.filter((n) => n.active);
+  const bySlug = new Map(ctx.lib.filter((e) => e.slug).map((e) => [e.slug!, e]));
+  // Remove work from notes that are resolved (or re-added below).
+  const removed = new Set<string>();
+  for (const s of out.sessions) {
+    for (const sl of s.slots) if (sl.from_note) {
+      removed.add(sl.id);
+      if (!active.some((n) => n.id === sl.from_note)) changes.push(`${s.name}: removed ${sl.exercise.name} (note resolved)`);
+    }
+    s.slots = s.slots.filter((x) => !removed.has(x.id));
+  }
+  for (const w of out.weeks) for (const id of Array.from(removed)) delete w.prescriptions[id];
+  const before = new Set(t.sessions.flatMap((s) => s.slots.filter((x) => x.from_note).map((x) => `${s.key}|${x.from_note}|${x.exercise.id}`)));
+
+  for (const n of active) {
+    const rule = n.kind === "weakness" && n.movement && n.movement in WEAKNESSES ? { patterns: WEAKNESSES[n.movement as WeakMovement].patterns, list: WEAKNESSES[n.movement as WeakMovement].work, mobility: false }
+      : n.kind === "mobility" && n.mobility && n.mobility in MOBILITY ? { patterns: MOBILITY[n.mobility as MobilityArea].patterns, list: MOBILITY[n.mobility as MobilityArea].drills, mobility: true }
+      : null;
+    if (!rule) continue;
+    for (const s of out.sessions) {
+      const needs = s.slots.some((x) => rule.patterns.includes(x.pattern) && (x.role === "main" || x.role === "secondary" || x.role === "core"));
+      if (!needs) continue;
+      const inSession = new Set(s.slots.map((x) => x.exercise.id));
+      const ex = rule.list.map((slug) => bySlug.get(slug)).find((e): e is LibExercise => Boolean(e && isUsable(e, ctx.filter) && !inSession.has(e.id)));
+      if (!ex) continue;
+      const n0 = Math.max(0, ...s.slots.map((x) => Number(slotIndex(x.id)) || 0)) + 1;
+      const id = `${s.key}-${n0}`;
+      const role: SlotRole = rule.mobility ? "accessory" : ROLE_FOR[ex.pattern] ?? "accessory";
+      const slot: SlotChoice = { ...choice(ex, { id, pattern: ex.pattern, role, priority: 43, from_note: n.id }, ctx), id, note: n.text.slice(0, 120) };
+      // Mobility drills go first (after a skill step) as session prep; corrective work at the end.
+      if (rule.mobility) {
+        const at = s.slots[0]?.role === "skill" ? 1 : 0;
+        s.slots.splice(at, 0, slot);
+      } else s.slots.push(slot);
+      for (const w of weeksOf(out, s)) out.weeks[w - 1].prescriptions[id] = rxFor(out, w, role);
+      if (!before.has(`${s.key}|${n.id}|${ex.id}`)) changes.push(`${s.name}: added ${ex.name} (${rule.mobility ? "mobility" : "weakness"} note)`);
+    }
+  }
+  return { training: finish(out), changes: Array.from(new Set(changes)) };
+}
+
+/** Step the main lifts of a weak movement down one level (once, when the note is added). */
+export function regressMovement(t: TrainingPlan, ctx: EditContext, movement: WeakMovement): { training: TrainingPlan; changes: string[] } {
+  const out: TrainingPlan = structuredClone(t);
+  const changes: string[] = [];
+  const byId = new Map(ctx.lib.map((e) => [e.id, e]));
+  const patterns = WEAKNESSES[movement].patterns;
+  for (const s of out.sessions) {
+    s.slots = s.slots.map((sl) => {
+      if (sl.role !== "main" || !patterns.includes(sl.pattern) || !sl.regression?.id) return sl;
+      const easier = byId.get(sl.regression.id);
+      if (!easier || !isUsable(easier, ctx.filter)) return sl;
+      changes.push(`${s.name}: ${sl.exercise.name} → ${easier.name} (easier while the weakness is worked on)`);
+      return { ...choice(easier, sl, ctx), id: sl.id };
+    });
   }
   return { training: finish(out), changes: Array.from(new Set(changes)) };
 }

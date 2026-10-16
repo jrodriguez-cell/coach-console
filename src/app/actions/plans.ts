@@ -11,8 +11,10 @@ import { approvalIssues } from "@/lib/data/approval";
 import { todayIn, weekStart } from "@/lib/dates";
 import { checkpointDate, planEndDate, retestDate } from "@/lib/tasks";
 import { isUsable, recomputeWeekMinutes, resolveVariation, unitFor } from "@/lib/training";
-import { addExercise, applySkill, canSwap, refitProgram, removeExercise, swapExercise, type EditContext } from "@/lib/program-edit";
-import { IntakeAnswersSchema } from "@/lib/intake";
+import { addExercise, applyCoachNotes, applySkill, canSwap, refitProgram, regressMovement, removeExercise, swapExercise, type EditContext } from "@/lib/program-edit";
+import { IntakeAnswersSchema, type CoachNote, type IntakeAnswers } from "@/lib/intake";
+import { MOBILITY, NOTE_KINDS, WEAKNESSES, type WeakMovement } from "@/config/coach-notes";
+import { CONTRAINDICATION_TAGS } from "@/data/exercises";
 import { GOAL_CATEGORIES, type GoalCategory } from "@/config/goal-templates";
 import { FOCUS_AREAS, SPLITS, type Focus, type Split } from "@/config/program-styles";
 import { detectSkill, SKILL_KEYS, SKILLS, type SkillKey } from "@/config/skills";
@@ -497,4 +499,109 @@ export async function updateClientDetailsAction(planId: string, mode: "update" |
     changes,
     rebuild,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Coach notes: what the trainer learns in sessions, applied to the program
+// ---------------------------------------------------------------------------
+
+export type NotesState = { error: string | null; message?: string; changes?: string[]; savedAt?: number };
+
+async function saveAnswers(db: SupabaseClient, clientId: string, mutate: (a: IntakeAnswers) => IntakeAnswers): Promise<IntakeAnswers | string> {
+  const intake = await latestIntake(db, clientId);
+  if (!intake) return "Complete the intake first.";
+  const next = IntakeAnswersSchema.safeParse(mutate(IntakeAnswersSchema.parse(intake.answers)));
+  if (!next.success) return next.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+  const { error } = await db.from("intakes").insert({ client_id: clientId, answers: next.data, parq_answers: intake.parq_answers, parq_flagged: intake.parq_flagged, refer_out_flags: intake.refer_out_flags });
+  return error ? error.message : next.data;
+}
+
+/** Re-fit the plan to the client's current details and apply every active coach note. */
+async function applyNotesToPlan(planId: string, regress?: WeakMovement): Promise<{ error: string | null; changes: string[] }> {
+  let changes: string[] = [];
+  const db = createClient();
+  const plan = await getPlan(db, planId);
+  if (!plan?.training || plan.status === "archived") return { error: null, changes };
+  const intake = await latestIntake(db, plan.client_id);
+  const notes = intake ? IntakeAnswersSchema.parse(intake.answers).coach_notes : [];
+  const r = await editProgram(planId, (t, ctx) => {
+    const a = refitProgram(t, ctx, null);
+    const b = applyCoachNotes(a.training, ctx, notes);
+    const c = regress ? regressMovement(b.training, ctx, regress) : { training: b.training, changes: [] };
+    changes = [...a.changes, ...b.changes, ...c.changes];
+    return c.training;
+  });
+  return { error: r.error, changes };
+}
+
+export async function addCoachNoteAction(clientId: string, planId: string | null, _prev: NotesState, form: FormData): Promise<NotesState> {
+  const db = createClient();
+  const kind = str(form, "kind") as CoachNote["kind"];
+  if (!NOTE_KINDS.some((k) => k.key === kind)) return { error: "Pick what kind of note this is." };
+  const text = str(form, "text");
+  const note: CoachNote = { id: crypto.randomUUID(), date: todayIn(), kind, text, active: true };
+  if (kind === "preference") {
+    note.stance = str(form, "stance") === "like" ? "like" : "avoid";
+    note.exercise_name = str(form, "exercise_name");
+    if (!note.exercise_name) return { error: "Name the exercise." };
+  } else if (kind === "weakness") {
+    if (!(str(form, "movement") in WEAKNESSES)) return { error: "Pick the movement." };
+    note.movement = str(form, "movement");
+    note.regress = form.get("regress") === "on";
+  } else if (kind === "mobility") {
+    if (!(str(form, "mobility") in MOBILITY)) return { error: "Pick the area." };
+    note.mobility = str(form, "mobility");
+  } else if (kind === "pain") {
+    const area = str(form, "area");
+    if (!(CONTRAINDICATION_TAGS as readonly string[]).includes(area)) return { error: "Pick the area." };
+    note.area = area as CoachNote["area"];
+  } else if (!text) return { error: "Write the note." };
+
+  const saved = await saveAnswers(db, clientId, (a) => {
+    const out = { ...a, coach_notes: [note, ...a.coach_notes] };
+    if (note.kind === "preference" && note.exercise_name) {
+      if (note.stance === "avoid") {
+        note.preexisting = a.exercise_dislikes.some((d) => d.toLowerCase() === note.exercise_name!.toLowerCase());
+        if (!note.preexisting) out.exercise_dislikes = [...a.exercise_dislikes, note.exercise_name];
+      } else out.exercise_likes = [a.exercise_likes, note.exercise_name].filter(Boolean).join(", ");
+    }
+    if (note.kind === "pain" && note.area) {
+      note.preexisting = a.injury_areas.includes(note.area);
+      if (!note.preexisting) out.injury_areas = [...a.injury_areas, note.area];
+      if (text) out.injuries_text = [a.injuries_text, text].filter(Boolean).join(" · ");
+    }
+    out.coach_notes = [note, ...a.coach_notes];
+    return out;
+  });
+  if (typeof saved === "string") return { error: saved };
+  revalidatePath(`/clients/${clientId}`);
+  if (!planId || form.get("apply") !== "on") return { error: null, savedAt: Date.now(), message: "Note saved." };
+  const r = await applyNotesToPlan(planId, note.kind === "weakness" && note.regress ? (note.movement as WeakMovement) : undefined);
+  if (r.error) return { error: r.error };
+  return { error: null, savedAt: Date.now(), changes: r.changes, message: r.changes.length ? `Note saved; the program changed in ${r.changes.length} place${r.changes.length === 1 ? "" : "s"}.` : "Note saved. Nothing in the program needed to change." };
+}
+
+/** Mark a note resolved: undo the dislike/injury it added and remove the work it added. */
+export async function resolveCoachNoteAction(clientId: string, planId: string | null, noteId: string): Promise<NotesState> {
+  const db = createClient();
+  const saved = await saveAnswers(db, clientId, (a) => {
+    const note = a.coach_notes.find((n) => n.id === noteId);
+    if (!note) return a;
+    const notes = a.coach_notes.map((n) => (n.id === noteId ? { ...n, active: false, resolved_at: todayIn() } : n));
+    const out = { ...a, coach_notes: notes };
+    const stillActive = (pred: (n: CoachNote) => boolean) => notes.some((n) => n.active && pred(n));
+    if (note.kind === "preference" && note.stance === "avoid" && !note.preexisting && !stillActive((n) => n.stance === "avoid" && n.exercise_name === note.exercise_name)) {
+      out.exercise_dislikes = a.exercise_dislikes.filter((d) => d.toLowerCase() !== (note.exercise_name ?? "").toLowerCase());
+    }
+    if (note.kind === "pain" && note.area && !note.preexisting && !stillActive((n) => n.kind === "pain" && n.area === note.area)) {
+      out.injury_areas = a.injury_areas.filter((x) => x !== note.area);
+    }
+    return out;
+  });
+  if (typeof saved === "string") return { error: saved };
+  revalidatePath(`/clients/${clientId}`);
+  if (!planId) return { error: null, savedAt: Date.now(), message: "Note resolved." };
+  const r = await applyNotesToPlan(planId);
+  if (r.error) return { error: r.error };
+  return { error: null, savedAt: Date.now(), changes: r.changes, message: "Note resolved." };
 }

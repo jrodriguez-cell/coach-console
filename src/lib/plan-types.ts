@@ -55,6 +55,8 @@ export interface SlotDef {
   skill?: SkillKey;
   /** preferred exercise (library slug) when the client can do it */
   slug?: string;
+  /** added because of a coach note (removed when the note is resolved) */
+  from_note?: string;
 }
 
 export interface ExerciseRef {

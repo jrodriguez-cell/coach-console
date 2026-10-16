@@ -22,6 +22,8 @@ export interface SelectionRequest {
     skill_goal?: string;
     /** the trainer's own selection rules */
     trainer_guidance?: string;
+    /** what the trainer has learned in sessions */
+    coach_notes?: string[];
     focus?: string[];
     phases: string[];
   };

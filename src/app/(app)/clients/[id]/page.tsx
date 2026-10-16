@@ -10,7 +10,7 @@ import { GenerateForm } from "@/components/generate-form";
 import { CheckinForm, MeasurementsForm, TestResultForm, WeighInForm } from "@/components/quick-add";
 import { TaskList } from "@/components/task-list";
 import { logContactAction, recordClearanceAction, recordReferralAction, updateClientAction } from "@/app/actions/clients";
-import { activeReferOutFlags, blockedSections, clearanceIssue, REFER_OUT_FLAGS } from "@/lib/intake";
+import { IntakeAnswersSchema, activeReferOutFlags, blockedSections, clearanceIssue, REFER_OUT_FLAGS } from "@/lib/intake";
 import { GOAL_CATEGORIES } from "@/config/goal-templates";
 import { goalLabel, STATUS_TONE } from "@/lib/labels";
 import { addDays, formatDate, todayIn, weekStart } from "@/lib/dates";
@@ -18,6 +18,7 @@ import { describePrediction } from "@/lib/energy";
 import clsx from "clsx";
 import { WeekChecklist } from "@/components/week-checklist";
 import { GoalProgress } from "@/components/goal-progress";
+import { CoachNotes } from "@/components/coach-notes";
 import { goalOverview, type GoalOverview } from "@/lib/goal-progress";
 import { loadProgressData, summarize } from "@/lib/data/progress-data";
 import { getSettings } from "@/lib/data/settings";
@@ -56,6 +57,7 @@ export default async function ClientPage({ params, searchParams }: { params: { i
     const pd = (await loadProgressData(db, [client])).get(client.id);
     if (pd) goal = goalOverview(pd, summarize(pd, today, settings.task_thresholds), today);
   }
+  const exerciseNames = tab === "overview" && intake ? (await db.from("exercises").select("name").order("name")).data?.map((e: { name: string }) => e.name) ?? [] : [];
   const doneCount = checklist.flatMap((d) => d.items).filter((i) => i.state).length;
   const dueCount = checklist.flatMap((d) => d.items).length;
 
@@ -166,6 +168,11 @@ export default async function ClientPage({ params, searchParams }: { params: { i
             >
               <p className="muted mb-1">Week {shownWeek} of {live.plan.parameters.weeks}. Tap a workout when it&apos;s done; it greys out and counts toward adherence. Imported sheets tick themselves.</p>
               <WeekChecklist key={shownWeek} clientId={client.id} planId={live.plan.id} days={checklist} today={today} clientName={client.name} columns />
+            </Card>
+          )}
+          {intake && (
+            <Card title="Coach notes" actions={<span className="text-xs text-muted">What you learn in sessions shapes the program</span>}>
+              <CoachNotes clientId={client.id} planId={plan && plan.status !== "archived" ? plan.id : null} notes={IntakeAnswersSchema.parse(intake.answers).coach_notes} exercises={exerciseNames} />
             </Card>
           )}
           {goal && (

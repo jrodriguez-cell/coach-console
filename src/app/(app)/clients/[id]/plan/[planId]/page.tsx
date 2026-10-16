@@ -36,6 +36,7 @@ import { SessionResults, type ResultExercise } from "@/components/session-result
 import { AddExercise, ExerciseActions } from "@/components/swap-exercise";
 import { SkillGoalControl } from "@/components/skill-goal-control";
 import { ClientDetailsCard } from "@/components/client-details-card";
+import { CoachNotes } from "@/components/coach-notes";
 
 export const dynamic = "force-dynamic";
 
@@ -96,6 +97,11 @@ export default async function PlanPage({ params, searchParams }: { params: { id:
           )}
 
           {intake && plan.status !== "archived" && <ClientDetailsCard planId={plan.id} answers={IntakeAnswersSchema.parse(intake.answers)} purpose={client.purpose_text} goal={client.goal_category} />}
+          {intake && plan.status !== "archived" && (
+            <Card title="Coach notes" actions={<span className="text-xs text-muted">What you learn in sessions shapes the program</span>}>
+              <CoachNotes clientId={client.id} planId={plan.id} notes={IntakeAnswersSchema.parse(intake.answers).coach_notes} exercises={(await loadExercises(db)).map((e) => e.name)} />
+            </Card>
+          )}
           <GuardrailPanel plan={plan} overrides={overrides} editable={editable} />
           <Overview plan={plan} editable={editable} clientId={client.id} purpose={client.purpose_text} intakeGoal={intake?.answers.primary_goal} program={intake ? programDefaults(plan.goal_category, intake.answers, plan.parameters, client.purpose_text) : undefined} />
         </>

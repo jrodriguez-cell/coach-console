@@ -10,13 +10,15 @@ import { DEFAULT_PLAN_WEEKS, PHASES } from "@/config/training-variables";
 import { buildEnergyModel, describePrediction, inToCm, lbToKg, type EnergyOutputs, type ExerciseLoad } from "./energy";
 import { allowedFoods, buildExampleDays, foodLists, groceryStaples, swapTable } from "./example-days";
 import { evaluateGuardrails, type GuardrailResult } from "./guardrails";
-import { blockedSections, IntakeAnswersSchema, isDeconditioned, REFER_OUT_FLAGS, type IntakeAnswers, type ReferOutFlags, type ReferralHandling } from "./intake";
+import { blockedSections, IntakeAnswersSchema, isDeconditioned, REFER_OUT_FLAGS, type CoachNote, type IntakeAnswers, type ReferOutFlags, type ReferralHandling } from "./intake";
 import { computeMacroTargets, withEditedMacros, type MacroTargets } from "./nutrition";
 import type { GeneratedPlan, LibExercise, LibFood, NutritionPlan, PlanParameters, TrainingPlan } from "./plan-types";
 import { assembleTraining, buildSkeleton, defaultPhaseSequence, defaultSelection, exerciseLoadsForWeek, recomputeWeekMinutes, SPLIT_LABELS, type CandidateFilter } from "./training";
 import { chooseProgram, phaseHint, suggestFocus, type ProgramChoice } from "./program-design";
 import { FOCUS_LABELS, type Focus } from "@/config/program-styles";
 import { detectSkill, SKILLS, type SkillKey } from "@/config/skills";
+import { MOBILITY, WEAKNESSES, type MobilityArea, type WeakMovement } from "@/config/coach-notes";
+import { applyCoachNotes, regressMovement } from "./program-edit";
 import type { Selector } from "./selection";
 
 export interface ClearanceContext {
@@ -134,6 +136,17 @@ export function applyRpeCeiling(t: TrainingPlan, ceiling: number | null | undefi
       ),
     })),
   };
+}
+
+/** One line per coach note, for the exercise selector and the plan. */
+export function noteSummary(n: CoachNote): string {
+  const what =
+    n.kind === "preference" ? `${n.stance === "like" ? "Likes" : "Avoid"}: ${n.exercise_name}`
+    : n.kind === "weakness" ? `Weakness: ${n.movement ? WEAKNESSES[n.movement as WeakMovement]?.label ?? n.movement : ""}`
+    : n.kind === "mobility" ? `Mobility: ${n.mobility ? MOBILITY[n.mobility as MobilityArea]?.label ?? n.mobility : ""}`
+    : n.kind === "pain" ? `Pain: ${n.area ?? ""}`
+    : "Note";
+  return n.text ? `${what} (${n.text})` : what;
 }
 
 /** PAR-Q flagged and no physician clearance received yet (pending or not recorded). */
@@ -367,6 +380,7 @@ export async function generatePlan(ctx: GeneratorContext, overrides: Partial<Pla
       focus: sk.focus.map((f) => FOCUS_LABELS[f]),
       ...(sk.skill ? { skill_goal: SKILLS[sk.skill].label } : {}),
       ...(ctx.guidance?.trim() ? { trainer_guidance: ctx.guidance.trim() } : {}),
+      ...(a.coach_notes.some((n) => n.active) ? { coach_notes: a.coach_notes.filter((n) => n.active).map(noteSummary) } : {}),
       phases: params.phase_sequence.map((p) => PHASES[p].label),
     });
     training = assembleTraining(sk, sel.choices, ctx.exercises, {
@@ -384,6 +398,13 @@ export async function generatePlan(ctx: GeneratorContext, overrides: Partial<Pla
     });
     training = applyRpeCeiling(training, ctx.clearance?.rpe_ceiling);
     if (awaitingClearance) training = holdForClearance(training);
+    // What the trainer has learned in sessions: corrective work, mobility drills, easier main lifts.
+    const active = a.coach_notes.filter((n) => n.active);
+    if (active.length) {
+      const ectx = { lib: ctx.exercises, filter, level: a.training_history };
+      training = applyCoachNotes(training, ectx, active).training;
+      for (const n of active) if (n.kind === "weakness" && n.regress && n.movement) training = regressMovement(training, ectx, n.movement as WeakMovement).training;
+    }
   }
 
   const d = deriveNutrition(ctx, params, training);

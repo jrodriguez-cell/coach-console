@@ -35,6 +35,30 @@ export const BaselineExerciseSchema = z.object({
   minutes: num(0, 300),
 });
 
+/** Something the trainer learned during training that should shape the program. */
+export const CoachNoteSchema = z.object({
+  id: z.string(),
+  date: z.string(),
+  kind: z.enum(["preference", "weakness", "mobility", "pain", "other"]),
+  text: z.string().max(600).default(""),
+  /** preference: like or avoid an exercise */
+  stance: z.enum(["like", "avoid"]).optional(),
+  exercise_name: z.string().max(120).optional(),
+  /** weakness: movement (src/config/coach-notes.ts) */
+  movement: z.string().max(40).optional(),
+  /** weakness: also step the main lift down one level */
+  regress: z.boolean().optional(),
+  /** mobility: area (src/config/coach-notes.ts) */
+  mobility: z.string().max(40).optional(),
+  /** pain: body area (contraindication tag) */
+  area: z.enum(CONTRAINDICATION_TAGS).optional(),
+  /** the dislike or injury area was already on file before this note (kept when resolved) */
+  preexisting: z.boolean().optional(),
+  active: z.boolean().default(true),
+  resolved_at: z.string().nullable().optional(),
+});
+export type CoachNote = z.infer<typeof CoachNoteSchema>;
+
 export const IntakeAnswersSchema = z.object({
   // Status
   age: num(14, 100),
@@ -68,6 +92,8 @@ export const IntakeAnswersSchema = z.object({
   // Preferences
   exercise_likes: z.string().max(1000).default(""),
   exercise_dislikes: z.array(z.string().max(80)).default([]),
+  /** things learned during training (preferences, weaknesses, mobility, pain) */
+  coach_notes: z.array(CoachNoteSchema).default([]),
   cardio_preferences: z.string().max(500).default(""),
   // Nutrition preferences
   dietary_pattern: z.enum(DIETARY_PATTERNS).default("omnivore"),
